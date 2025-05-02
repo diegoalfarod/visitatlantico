@@ -23,31 +23,30 @@ import Footer from "@/components/Footer";
 import DestinationActions from "@/components/DestinationActions";
 import RelatedDestinations from "@/components/RelatedDestinations";
 
-/* ---------- tipo único ---------- */
-type DestPageProps = { params: { id: string } };
-
-/* ---------- página ---------- */
-export default async function DestinationDetail({ params }: DestPageProps) {
+/* ---------- Página ---------- */
+export default async function DestinationDetail({
+  params,
+}: {
+  params: { id: string };
+}) {
   const { id } = params;
 
-  /* 1. datos de Firestore */
+  /* 1 · Datos de Firestore */
   const snap = await getDoc(doc(db, "destinations", id));
   if (!snap.exists()) notFound();
   const d = snap.data();
 
-  /* 2. imagen (si existe) */
-  const raw = d.imagePath ?? "";
-  const normalized = raw.replace(/^\/+/, "");
+  /* 2 · Imagen principal */
   let imageUrl = "";
-  if (normalized) {
+  if (d.imagePath) {
     try {
-      imageUrl = await getDownloadURL(ref(storage, normalized));
+      imageUrl = await getDownloadURL(ref(storage, d.imagePath.replace(/^\/+/, "")));
     } catch (e) {
-      console.error("Error imagen:", e);
+      console.error("Error obteniendo imagen:", e);
     }
   }
 
-  /* 3. auxiliares */
+  /* 3 · Auxiliares */
   const categoriesList = Array.isArray(d.categories)
     ? d.categories.join(", ")
     : d.categories ?? "";
@@ -60,12 +59,12 @@ export default async function DestinationDetail({ params }: DestPageProps) {
     d.address
   )}`;
 
-  /* ---------- render ---------- */
+  /* ---------- Render ---------- */
   return (
     <div className="bg-white dark:bg-gray-900 min-h-screen flex flex-col">
       <Navbar />
 
-      {/* hero */}
+      {/* HERO */}
       <div className="relative h-[70vh] w-full overflow-hidden">
         {imageUrl ? (
           <>
@@ -76,7 +75,6 @@ export default async function DestinationDetail({ params }: DestPageProps) {
               fill
               className="object-cover"
               priority
-              quality={90}
               unoptimized
             />
             <div className="absolute bottom-0 left-0 w-full h-24 bg-gradient-to-t from-black/70 to-transparent z-10" />
@@ -85,7 +83,7 @@ export default async function DestinationDetail({ params }: DestPageProps) {
           <div className="w-full h-full bg-gradient-to-r from-indigo-600 to-purple-600" />
         )}
         <div className="absolute inset-0 z-20 flex flex-col justify-end p-8 md:p-16 text-white">
-          <div className="max-w-5xl mx-auto w-full">
+          <div className="max-w-5xl mx-auto">
             {firstCategory && (
               <span className="bg-primary/80 px-3 py-1 rounded-full text-xs font-medium">
                 {firstCategory}
@@ -101,18 +99,18 @@ export default async function DestinationDetail({ params }: DestPageProps) {
         </div>
       </div>
 
-      {/* barra rápida */}
+      {/* BARRA RÁPIDA */}
       <div className="sticky top-16 z-30 bg-white/90 dark:bg-gray-900/90 backdrop-blur-md border-b border-gray-200 dark:border-gray-800 shadow-sm">
         <div className="max-w-5xl mx-auto flex items-center justify-between h-16 px-4 md:px-8">
           <div className="flex items-center gap-2">
             <Link
               href="/destinations"
-              className="inline-flex items-center text-sm text-gray-600 dark:text-gray-300 hover:text-primary dark:hover:text-primary transition-colors px-3 py-1"
+              className="inline-flex items-center text-sm text-gray-600 dark:text-gray-300 hover:text-primary transition-colors px-3 py-1"
             >
               <ArrowLeft className="w-4 h-4 mr-1" /> Destinos
             </Link>
             <span className="text-gray-300 dark:text-gray-700">|</span>
-            <span className="text-sm font-medium truncate max-w-[200px] text-gray-900 dark:text-white">
+            <span className="text-sm font-medium truncate max-w-[200px]">
               {d.name}
             </span>
           </div>
@@ -120,13 +118,13 @@ export default async function DestinationDetail({ params }: DestPageProps) {
         </div>
       </div>
 
-      {/* contenido */}
+      {/* CONTENIDO */}
       <main className="flex-1 py-8 md:py-12">
         <div className="max-w-5xl mx-auto px-4 md:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* izquierda */}
+            {/* Columna izquierda */}
             <div className="lg:col-span-2 space-y-8">
-              {/* descripción */}
+              {/* Descripción */}
               <section className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
                 <header className="px-6 py-5 border-b border-gray-100 dark:border-gray-700">
                   <h2 className="text-2xl font-bold">Sobre este lugar</h2>
@@ -138,7 +136,7 @@ export default async function DestinationDetail({ params }: DestPageProps) {
                 </div>
               </section>
 
-              {/* galería */}
+              {/* Galería */}
               <section className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
                 <header className="px-6 py-5 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center">
                   <h2 className="text-2xl font-bold">Fotos y videos</h2>
@@ -166,9 +164,10 @@ export default async function DestinationDetail({ params }: DestPageProps) {
               </section>
             </div>
 
-            {/* derecha */}
+            {/* Columna derecha */}
             <div className="lg:col-span-1 space-y-4">
               <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden sticky top-36">
+                {/* Información */}
                 <header className="px-6 py-5 border-b border-gray-100 dark:border-gray-700">
                   <h2 className="text-xl font-bold">Información</h2>
                 </header>
@@ -242,7 +241,7 @@ export default async function DestinationDetail({ params }: DestPageProps) {
           </div>
         </div>
 
-        {/* relacionados */}
+        {/* Relacionados */}
         <RelatedDestinations category={firstCategory} currentId={id} />
       </main>
 
@@ -251,7 +250,7 @@ export default async function DestinationDetail({ params }: DestPageProps) {
   );
 }
 
-/* ---------- InfoRow helper ---------- */
+/* ---------- Helper InfoRow ---------- */
 function InfoRow({
   icon,
   children,
