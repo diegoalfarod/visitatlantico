@@ -1,0 +1,113 @@
+[
+    {
+      "title": "Comerse un raspao’ en el Paseo Bolívar",
+      "description": "Imagina caminar bajo el sol ardiente de Barranquilla, con el bullicio de vendedores ambulantes, carros que pasan tocando bocina y la brisa costeña que apenas refresca. De pronto lo ves: un carrito colorido, con una sombrilla que apenas da sombra, y un señor que grita '¡raspaooo bien frío!' mientras raspa con energía un gran bloque de hielo. Te acercas, eliges entre sabores como tamarindo, limón, kola román o fresa, y lo ves preparar el tuyo con leche condensada y amor. No es solo un raspado, es una tradición, un recuerdo congelado de la infancia caribeña. Comer un raspao’ en el Paseo Bolívar no es solo refrescarse, es conectarse con la ciudad y con sus historias urbanas.",
+      "category": "Gastronomía",
+      "image": "https://firebasestorage.googleapis.com/v0/b/visitatlantico.appspot.com/o/experiences%2Fraspado.jpg?alt=media",
+      "type": "experience",
+      "coordinates": {
+        "lat": 10.9794,
+        "lng": -74.7892
+      }
+    },
+    {
+      "title": "Ver el atardecer desde Puerto Colombia",
+      "description": "Puerto Colombia no es solo historia y mar: es un portal al romanticismo caribeño. Al caer la tarde, los tonos anaranjados y rosados bañan el cielo, y el viejo muelle —testigo de tantas despedidas y encuentros— se llena de siluetas en contemplación. Allí, con los pies colgando sobre el agua o caminando por la orilla, el visitante puede entender por qué tantos poetas se han inspirado en el Caribe. El murmullo del mar, el aroma a sal y el sonido lejano de una guitarra crean una escena perfecta para enamorarse, pensar o simplemente dejarse llevar.",
+      "category": "Playas",
+      "image": "https://firebasestorage.googleapis.com/v0/b/visitatlantico.appspot.com/o/experiences%2Fpuerto-colombia.jpg?alt=media",
+      "type": "experience",
+      "coordinates": {
+        "lat": 11.0159,
+        "lng": -74.878
+      }
+    },
+    {
+      "title": "Recorrer el mercado de Sabanalarga",
+      "description": "Sumérgete en los olores y sabores del mercado de Sabanalarga. Prueba frutas exóticas, escucha acentos sabrosos y compra arepas de queso recién hechas. Aquí la vida ocurre sin filtros, al ritmo del machete y el regateo.",
+      "category": "Cultura",
+      "image": "https://firebasestorage.googleapis.com/v0/b/visitatlantico.appspot.com/o/experiences%2Fsabanalarga-mercado.jpg?alt=media",
+      "type": "experience",
+      "coordinates": {
+        "lat": 10.6374,
+        "lng": -74.9234
+      }
+    },
+    {
+      "title": "Bailar cumbia en Galapa",
+      "description": "Galapa no solo es cuna de artesanos, también es hogar del ritmo. Durante sus fiestas locales puedes bailar cumbia en las calles al ritmo de tambores y flautas. ¡No importa si no sabes bailar, aquí todos aprenden con alegría!",
+      "category": "Cultura",
+      "image": "https://firebasestorage.googleapis.com/v0/b/visitatlantico.appspot.com/o/experiences%2Fgalapa-cumbia.jpg?alt=media",
+      "type": "experience",
+      "coordinates": {
+        "lat": 10.9129,
+        "lng": -74.8931
+      }
+    },
+    {
+      "title": "Navegar en la Ciénaga del Totumo",
+      "description": "Alquila una canoa y navega entre manglares y aves en la Ciénaga del Totumo. Es un plan ecológico donde el silencio solo se rompe por el sonido del remo y los cantos de la naturaleza.",
+      "category": "EcoTurismo",
+      "image": "https://firebasestorage.googleapis.com/v0/b/visitatlantico.appspot.com/o/experiences%2Ftotumo-canoas.jpg?alt=media",
+      "type": "experience",
+      "coordinates": {
+        "lat": 10.7303,
+        "lng": -74.9422
+      }
+    },
+    {
+      "title": "Armar tu mochila Wayuu en Usiacurí",
+      "description": "En Usiacurí puedes aprender de las tejedoras cómo se hace una auténtica mochila Wayuu. Entre historias, colores y cultura viva, te llevas algo más que un souvenir: una experiencia con alma.",
+      "category": "Artesanías",
+      "image": "https://firebasestorage.googleapis.com/v0/b/visitatlantico.appspot.com/o/experiences%2Fusiacuri-wayuu.jpg?alt=media",
+      "type": "experience",
+      "coordinates": {
+        "lat": 10.7414,
+        "lng": -74.9763
+      }
+    },
+    {
+      "title": "Desayunar arepa de huevo en Baranoa",
+      "description": "Levántate temprano y haz fila en una esquina de Baranoa donde venden la arepa de huevo más crocante del Atlántico. Entre sorbos de café y chismes del pueblo, comienza el día como un verdadero barranquillero.",
+      "category": "Gastronomía",
+      "image": "https://firebasestorage.googleapis.com/v0/b/visitatlantico.appspot.com/o/experiences%2Fbaranoa-arepa.jpg?alt=media",
+      "type": "experience",
+      "coordinates": {
+        "lat": 10.7946,
+        "lng": -74.9121
+      }
+    },
+    {
+      "title": "Tomar guarapo helado en Malambo",
+      "description": "El calor aprieta en Malambo, pero no hay nada que un guarapo helado no solucione. Azúcar de caña, hielo y limón directo del carrito de esquina. Refrescante, natural y con sabor a Caribe.",
+      "category": "Gastronomía",
+      "image": "https://firebasestorage.googleapis.com/v0/b/visitatlantico.appspot.com/o/experiences%2Fmalambo-guarapo.jpg?alt=media",
+      "type": "experience",
+      "coordinates": {
+        "lat": 10.8595,
+        "lng": -74.7747
+      }
+    },
+    {
+      "title": "Hacer picnic en el Parque Muvdi",
+      "description": "El Parque Muvdi es uno de los pulmones verdes más grandes del área metropolitana. Lleva tu mantel, una bola de queso costeño y unos panes aliñados. Ideal para familias y desconexión total.",
+      "category": "Naturaleza",
+      "image": "https://firebasestorage.googleapis.com/v0/b/visitatlantico.appspot.com/o/experiences%2Fmuvdi-picnic.jpg?alt=media",
+      "type": "experience",
+      "coordinates": {
+        "lat": 10.8813,
+        "lng": -74.8019
+      }
+    },
+    {
+      "title": "Visitar el Museo del Carnaval",
+      "description": "Ubicado en el corazón de Barranquilla, este museo te lleva por la historia, la música y los trajes del Carnaval. Ideal para entender por qué la gente aquí vive con tanta alegría todo el año.",
+      "category": "Cultura",
+      "image": "https://firebasestorage.googleapis.com/v0/b/visitatlantico.appspot.com/o/experiences%2Fcarnaval-museo.jpg?alt=media",
+      "type": "experience",
+      "coordinates": {
+        "lat": 10.9689,
+        "lng": -74.7829
+      }
+    }
+  ]
+  

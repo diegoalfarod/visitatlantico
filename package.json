@@ -6,22 +6,50 @@
     "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "geocode": "node scripts/geocodeDestinations.js"
   },
   "dependencies": {
+    "@mapbox/mapbox-gl-directions": "^4.3.1",
+    "@next/font": "^14.2.15",
+    "@tailwindcss/line-clamp": "^0.4.4",
+    "@types/mapbox-gl": "^3.4.1",
+    "axios": "^1.9.0",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "csvtojson": "^2.0.10",
+    "dotenv": "^16.5.0",
+    "firebase": "^11.6.1",
+    "firebase-admin": "^13.3.0",
+    "framer-motion": "^12.9.2",
+    "html2canvas": "^1.4.1",
+    "jspdf": "^3.0.1",
+    "lucide-react": "^0.503.0",
+    "mapbox-gl": "^3.11.1",
+    "next": "15.3.1",
+    "node-fetch": "^3.3.2",
+    "openai": "^4.96.1",
     "react": "^19.0.0",
+    "react-dnd": "^16.0.1",
+    "react-dnd-html5-backend": "^16.0.1",
     "react-dom": "^19.0.0",
-    "next": "15.3.1"
+    "react-icons": "^5.5.0",
+    "react-transition-group": "^4.4.5",
+    "tailwind-merge": "^3.2.0"
   },
   "devDependencies": {
-    "typescript": "^5",
-    "@types/node": "^20",
+    "@eslint/eslintrc": "^3",
+    "@tailwindcss/postcss": "^4",
+    "@types/jspdf": "^1.3.3",
+    "@types/node": "^20.17.32",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "@tailwindcss/postcss": "^4",
-    "tailwindcss": "^4",
+    "@types/react-transition-group": "^4.4.12",
     "eslint": "^9",
     "eslint-config-next": "15.3.1",
-    "@eslint/eslintrc": "^3"
+    "tailwindcss": "^4.1.4",
+    "ts-node": "^10.9.2",
+    "tw-animate-css": "^1.2.8",
+    "typescript": "^5.8.3"
   }
 }
