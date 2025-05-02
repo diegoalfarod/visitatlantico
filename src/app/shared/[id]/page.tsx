@@ -2,39 +2,52 @@
 import { notFound } from "next/navigation";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
+
 import ItineraryMap from "@/components/ItineraryMap";
 import ItineraryTimeline from "@/components/ItineraryTimeline";
 import type { Stop } from "@/components/ItineraryStopCard";
+
 import { MapPin, Clock, Calendar } from "lucide-react";
-import { Metadata } from "next";
+import type { Metadata } from "next";
 
 export const dynamic = "force-dynamic";
 
-interface Props {
+/* ---------- Tipos ---------- */
+type SharedPageProps = {
   params: { id: string };
-}
+};
 
+// ...
+/* ---------- Metadatos ---------- */
 export async function generateMetadata(): Promise<Metadata> {
+    return {
+      title: "Itinerario compartido | Atlántico",
+      description: "Explora este itinerario turístico en el Atlántico, Colombia.",
+    };
+  }
+  // ...
+  
 
-  return {
-    title: `Itinerario compartido | Atlántico`,
-    description: `Explora este itinerario turístico en el Atlántico, Colombia.`,
-  };
-}
-
-export default async function SharedItineraryPage({ params }: Props) {
+/* ---------- Página principal ---------- */
+export default async function SharedItineraryPage({
+  params,
+}: SharedPageProps) {
   const ref = doc(db, "sharedItineraries", params.id);
   const snap = await getDoc(ref);
 
-  if (!snap.exists()) return notFound();
+  if (!snap.exists()) notFound();
 
-  const data = snap.data();
-  const itinerary = data?.itinerary as Stop[];
+  const itinerary = (snap.get("itinerary") as Stop[]) ?? [];
 
   if (!Array.isArray(itinerary) || itinerary.length === 0) {
-    return <div className="text-center mt-20 text-xl">Itinerario no disponible.</div>;
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p className="text-xl text-gray-600">Itinerario no disponible.</p>
+      </div>
+    );
   }
 
+  /* Agrupar paradas en un solo día (extiende lógica según necesidad) */
   const days = 1;
   const grouped = Array.from({ length: days }, (_, i) => {
     const size = Math.ceil(itinerary.length / days);
@@ -43,14 +56,18 @@ export default async function SharedItineraryPage({ params }: Props) {
 
   return (
     <main className="min-h-screen bg-gradient-to-b from-blue-50 to-red-50 pb-16">
-      <div className="bg-gradient-to-r from-red-600 to-red-800 text-white py-16">
+      {/* Hero */}
+      <header className="bg-gradient-to-r from-red-600 to-red-800 text-white py-16">
         <div className="max-w-3xl mx-auto text-center px-6">
           <h1 className="text-4xl font-bold mb-2">Itinerario Turístico</h1>
-          <p className="text-xl text-white/80">Una aventura compartida desde Atlántico, Colombia</p>
+          <p className="text-xl text-white/80">
+            Una aventura compartida desde Atlántico, Colombia
+          </p>
         </div>
-      </div>
+      </header>
 
-      <div className="max-w-4xl mx-auto px-4 mt-10 space-y-12">
+      <section className="max-w-4xl mx-auto px-4 mt-10 space-y-12">
+        {/* Resumen + Mapa */}
         <div className="bg-white p-8 rounded-3xl shadow-xl grid md:grid-cols-2 gap-8">
           <div>
             <h2 className="text-3xl font-semibold mb-4">Paradas</h2>
@@ -76,16 +93,17 @@ export default async function SharedItineraryPage({ params }: Props) {
           </div>
         </div>
 
+        {/* Línea de tiempo por día */}
         {grouped.map((dayStops, idx) => (
           <div
-            key={idx}
+            key={`day-${idx}`}
             className="bg-white p-8 rounded-3xl shadow-xl"
           >
             <h3 className="text-2xl font-semibold mb-6">Día {idx + 1}</h3>
             <ItineraryTimeline stops={dayStops} />
           </div>
         ))}
-      </div>
+      </section>
     </main>
   );
 }
