@@ -1,5 +1,4 @@
 // src/app/destinations/[id]/page.tsx
-
 import { notFound } from "next/navigation";
 import { doc, getDoc } from "firebase/firestore";
 import { ref, getDownloadURL } from "firebase/storage";
@@ -22,16 +21,19 @@ import Footer from "@/components/Footer";
 import DestinationActions from "@/components/DestinationActions";
 import RelatedDestinations from "@/components/RelatedDestinations";
 
-interface Props {
+export default async function DestinationDetail({
+  params,
+}: {
   params: { id: string };
-}
-
-export default async function DestinationDetail({ params }: Props) {
+}) {
   const { id } = params;
+
+  // 1. Cargar datos de Firestore
   const snap = await getDoc(doc(db, "destinations", id));
   if (!snap.exists()) notFound();
-
   const d = snap.data();
+
+  // 2. Obtener URL de imagen (si existe)
   const rawPath = d.imagePath ?? "";
   const normalized = rawPath.replace(/^\/+/, "");
   let imageUrl = "";
@@ -43,6 +45,7 @@ export default async function DestinationDetail({ params }: Props) {
     }
   }
 
+  // 3. Datos auxiliares
   const categoriesList = Array.isArray(d.categories)
     ? d.categories.join(", ")
     : d.categories ?? "";
@@ -57,11 +60,12 @@ export default async function DestinationDetail({ params }: Props) {
     d.address
   )}`;
 
+  // 4. Render
   return (
     <div className="bg-white dark:bg-gray-900 min-h-screen flex flex-col">
       <Navbar />
 
-      {/* Hero Section */}
+      {/* Hero */}
       <div className="relative h-[70vh] w-full overflow-hidden">
         {imageUrl ? (
           <>
@@ -87,7 +91,7 @@ export default async function DestinationDetail({ params }: Props) {
                 {firstCategory}
               </span>
             )}
-            <h1 className="text-5xl md:text-6xl font-bold text-white mt-4 mb-2">
+            <h1 className="text-5xl md:text-6xl font-bold mt-4 mb-2">
               {d.name}
             </h1>
             <p className="text-xl md:text-2xl font-light max-w-2xl text-gray-100">
@@ -108,29 +112,27 @@ export default async function DestinationDetail({ params }: Props) {
               <ArrowLeft className="w-4 h-4 mr-1" /> Destinos
             </Link>
             <span className="text-gray-300 dark:text-gray-700">|</span>
-            <span className="text-sm font-medium text-gray-900 dark:text-white truncate max-w-[200px]">
+            <span className="text-sm font-medium truncate max-w-[200px] text-gray-900 dark:text-white">
               {d.name}
             </span>
           </div>
-          <div className="flex gap-1">
-            <DestinationActions name={d.name} />
-          </div>
+          <DestinationActions name={d.name} />
         </div>
       </div>
 
-      {/* Main Content */}
+      {/* Main */}
       <main className="flex-1 py-8 md:py-12">
         <div className="max-w-5xl mx-auto px-4 md:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* Left Column */}
+            {/* Left column */}
             <div className="lg:col-span-2 space-y-8">
-              {/* About Section */}
+              {/* About */}
               <section className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
-                <div className="px-6 py-5 border-b border-gray-100 dark:border-gray-700">
+                <header className="px-6 py-5 border-b border-gray-100 dark:border-gray-700">
                   <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
                     Sobre este lugar
                   </h2>
-                </div>
+                </header>
                 <div className="p-6">
                   <p className="text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-line">
                     {d.description}
@@ -138,16 +140,16 @@ export default async function DestinationDetail({ params }: Props) {
                 </div>
               </section>
 
-              {/* Media Section */}
+              {/* Media */}
               <section className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
-                <div className="px-6 py-5 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center">
+                <header className="px-6 py-5 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center">
                   <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
                     Fotos y videos
                   </h2>
                   <button className="text-primary hover:underline text-sm font-medium flex items-center">
                     <Camera className="w-4 h-4 mr-1" /> Ver galería completa
                   </button>
-                </div>
+                </header>
                 <div className="p-6">
                   <div className="aspect-video bg-gray-100 dark:bg-gray-700 rounded-xl flex items-center justify-center text-gray-500 dark:text-gray-400 overflow-hidden relative">
                     {imageUrl ? (
@@ -200,116 +202,91 @@ export default async function DestinationDetail({ params }: Props) {
               </section>
             </div>
 
-            {/* Right Column Info Card */}
+            {/* Right column */}
             <div className="lg:col-span-1 space-y-4">
               <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden sticky top-36">
-                <div className="px-6 py-5 border-b border-gray-100 dark:border-gray-700">
+                <header className="px-6 py-5 border-b border-gray-100 dark:border-gray-700">
                   <h2 className="text-xl font-bold text-gray-900 dark:text-white">
                     Información
                   </h2>
-                </div>
+                </header>
                 <div className="divide-y divide-gray-100 dark:divide-gray-700">
-                  <div className="px-6 py-4 flex items-start gap-4">
-                    <div className="bg-primary/10 p-3 rounded-full">
-                      <MapPin className="w-5 h-5 text-primary" />
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-500 dark:text-gray-400">
-                        Dirección
-                      </p>
-                      <a
-                        href={mapsUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-base font-medium text-primary hover:underline"
-                      >
-                        {d.address}
-                      </a>
-                    </div>
-                  </div>
+                  {/* Dirección */}
+                  <InfoRow icon={<MapPin className="w-5 h-5 text-primary" />}>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                      Dirección
+                    </p>
+                    <a
+                      href={mapsUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-base font-medium text-primary hover:underline"
+                    >
+                      {d.address}
+                    </a>
+                  </InfoRow>
 
-                  <div className="px-6 py-4 flex items-start gap-4">
-                    <div className="bg-primary/10 p-3 rounded-full">
-                      <Clock className="w-5 h-5 text-primary" />
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-500 dark:text-gray-400">
-                        Horario
-                      </p>
-                      <p className="text-base font-medium text-gray-900 dark:text-white">
-                        {d.openingTime || "Todos los días, 9:00 - 18:00"}
-                      </p>
-                    </div>
-                  </div>
+                  {/* Horario */}
+                  <InfoRow icon={<Clock className="w-5 h-5 text-primary" />}>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                      Horario
+                    </p>
+                    <p className="text-base font-medium text-gray-900 dark:text-white">
+                      {d.openingTime || "Todos los días, 9:00 - 18:00"}
+                    </p>
+                  </InfoRow>
 
-                  <div className="px-6 py-4 flex items-start gap-4">
-                    <div className="bg-primary/10 p-3 rounded-full">
-                      <Phone className="w-5 h-5 text-primary" />
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-500 dark:text-gray-400">
-                        Teléfono
-                      </p>
-                      <a
-                        href={`tel:${d.phone}`}
-                        className="text-base font-medium text-gray-900 dark:text-white"
-                      >
-                        {d.phone}
-                      </a>
-                    </div>
-                  </div>
+                  {/* Teléfono */}
+                  <InfoRow icon={<Phone className="w-5 h-5 text-primary" />}>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                      Teléfono
+                    </p>
+                    <a
+                      href={`tel:${d.phone}`}
+                      className="text-base font-medium text-gray-900 dark:text-white"
+                    >
+                      {d.phone}
+                    </a>
+                  </InfoRow>
 
-                  <div className="px-6 py-4 flex items-start gap-4">
-                    <div className="bg-primary/10 p-3 rounded-full">
-                      <Mail className="w-5 h-5 text-primary" />
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-500 dark:text-gray-400">
-                        Email
-                      </p>
-                      <a
-                        href={`mailto:${d.email}`}
-                        className="text-base font-medium text-primary hover:underline"
-                      >
-                        {d.email}
-                      </a>
-                    </div>
-                  </div>
+                  {/* Email */}
+                  <InfoRow icon={<Mail className="w-5 h-5 text-primary" />}>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                      Email
+                    </p>
+                    <a
+                      href={`mailto:${d.email}`}
+                      className="text-base font-medium text-primary hover:underline"
+                    >
+                      {d.email}
+                    </a>
+                  </InfoRow>
 
-                  <div className="px-6 py-4 flex items-start gap-4">
-                    <div className="bg-primary/10 p-3 rounded-full">
-                      <Globe className="w-5 h-5 text-primary" />
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-500 dark:text-gray-400">
-                        Sitio Web
-                      </p>
-                      <a
-                        href={d.website}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-base font-medium text-primary hover:underline"
-                      >
-                        {d.website}
-                      </a>
-                    </div>
-                  </div>
+                  {/* Website */}
+                  <InfoRow icon={<Globe className="w-5 h-5 text-primary" />}>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                      Sitio Web
+                    </p>
+                    <a
+                      href={d.website}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-base font-medium text-primary hover:underline"
+                    >
+                      {d.website}
+                    </a>
+                  </InfoRow>
 
-                  <div className="px-6 py-4 flex items-start gap-4">
-                    <div className="bg-primary/10 p-3 rounded-full">
-                      <Tag className="w-5 h-5 text-primary" />
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-500 dark:text-gray-400">
-                        Categorías
-                      </p>
-                      <p className="text-base font-medium text-gray-900 dark:text-white">
-                        {categoriesList}
-                      </p>
-                    </div>
-                  </div>
+                  {/* Categorías */}
+                  <InfoRow icon={<Tag className="w-5 h-5 text-primary" />}>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                      Categorías
+                    </p>
+                    <p className="text-base font-medium text-gray-900 dark:text-white">
+                      {categoriesList}
+                    </p>
+                  </InfoRow>
                 </div>
-
                 <div className="p-6 bg-gray-50 dark:bg-gray-700/50">
                   <a
                     href={mapsUrl}
@@ -325,11 +302,27 @@ export default async function DestinationDetail({ params }: Props) {
           </div>
         </div>
 
-        {/* Related Destinations */}
+        {/* Related */}
         <RelatedDestinations category={firstCategory} currentId={id} />
       </main>
 
       <Footer />
+    </div>
+  );
+}
+
+/* ---------- Helpers ---------- */
+function InfoRow({
+  icon,
+  children,
+}: {
+  icon: React.ReactNode;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="px-6 py-4 flex items-start gap-4">
+      <div className="bg-primary/10 p-3 rounded-full">{icon}</div>
+      <div className="space-y-0.5">{children}</div>
     </div>
   );
 }
