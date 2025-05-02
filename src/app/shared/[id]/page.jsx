@@ -4,18 +4,12 @@ import { db } from "@/lib/firebase";
 
 import ItineraryMap from "@/components/ItineraryMap";
 import ItineraryTimeline from "@/components/ItineraryTimeline";
-import type { Stop } from "@/components/ItineraryStopCard";
 
 import { MapPin, Clock, Calendar } from "lucide-react";
-import type { Metadata } from "next";
 
 export const dynamic = "force-dynamic";
 
-/* ---------- Tipo único ---------- */
-type SharedPageProps = { params: { id: string } };
-
-/* ---------- Metadatos ---------- */
-export async function generateMetadata(): Promise<Metadata> {
+export async function generateMetadata() {
   return {
     title: "Itinerario compartido | Atlántico",
     description:
@@ -23,24 +17,24 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
-/* ---------- Página ---------- */
-export default async function SharedItineraryPage({
-  params,
-}: SharedPageProps) {
-  const snap = await getDoc(
-    doc(db, "sharedItineraries", params.id)
-  );
+export default async function SharedItineraryPage({ params }) {
+  const { id } = params;
 
+  const snap = await getDoc(doc(db, "sharedItineraries", id));
   if (!snap.exists()) notFound();
 
-  const itinerary = (snap.get("itinerary") as Stop[]) ?? [];
-  if (itinerary.length === 0) {
+  const itinerary = snap.get("itinerary") || [];
+  if (!Array.isArray(itinerary) || itinerary.length === 0) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <p className="text-xl text-gray-600">Itinerario no disponible.</p>
       </div>
     );
   }
+
+  const totalHours = Math.round(
+    itinerary.reduce((sum, stop) => sum + (stop.durationMinutes || 0), 0) / 60
+  );
 
   return (
     <main className="min-h-screen bg-gradient-to-b from-blue-50 to-red-50 pb-16">
@@ -67,11 +61,7 @@ export default async function SharedItineraryPage({
                 <MapPin /> {itinerary.length} paradas
               </span>
               <span className="flex items-center gap-2">
-                <Clock />{" "}
-                {Math.round(
-                  itinerary.reduce((s, t) => s + t.durationMinutes, 0) / 60
-                )}{" "}
-                h
+                <Clock /> {totalHours} h
               </span>
             </div>
           </div>

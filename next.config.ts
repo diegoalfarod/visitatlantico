@@ -1,14 +1,8 @@
-// next.config.js
-
-import type { NextConfig } from "next";
-
-const nextConfig: NextConfig = {
+/** @type {import('next').NextConfig} */
+const nextConfig = {
   reactStrictMode: true,
-  swcMinify: true,
   images: {
-    // Permite servir imágenes desde Firebase Storage
     domains: ["firebasestorage.googleapis.com"],
-    // En Next.js 13.4+ puedes usar remotePatterns para mayor control
     remotePatterns: [
       {
         protocol: "https",

@@ -1,9 +1,9 @@
-// src/components/HeroCarousel.tsx
 "use client";
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
+import Image from "next/image";
 
 const videoSrc =
   "https://appdevelopi.s3.us-east-1.amazonaws.com/AtlanticoEsMas/ATLA%CC%81NTICO+ES+MA%CC%81S+Extra+Compreso.mp4";
@@ -13,7 +13,7 @@ interface Slide {
   title: string;
   subtitle: string;
   buttonText: string;
-  link: string;          // <── ruta de destino
+  link: string;
 }
 
 const slides: Slide[] = [
@@ -24,7 +24,7 @@ const slides: Slide[] = [
     subtitle:
       "Descubre playas paradisíacas, cultura vibrante y experiencias inolvidables.",
     buttonText: "Planifica tu aventura",
-    link: "/planner",           // llevará al planificador
+    link: "/planner",
   },
   {
     image:
@@ -33,7 +33,7 @@ const slides: Slide[] = [
     subtitle:
       "Vive la auténtica experiencia caribeña con la calidez de nuestra gente.",
     buttonText: "Explorar cultura",
-    link: "/cultura",           // ejemplo: otra sección
+    link: "/cultura",
   },
 ];
 
@@ -56,16 +56,18 @@ export default function HeroCarousel() {
           transition={{ duration: 0.8 }}
           className="absolute inset-0 w-full h-full"
         >
-          <img
+          <Image
             src={slide.image}
             alt={slide.title}
-            className="w-full h-full object-cover"
+            fill
+            className="object-cover"
+            priority={index === 0}
+            unoptimized
           />
           <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/40 to-transparent" />
 
           {index === currentSlide && (
             <div className="absolute bottom-24 left-0 right-0 z-10 flex flex-col items-center text-center p-6 md:p-16">
-              {/* Video thumb player */}
               <video
                 src={videoSrc}
                 controls
@@ -73,7 +75,6 @@ export default function HeroCarousel() {
                 className="w-70 mb-6 rounded shadow-lg"
               />
 
-              {/* Texto */}
               <h1 className="mb-4 text-3xl md:text-5xl font-fivo font-bold tracking-wide text-white">
                 {slide.title}
               </h1>
@@ -81,7 +82,6 @@ export default function HeroCarousel() {
                 {slide.subtitle}
               </p>
 
-              {/* Botón que navega */}
               <button
                 onClick={() => router.push(slide.link)}
                 className="px-6 py-3 text-lg font-baloo font-bold rounded-full bg-[#E40E20] text-white hover:bg-[#D31A2B] transition-all"

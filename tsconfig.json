@@ -1,8 +1,11 @@
 {
   "compilerOptions": {
     "target": "ESNext",
-    "lib": ["dom", "dom.iterable", "esnext"],
-    "allowJs": true,
+    "lib": [
+      "dom",
+      "dom.iterable",
+      "esnext"
+    ],
     "skipLibCheck": true,
     "strict": true,
     "noEmit": true,
@@ -15,22 +18,31 @@
     "incremental": true,
     "baseUrl": ".",
     "paths": {
-      "@/*": ["src/*"],
-      "@/data/*": ["src/data/*"],
-      "@/components/*": ["src/components/*"]
+      "@/*": [
+        "src/*"
+      ],
+      "@/data/*": [
+        "src/data/*"
+      ],
+      "@/components/*": [
+        "src/components/*"
+      ]
     },
     "plugins": [
       {
         "name": "next"
       }
-    ]
+    ],
+    "allowJs": true
   },
   "include": [
     "next-env.d.ts",
     "**/*.ts",
     "**/*.tsx",
     ".next/types/**/*.ts",
-    "scripts/**/*.json"      /* <— añadido para importar tu serviceAccountKey.json */
-  ],
-  "exclude": ["node_modules"]
+    "scripts/**/*.json"
+, "src/app/destinations/[id]/page.js", "src/app/shared/[id]/page.jsx", "src/app/destinations/page.server.jsx"  ],
+  "exclude": [
+    "node_modules"
+  ]
 }
