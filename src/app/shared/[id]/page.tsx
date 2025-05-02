@@ -17,16 +17,14 @@ type SharedPageProps = {
   params: { id: string };
 };
 
-// ...
 /* ---------- Metadatos ---------- */
 export async function generateMetadata(): Promise<Metadata> {
-    return {
-      title: "Itinerario compartido | Atlántico",
-      description: "Explora este itinerario turístico en el Atlántico, Colombia.",
-    };
-  }
-  // ...
-  
+  return {
+    title: "Itinerario compartido | Atlántico",
+    description:
+      "Explora este itinerario turístico en el Atlántico, Colombia.",
+  };
+}
 
 /* ---------- Página principal ---------- */
 export default async function SharedItineraryPage({
@@ -47,12 +45,8 @@ export default async function SharedItineraryPage({
     );
   }
 
-  /* Agrupar paradas en un solo día (extiende lógica según necesidad) */
-  const days = 1;
-  const grouped = Array.from({ length: days }, (_, i) => {
-    const size = Math.ceil(itinerary.length / days);
-    return itinerary.slice(i * size, i * size + size);
-  });
+  /* Por ahora agrupamos todo en un día */
+  const grouped = [itinerary];
 
   return (
     <main className="min-h-screen bg-gradient-to-b from-blue-50 to-red-50 pb-16">
@@ -73,7 +67,7 @@ export default async function SharedItineraryPage({
             <h2 className="text-3xl font-semibold mb-4">Paradas</h2>
             <div className="flex flex-wrap gap-4 text-gray-600">
               <span className="flex items-center gap-2">
-                <Calendar /> {days} día
+                <Calendar /> 1 día
               </span>
               <span className="flex items-center gap-2">
                 <MapPin /> {itinerary.length} paradas
@@ -93,7 +87,7 @@ export default async function SharedItineraryPage({
           </div>
         </div>
 
-        {/* Línea de tiempo por día */}
+        {/* Línea de tiempo */}
         {grouped.map((dayStops, idx) => (
           <div
             key={`day-${idx}`}
