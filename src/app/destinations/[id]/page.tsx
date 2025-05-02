@@ -24,11 +24,12 @@ import DestinationActions from "@/components/DestinationActions";
 import RelatedDestinations from "@/components/RelatedDestinations";
 
 /* ---------- Página ---------- */
-export default async function DestinationDetail({
-  params,
-}: {
-  params: { id: string };
-}) {
+import type { PageProps } from "next";
+
+export default async function DestinationDetail(
+  { params }: PageProps<{ id: string }>
+) {
+
   const { id } = params;
 
   /* 1 · Datos de Firestore */
