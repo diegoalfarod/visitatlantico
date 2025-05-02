@@ -24,12 +24,14 @@ import DestinationActions from "@/components/DestinationActions";
 import RelatedDestinations from "@/components/RelatedDestinations";
 
 /* ---------- Página ---------- */
-import type { PageProps } from "next";
-
 export default async function DestinationDetail(
-  { params }: PageProps<{ id: string }>
+  {
+    params,
+  }: {
+    params: { id: string };
+    searchParams?: Record<string, string | string[]>;
+  }
 ) {
-
   const { id } = params;
 
   /* 1 · Datos de Firestore */
@@ -41,7 +43,9 @@ export default async function DestinationDetail(
   let imageUrl = "";
   if (d.imagePath) {
     try {
-      imageUrl = await getDownloadURL(ref(storage, d.imagePath.replace(/^\/+/, "")));
+      imageUrl = await getDownloadURL(
+        ref(storage, d.imagePath.replace(/^\/+/, ""))
+      );
     } catch (e) {
       console.error("Error obteniendo imagen:", e);
     }
