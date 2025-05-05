@@ -270,43 +270,56 @@ if (typeof window !== "undefined") {
   };
 
   const handleShare = async () => {
-    const link = await generateUniqueLink(itinerary);
-    await navigator.clipboard.writeText(link);
-    alert("Link copiado!");
+    console.log("🔗 Botón compartir clickeado");
+    if (!itinerary || itinerary.length === 0) return alert("Itinerario vacío");
+  
+    try {
+      const link = await generateUniqueLink(itinerary);
+      await navigator.clipboard.writeText(link);
+      alert("Link copiado al portapapeles ✅");
+    } catch (error) {
+      console.error("Error al generar link:", error);
+      alert("Hubo un error al copiar el link.");
+    }
   };
+  
 
   /* descarga PDF sin colores oklch */
   const downloadPDF = async () => {
-    if (!pdfRef.current) return;
+    console.log("🧾 Botón descargar PDF clickeado");
+    if (!pdfRef.current) return alert("No se encontró el contenido del itinerario.");
   
-    // 1. Clonar todo el contenido
     const clone = pdfRef.current.cloneNode(true) as HTMLElement;
   
-    // 2. Eliminar estilos conflictivos (oklch, shadows, gradientes, etc.)
+    // 🔴 Eliminar estilos <style> que contengan oklch
     clone.querySelectorAll("style").forEach((el) => {
       if (el.textContent?.includes("oklch(")) el.remove();
     });
   
+    // 🟡 Función para detectar estilos problemáticos
     const isBad = (val: string): boolean => val.includes("oklch(");
     const replaceIfBad = (el: HTMLElement, prop: string) => {
-      const current = getComputedStyle(el)[prop as keyof CSSStyleDeclaration] ?? "";
-      if (typeof current === "string" && isBad(current)) {
-        (el.style as unknown as WritableStyle)[prop] =
-          prop.includes("background") || prop.includes("border")
-            ? "#ffffff"
-            : "#000000";
+      const val = getComputedStyle(el)[prop as keyof CSSStyleDeclaration] ?? "";
+      if (typeof val === "string" && isBad(val)) {
+        (el.style as unknown as WritableStyle)[prop] = prop.includes("background") ? "#fff" : "#000";
       }
     };
   
+    // 🔵 Limpiar estilos peligrosos de cada elemento
     clone.querySelectorAll<HTMLElement>("*").forEach((el) => {
-      const bgImg = getComputedStyle(el).backgroundImage;
-      if (bgImg.includes("gradient") || isBad(bgImg)) {
+      const cs = getComputedStyle(el);
+  
+      // Quitar fondo con gradiente
+      if (cs.backgroundImage.includes("gradient") || isBad(cs.backgroundImage)) {
         el.style.backgroundImage = "none";
       }
   
-      const boxShadow = getComputedStyle(el).boxShadow;
-      if (isBad(boxShadow)) el.style.boxShadow = "none";
+      // Quitar sombra si es con oklch
+      if (isBad(cs.boxShadow)) {
+        el.style.boxShadow = "none";
+      }
   
+      // Reemplazar colores conflictivos
       [
         "backgroundColor",
         "color",
@@ -320,45 +333,62 @@ if (typeof window !== "undefined") {
         "columnRuleColor",
       ].forEach((p) => replaceIfBad(el, p));
   
-      // Quitar props CSS personalizados con oklch
-      const cs = getComputedStyle(el);
+      // Quitar custom props con oklch
       for (let i = 0; i < cs.length; i++) {
         const key = cs.item(i);
         if (key.startsWith("--") && isBad(cs.getPropertyValue(key))) {
           el.style.setProperty(key, "inherit");
         }
       }
+  
+      // Expandir tarjetas colapsadas
+      if (el.style.height === "0px") {
+        el.style.height = "auto";
+        el.style.overflow = "visible";
+        el.style.opacity = "1";
+      }
     });
   
-    // 3. Expandir cualquier elemento con height: 0
-    clone.querySelectorAll<HTMLElement>('[style*="height: 0"]').forEach((el) => {
-      el.style.height = "auto";
-      el.style.overflow = "visible";
-      el.style.opacity = "1";
-    });
-  
-    // 4. Ocultarlo fuera del viewport
+    // 🔷 Mostrar el clon fuera del viewport
     clone.style.position = "fixed";
     clone.style.left = "-9999px";
     document.body.appendChild(clone);
   
-    // 5. Convertir a canvas
-    const canvas = await html2canvas(clone, {
-      scale: 2,
-      useCORS: true,
-      backgroundColor: "#ffffff",
-    });
-    document.body.removeChild(clone);
+    // 🔁 Esperar a que todas las imágenes estén cargadas
+    const images = Array.from(clone.querySelectorAll("img"));
+    await Promise.all(
+      images.map((img) =>
+        new Promise((resolve) => {
+          if (img.complete) resolve(true);
+          else img.onload = img.onerror = () => resolve(true);
+        })
+      )
+    );
   
-    // 6. Generar PDF
-    const pdf = new jsPDF("p", "mm", "a4");
-    const img = canvas.toDataURL("image/png");
-    const pageWidth = pdf.internal.pageSize.getWidth();
-    const pageHeight = (canvas.height * pageWidth) / canvas.width;
-    pdf.addImage(img, "PNG", 0, 0, pageWidth, pageHeight);
-    pdf.save("itinerario.pdf");
-  };  
-
+    // 🖼️ Capturar canvas
+    try {
+      const canvas = await html2canvas(clone, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: "#ffffff",
+        scrollY: -window.scrollY, // corregir posición si estás scrolleado
+      });
+  
+      const pdf = new jsPDF("p", "mm", "a4");
+      const img = canvas.toDataURL("image/png");
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = (canvas.height * pageWidth) / canvas.width;
+  
+      pdf.addImage(img, "PNG", 0, 0, pageWidth, pageHeight);
+      pdf.save("itinerario.pdf");
+    } catch (err) {
+      console.error("Error al generar PDF:", err);
+      alert("Ocurrió un error al generar el PDF.");
+    } finally {
+      document.body.removeChild(clone);
+    }
+  };
+  
   /* ═════ vista loading ════ */
   if (view === "loading") {
     const frases = [
@@ -422,13 +452,14 @@ if (typeof window !== "undefined") {
             </div>
             <div className="flex gap-4">
               <button
-                onClick={downloadPDF}
+                type="button" onClick={downloadPDF} 
                 className="bg-red-600 text-white px-5 py-3 rounded-full inline-flex items-center shadow hover:shadow-lg transition"
               >
                 <FileText className="mr-2" /> Descargar PDF
               </button>
               <button
-                onClick={handleShare}
+                type="button" 
+                onClick={handleShare} 
                 className="bg-blue-600 text-white px-5 py-3 rounded-full inline-flex items-center shadow hover:shadow-lg transition"
               >
                 <Share2 className="mr-2" /> Compartir link
