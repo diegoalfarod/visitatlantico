@@ -61,9 +61,7 @@ export default function PremiumPlannerPage() {
   const [qIndex, setQIndex] = useState(0);
 
   /* ubicación */
-  const [useLocation, setUseLocation] = useState(
-    typeof window !== "undefined" && window.location.hostname !== "localhost"
-  );
+  const [useLocation, setUseLocation] = useState(false);
   const [location, setLocation] = useState<{ lat: number; lng: number } | null>(
     null
   );
@@ -87,38 +85,45 @@ if (typeof window !== "undefined") {
   }
   
   /* efecto ubicación */
-  /* ── efecto ubicación ── */
   useEffect(() => {
     if (!useLocation) {
       setLocation(null);
       setUserPlace(null);
+      setGeoError(null);
       return;
     }
+  
+    let cancelled = false;
     setFetchingPlace(true);
+  
     navigator.geolocation.getCurrentPosition(
       async (pos) => {
+        if (cancelled) return;
+  
         setGeoError(null);
         const coords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
         setLocation(coords);
+  
         try {
           const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN!;
           const resp = await fetch(
             `https://api.mapbox.com/geocoding/v5/mapbox.places/${coords.lng},${coords.lat}.json?types=place&access_token=${token}`
           );
-          if (!resp.ok) {
-            throw new Error(`Mapbox respondió con status ${resp.status}`);
-          }
+          if (!resp.ok) throw new Error(`Mapbox status ${resp.status}`);
+  
           const js = await resp.json();
           const place = js.features?.[0]?.place_name;
           setUserPlace(place ?? "Ubicación detectada");
         } catch (err) {
-          console.error("Error en geocodificación Mapbox:", err);
+          console.error("Error en Mapbox:", err);
           setGeoError("No se pudo geocodificar la ubicación.");
         } finally {
           setFetchingPlace(false);
         }
       },
       (err) => {
+        if (cancelled) return;
+  
         setFetchingPlace(false);
         setUseLocation(false);
         setLocation(null);
@@ -129,9 +134,12 @@ if (typeof window !== "undefined") {
         );
       }
     );
+  
+    return () => {
+      cancelled = true;
+    };
   }, [useLocation]);
-
-
+  
   /* pasos wizard */
   const steps = [
     {
