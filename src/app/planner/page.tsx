@@ -87,6 +87,7 @@ if (typeof window !== "undefined") {
   }
   
   /* efecto ubicación */
+  /* ── efecto ubicación ── */
   useEffect(() => {
     if (!useLocation) {
       setLocation(null);
@@ -104,8 +105,15 @@ if (typeof window !== "undefined") {
           const resp = await fetch(
             `https://api.mapbox.com/geocoding/v5/mapbox.places/${coords.lng},${coords.lat}.json?types=place&access_token=${token}`
           );
+          if (!resp.ok) {
+            throw new Error(`Mapbox respondió con status ${resp.status}`);
+          }
           const js = await resp.json();
-          setUserPlace(js.features?.[0]?.place_name ?? "Ubicación detectada");
+          const place = js.features?.[0]?.place_name;
+          setUserPlace(place ?? "Ubicación detectada");
+        } catch (err) {
+          console.error("Error en geocodificación Mapbox:", err);
+          setGeoError("No se pudo geocodificar la ubicación.");
         } finally {
           setFetchingPlace(false);
         }
@@ -117,11 +125,12 @@ if (typeof window !== "undefined") {
         setGeoError(
           err.code === err.PERMISSION_DENIED
             ? "Permiso de ubicación denegado."
-            : "No se pudo obtener ubicación."
+            : "No se pudo obtener la posición."
         );
       }
     );
   }, [useLocation]);
+
 
   /* pasos wizard */
   const steps = [
