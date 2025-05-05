@@ -278,39 +278,35 @@ if (typeof window !== "undefined") {
   /* descarga PDF sin colores oklch */
   const downloadPDF = async () => {
     if (!pdfRef.current) return;
-
+  
+    // 1. Clonar todo el contenido
     const clone = pdfRef.current.cloneNode(true) as HTMLElement;
-
-    /* quitar <style> con oklch */
+  
+    // 2. Eliminar estilos conflictivos (oklch, shadows, gradientes, etc.)
     clone.querySelectorAll("style").forEach((el) => {
-      if (el.textContent?.indexOf("oklch(") !== -1) el.remove();
+      if (el.textContent?.includes("oklch(")) el.remove();
     });
-
+  
     const isBad = (val: string): boolean => val.includes("oklch(");
     const replaceIfBad = (el: HTMLElement, prop: string) => {
-        const current = String(
-          getComputedStyle(el)[prop as keyof CSSStyleDeclaration] ?? ""
-        );
-      
-        if (current.includes("oklch(")) {
-          /*  ⚠️  aquí estaba el cast conflictivo  */
-          (el.style as unknown as WritableStyle)[prop] =
-            prop === "backgroundColor" || prop.includes("border")
-              ? "#ffffff"
-              : "#000000";
-        }
-      };
-
+      const current = getComputedStyle(el)[prop as keyof CSSStyleDeclaration] ?? "";
+      if (typeof current === "string" && isBad(current)) {
+        (el.style as unknown as WritableStyle)[prop] =
+          prop.includes("background") || prop.includes("border")
+            ? "#ffffff"
+            : "#000000";
+      }
+    };
+  
     clone.querySelectorAll<HTMLElement>("*").forEach((el) => {
-      /* bg-image & shadow */
-      const bgImg = String(getComputedStyle(el).backgroundImage);
-      if (bgImg && (bgImg.includes("gradient") || isBad(bgImg))) {
+      const bgImg = getComputedStyle(el).backgroundImage;
+      if (bgImg.includes("gradient") || isBad(bgImg)) {
         el.style.backgroundImage = "none";
       }
-      const boxShadow = String(getComputedStyle(el).boxShadow);
+  
+      const boxShadow = getComputedStyle(el).boxShadow;
       if (isBad(boxShadow)) el.style.boxShadow = "none";
-
-      /* color props */
+  
       [
         "backgroundColor",
         "color",
@@ -323,8 +319,8 @@ if (typeof window !== "undefined") {
         "textDecorationColor",
         "columnRuleColor",
       ].forEach((p) => replaceIfBad(el, p));
-
-      /* custom props */
+  
+      // Quitar props CSS personalizados con oklch
       const cs = getComputedStyle(el);
       for (let i = 0; i < cs.length; i++) {
         const key = cs.item(i);
@@ -333,41 +329,64 @@ if (typeof window !== "undefined") {
         }
       }
     });
-
-    /* expandir tarjetas cerradas */
+  
+    // 3. Expandir cualquier elemento con height: 0
     clone.querySelectorAll<HTMLElement>('[style*="height: 0"]').forEach((el) => {
       el.style.height = "auto";
       el.style.overflow = "visible";
       el.style.opacity = "1";
     });
-
+  
+    // 4. Ocultarlo fuera del viewport
     clone.style.position = "fixed";
-    clone.style.left = "-99999px";
+    clone.style.left = "-9999px";
     document.body.appendChild(clone);
-
+  
+    // 5. Convertir a canvas
     const canvas = await html2canvas(clone, {
       scale: 2,
       useCORS: true,
       backgroundColor: "#ffffff",
     });
     document.body.removeChild(clone);
-
+  
+    // 6. Generar PDF
     const pdf = new jsPDF("p", "mm", "a4");
     const img = canvas.toDataURL("image/png");
-    const w = pdf.internal.pageSize.getWidth();
-    const h = (canvas.height * w) / canvas.width;
-    pdf.addImage(img, "PNG", 0, 0, w, h);
+    const pageWidth = pdf.internal.pageSize.getWidth();
+    const pageHeight = (canvas.height * pageWidth) / canvas.width;
+    pdf.addImage(img, "PNG", 0, 0, pageWidth, pageHeight);
     pdf.save("itinerario.pdf");
-  };
+  };  
 
   /* ═════ vista loading ════ */
   if (view === "loading") {
+    const frases = [
+      "🧠 Generando experiencias inolvidables…",
+      "🌅 Buscando atardeceres mágicos…",
+      "🥥 Consultando a las iguanas locales…",
+      "🚣‍♀️ Ajustando los remos del plan…",
+      "🗺️ Calculando rutas con sabor caribeño…",
+    ];
+    const randomFrase = frases[Math.floor(Math.random() * frases.length)];
+  
     return (
-      <div className="flex items-center justify-center h-screen bg-blue-50">
-        <Loader2 className="animate-spin w-16 h-16 text-red-600" />
+      <div className="flex flex-col items-center justify-center h-screen bg-blue-50 px-4 text-center space-y-6">
+        {/* Barra animada de progreso */}
+        <div className="relative w-full max-w-md h-3 bg-gray-200 rounded-full overflow-hidden">
+          <div className="absolute h-full bg-red-600 animate-pulse w-full" />
+        </div>
+  
+        {/* Spinner opcional */}
+        <Loader2 className="animate-spin w-10 h-10 text-red-600" />
+  
+        {/* Frase motivadora */}
+        <p className="text-gray-700 text-lg font-medium animate-pulse">
+          {randomFrase}
+        </p>
       </div>
     );
-  }
+  }  
 
   /* ═════ vista itinerario ════ */
   if (view === "itinerary" && itinerary) {
