@@ -1,8 +1,14 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import OpenAI from "openai";
 import admin from "firebase-admin";
-import path from "path";
-import fs from "fs";
+
+interface FirestoreDoc {
+  coordinates?: { lat: number; lng: number };
+  name?: string;
+  title?: string;
+  description?: string;
+  municipality?: string;
+}
 
 interface ItineraryStop {
   id: string;
@@ -46,38 +52,46 @@ export default async function handler(
     profile?: Record<string, string>;
     location?: { lat: number; lng: number } | null;
   };
-
   if (!profile) {
     return res.status(400).json({ error: "Faltan datos de perfil" });
   }
 
-  // ── Firebase init ──
+  // Inicializar Firebase Admin desde JSON en env
   if (!admin.apps.length) {
-    const keyPath = path.join(process.cwd(), "scripts/serviceAccountKey.json");
-    const raw = fs.readFileSync(keyPath, "utf8");
-    const serviceAccount = JSON.parse(raw) as admin.ServiceAccount;
-    admin.initializeApp({ credential: admin.credential.cert(serviceAccount) });
+    const svc = JSON.parse(process.env.FIREBASE_SERVICE_JSON!) as {
+      project_id: string;
+      client_email: string;
+      private_key: string;
+    };
+
+    admin.initializeApp({
+      credential: admin.credential.cert({
+        projectId: svc.project_id,
+        clientEmail: svc.client_email,
+        privateKey: svc.private_key.replace(/\\n/g, "\n"),
+      }),
+    });
   }
   const db = admin.firestore();
 
-  // ── Cargar destinos / experiencias con municipio ──
+  // Cargar colecciones
   const load = async (col: "destinations" | "experiences") => {
     const snap = await db.collection(col).get();
     return snap.docs
       .map((doc) => {
-        const d = doc.data();
+        const d = doc.data() as FirestoreDoc;
         if (
-          d?.coordinates?.lat != null &&
-          d?.coordinates?.lng != null &&
+          d.coordinates?.lat != null &&
+          d.coordinates?.lng != null &&
           (d.name || d.title) &&
           d.description
         ) {
           return {
             id: doc.id,
-            name: col === "destinations" ? d.name : d.title,
+            name: col === "destinations" ? d.name! : d.title!,
             description: d.description,
-            lat: Number(d.coordinates.lat),
-            lng: Number(d.coordinates.lng),
+            lat: d.coordinates.lat,
+            lng: d.coordinates.lng,
             municipality: d.municipality ?? "",
             type: col === "destinations" ? "destination" : "experience",
             startTime: "",
@@ -89,7 +103,10 @@ export default async function handler(
       .filter((s): s is ItineraryStop => s !== null);
   };
 
-  const allStops = [...(await load("destinations")), ...(await load("experiences"))];
+  const allStops = [
+    ...(await load("destinations")),
+    ...(await load("experiences")),
+  ];
 
   if (location) {
     allStops.sort(
@@ -99,31 +116,29 @@ export default async function handler(
     );
   }
 
-  // ── Preparar prompt para OpenAI ──
+  // Construir prompt
   const profileText = Object.entries(profile)
     .map(([q, a]) => `- ${q}: ${a}`)
     .join("\n");
-
   const locText = location
     ? `Ubicación actual: (${location.lat}, ${location.lng})`
     : "Ubicación no proporcionada";
-
   const stopsList = allStops
     .map((s, i) => `${i + 1}. ${s.id} | ${s.name} (${s.lat},${s.lng})`)
     .join("\n");
 
   const systemPrompt = `
-Eres un asistente de viajes para turistas en el Atlántico, Colombia. 
-Genera un itinerario de 5–7 paradas basado en el perfil y la ubicación.
+Eres un asistente de viajes para turistas en el Atlántico, Colombia.
+Genera un itinerario de 5–7 paradas en formato JSON basado en el perfil y la ubicación.
 
 Perfil:
 ${profileText}
 ${locText}
 
-Opciones:
+Opciones disponibles:
 ${stopsList}
 
-Devuelve SOLO un array JSON con paradas:
+Respuesta requerida (solo JSON):
 [
   {
     "id": "...",
@@ -146,12 +161,13 @@ Devuelve SOLO un array JSON con paradas:
       messages: [{ role: "system", content: systemPrompt }],
       max_tokens: 1000,
     });
+
     const raw = response.choices[0]?.message?.content ?? "";
-    // Extraer JSON entre corchetes
     const json = raw.slice(raw.indexOf("["), raw.lastIndexOf("]") + 1);
     const itinerary = JSON.parse(json) as ItineraryStop[];
+
     return res.status(200).json({ itinerary });
-  } catch (err: unknown) {
+  } catch (err) {
     console.error("Error generando itinerario:", err);
     return res.status(500).json({ error: "Respuesta inválida de OpenAI" });
   }
