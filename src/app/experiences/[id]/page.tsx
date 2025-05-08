@@ -1,23 +1,24 @@
-// src/app/experiences/[id]/page.tsx
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { notFound } from "next/navigation";
 import Image from "next/image";
 
-type Experience = {
-  title: string;
-  description: string;
-  image: string;
-  category: string;
-};
+export default async function ExperiencePage(props: {
+  params: { id: string };
+}) {
+  const experienceId = props.params.id;
+  if (!experienceId) return notFound();
 
-export default async function Page({ params }: { params: { id: string } }) {
-  const { id } = params;
-
-  const docRef = doc(db, "experiences", id);
+  const docRef = doc(db, "experiences", experienceId);
   const docSnap = await getDoc(docRef);
-
   if (!docSnap.exists()) return notFound();
+
+  type Experience = {
+    title: string;
+    description: string;
+    image: string;
+    category: string;
+  };
 
   const data = docSnap.data() as Experience;
 
@@ -34,7 +35,9 @@ export default async function Page({ params }: { params: { id: string } }) {
           unoptimized
         />
       </div>
-      <p className="text-lg text-gray-700 leading-relaxed">{data.description}</p>
+      <p className="text-lg text-gray-700 leading-relaxed">
+        {data.description}
+      </p>
     </div>
   );
 }
