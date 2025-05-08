@@ -4,10 +4,6 @@ import { db } from "@/lib/firebase";
 import { notFound } from "next/navigation";
 import Image from "next/image";
 
-type PageProps = {
-  params: { id: string };
-};
-
 type Experience = {
   title: string;
   description: string;
@@ -15,11 +11,10 @@ type Experience = {
   category: string;
 };
 
-export default async function ExperiencePage({ params }: PageProps) {
-  const experienceId = params.id;
-  if (!experienceId) return notFound();
+export default async function Page({ params }: { params: { id: string } }) {
+  const { id } = params;
 
-  const docRef = doc(db, "experiences", experienceId);
+  const docRef = doc(db, "experiences", id);
   const docSnap = await getDoc(docRef);
 
   if (!docSnap.exists()) return notFound();
