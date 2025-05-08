@@ -3,28 +3,24 @@ import { db } from "@/lib/firebase";
 import { notFound } from "next/navigation";
 import Image from "next/image";
 
+// ✅ Define el tipo correcto para props
 type Props = {
-  params: {
-    id: string;
-  };
+  params: { id: string };
 };
 
 export default async function ExperiencePage({ params }: Props) {
-  const experienceId = params.id;
-  if (!experienceId) return notFound();
+  const { id } = params;
 
-  const docRef = doc(db, "experiences", experienceId);
+  const docRef = doc(db, "experiences", id);
   const docSnap = await getDoc(docRef);
   if (!docSnap.exists()) return notFound();
 
-  type Experience = {
+  const data = docSnap.data() as {
     title: string;
     description: string;
     image: string;
     category: string;
   };
-
-  const data = docSnap.data() as Experience;
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-16">
