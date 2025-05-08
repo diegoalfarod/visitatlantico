@@ -1,14 +1,14 @@
+// src/app/experiences/[id]/page.tsx
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { notFound } from "next/navigation";
 import Image from "next/image";
 
-// Esta es la forma que Next.js espera bajo `app/`:
-export default async function ExperiencePage({
-  params,
-}: {
+interface Props {
   params: { id: string };
-}) {
+}
+
+export default async function ExperiencePage({ params }: Props) {
   const experienceId = params.id;
   if (!experienceId) return notFound();
 
