@@ -3,10 +3,14 @@ import { db } from "@/lib/firebase";
 import { notFound } from "next/navigation";
 import Image from "next/image";
 
-export default async function ExperiencePage(props: {
-  params: { id: string };
-}) {
-  const experienceId = props.params.id;
+type Props = {
+  params: {
+    id: string;
+  };
+};
+
+export default async function ExperiencePage({ params }: Props) {
+  const experienceId = params.id;
   if (!experienceId) return notFound();
 
   const docRef = doc(db, "experiences", experienceId);
@@ -35,9 +39,7 @@ export default async function ExperiencePage(props: {
           unoptimized
         />
       </div>
-      <p className="text-lg text-gray-700 leading-relaxed">
-        {data.description}
-      </p>
+      <p className="text-lg text-gray-700 leading-relaxed">{data.description}</p>
     </div>
   );
 }
