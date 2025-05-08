@@ -6,7 +6,7 @@ import "mapbox-gl/dist/mapbox-gl.css";
 import { motion } from "framer-motion";
 import {
   FaUmbrellaBeach, FaLeaf, FaUtensils, FaMountain, FaLandmark, FaUsers,
-  FaRunning, FaMoon, FaSpa, FaMusic, FaHeart, FaBed, FaBinoculars,
+  FaRunning, FaMoon, FaSpa, FaMusic, FaHeart, FaBinoculars,
   FaShoppingCart, FaCamera, FaShip, FaSwimmer, FaFish, FaVideo,
   FaPaintBrush, FaStar, FaCocktail, FaCoffee, FaChevronDown, FaChevronUp
 } from "react-icons/fa";
