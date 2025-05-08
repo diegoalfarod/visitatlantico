@@ -3,15 +3,16 @@ import { db } from "@/lib/firebase";
 import { notFound } from "next/navigation";
 import Image from "next/image";
 
-// ✅ Define el tipo correcto para props
-type Props = {
+// Esta es la forma que Next.js espera bajo `app/`:
+export default async function ExperiencePage({
+  params,
+}: {
   params: { id: string };
-};
+}) {
+  const experienceId = params.id;
+  if (!experienceId) return notFound();
 
-export default async function ExperiencePage({ params }: Props) {
-  const { id } = params;
-
-  const docRef = doc(db, "experiences", id);
+  const docRef = doc(db, "experiences", experienceId);
   const docSnap = await getDoc(docRef);
   if (!docSnap.exists()) return notFound();
 
