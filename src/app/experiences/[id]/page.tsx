@@ -4,11 +4,11 @@ import { db } from "@/lib/firebase";
 import { notFound } from "next/navigation";
 import Image from "next/image";
 
-export default async function Page({
-  params,
-}: {
+interface PageProps {
   params: { id: string };
-}) {
+}
+
+export default async function Page({ params }: PageProps) {
   const experienceId = params.id;
   if (!experienceId) return notFound();
 
