@@ -28,6 +28,7 @@ export default function RootLayout({
       lang="es"
       className={`${poppins.variable} ${merriweatherSans.variable}`}
     >
+      <head>{/* Weglot eliminado completamente */}</head>
       <body className="font-sans">{children}</body>
     </html>
   );

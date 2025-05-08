@@ -19,21 +19,21 @@ interface Slide {
 const slides: Slide[] = [
   {
     image:
-      "https://appdevelopi.s3.us-east-1.amazonaws.com/AtlanticoEsMas/Parque+Cienaga+De+Mallorquin.jpeg",
-    title: "Tu próxima aventura comienza en Atlántico",
-    subtitle:
-      "Descubre playas paradisíacas, cultura vibrante y experiencias inolvidables.",
-    buttonText: "Planifica tu aventura",
-    link: "/planner",
+    "https://firebasestorage.googleapis.com/v0/b/visitatlantico-f5c09.firebasestorage.app/o/carnaval-de-barranquilla.jpg?alt=media&token=a0896aee-9567-4506-9272-c5b67f5f5398",
+  title: "Cultura y tradición en cada rincón",
+  subtitle:
+    "Vive la auténtica experiencia caribeña con la calidez de nuestra gente.",
+  buttonText: "Planifica tu aventura",
+  link: "/planner",
   },
   {
     image:
-      "https://firebasestorage.googleapis.com/v0/b/visitatlantico-f5c09.firebasestorage.app/o/carnaval-de-barranquilla.jpg?alt=media&token=a0896aee-9567-4506-9272-c5b67f5f5398",
-    title: "Cultura y tradición en cada rincón",
-    subtitle:
-      "Vive la auténtica experiencia caribeña con la calidez de nuestra gente.",
-    buttonText: "Explorar cultura",
-    link: "/cultura",
+    "https://appdevelopi.s3.us-east-1.amazonaws.com/AtlanticoEsMas/Parque+Cienaga+De+Mallorquin.jpeg",
+  title: "Tu próxima aventura comienza en Atlántico",
+  subtitle:
+    "Descubre playas paradisíacas, cultura vibrante y experiencias inolvidables.",
+  buttonText: "Planifica tu aventura",
+  link: "/planner",
   },
 ];
 

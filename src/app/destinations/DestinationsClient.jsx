@@ -1,4 +1,3 @@
-// src/app/destinations/DestinationsClient.jsx
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
@@ -56,16 +55,23 @@ export default function DestinationsClient() {
               : typeof d.categories === "string"
               ? [d.categories]
               : [];
-            const rawPath = d.imagePath || "";
-            const normalizedPath = rawPath.replace(/^\/\/+/, "");
+
+            const rawPath = Array.isArray(d.imagePaths)
+              ? d.imagePaths[0]
+              : d.imagePath || "";
+
             let imageUrl = "/placeholder-destination.jpg";
-            if (normalizedPath) {
+
+            if (rawPath?.startsWith("http")) {
+              imageUrl = rawPath;
+            } else if (rawPath) {
               try {
-                imageUrl = await getDownloadURL(ref(storage, normalizedPath));
+                imageUrl = await getDownloadURL(ref(storage, rawPath));
               } catch {
-                /* fallback */
+                console.warn("No se pudo obtener la imagen desde Storage:", rawPath);
               }
             }
+
             return {
               id: doc.id,
               name: d.name,
@@ -83,6 +89,7 @@ export default function DestinationsClient() {
         console.error("Error cargando destinos:", err);
       }
     }
+
     fetchDestinations();
   }, []);
 
@@ -118,8 +125,6 @@ export default function DestinationsClient() {
   return (
     <>
       <Navbar />
-
-      {/* Hero */}
       <section
         className="relative h-[60vh] flex items-center justify-center overflow-hidden bg-cover bg-center"
         style={{ backgroundImage: "url('/destinations-hero.jpg')" }}
@@ -145,7 +150,6 @@ export default function DestinationsClient() {
         </div>
       </section>
 
-      {/* Filtros */}
       <section className="relative z-30 max-w-7xl mx-auto px-6 -mt-24">
         <motion.div
           initial={{ opacity: 0, y: 40 }}
@@ -192,7 +196,6 @@ export default function DestinationsClient() {
         </motion.div>
       </section>
 
-      {/* Grid de destinos */}
       <section className="relative max-w-7xl mx-auto px-6 py-16">
         <motion.div
           initial={{ opacity: 0 }}
@@ -258,6 +261,7 @@ export default function DestinationsClient() {
             ))
           )}
         </motion.div>
+
         {visibleCount < filtered.length && (
           <div className="flex justify-center mt-10">
             <button

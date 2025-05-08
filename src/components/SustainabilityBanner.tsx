@@ -403,7 +403,7 @@ export default function ResponsibleTravel() {
             </h3>
             <p className="text-center mb-8 max-w-xl mx-auto"
                style={{ fontFamily: "'Baloo', 'Inter', sans-serif", color: brandColors.neutral.medium }}>
-              Comprométete a seguir estos principios en tu viaje por el Atlántico y recibe una insignia en tu correo que demuestra tu apoyo a la sostenibilidad del destino
+              Comprométete a seguir estos principios en tu viaje por el Atlántico y demuestra tu apoyo a la sostenibilidad del destino
             </p>
             
             <div className="flex flex-col items-center">
@@ -444,7 +444,7 @@ export default function ResponsibleTravel() {
                     ¡Felicidades!
                   </h4>
                   <p className="mb-3" style={{ fontFamily: "'Baloo', 'Inter', sans-serif", color: brandColors.neutral.medium }}>
-                    Has recibido la insignia de &quot;Viajero Responsable del Atlántico&quot; en tu correo electrónico.
+                    
                   </p>
                   <p className="text-sm mt-2" style={{ fontFamily: "'Baloo', 'Inter', sans-serif", color: brandColors.neutral.medium }}>
                     Gracias por tu compromiso con la sostenibilidad y el respeto por los destinos costeros y culturales del Caribe colombiano.

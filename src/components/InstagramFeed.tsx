@@ -6,11 +6,11 @@ import { Instagram, Heart } from "lucide-react";
 
 // Colores de marca - Gobernación del Atlántico
 const brandColors = {
-  primary:   '#E40E20',  // Rojo institucional
+  primary: '#E40E20',  // Rojo institucional
   secondary: '#D34A78',  // Rosa secundario
-  dark:      '#4A4F55',  // Gris oscuro
-  medium:    '#7A888C',  // Gris medio
-  light:     '#C1C5C8',  // Gris claro
+  dark: '#4A4F55',  // Gris oscuro
+  medium: '#7A888C',  // Gris medio
+  light: '#C1C5C8',  // Gris claro
 };
 
 export default function InstagramFeed() {
@@ -121,8 +121,8 @@ export default function InstagramFeed() {
               <Instagram size={96} className="absolute -left-8 top-1/3 opacity-10 text-[rgba(211,74,120,0.4)]" />
               <Heart     size={88} className="absolute -right-8 bottom-1/3 opacity-10 text-[rgba(211,74,120,0.4)]" />
 
-              {/* Widget Elfsight */}
-              <div className="elfsight-app-18100a92-00e4-45c0-94ed-76d508cecede mx-auto max-w-full" data-elfsight-app-lazy />
+              {/* Widget Elfsight actualizado */}
+              <div className="elfsight-app-4ceb8aab-9936-4357-b003-27c38c147990" data-elfsight-app-lazy />
 
               {/* Loading */}
               <div className="flex justify-center mt-6">

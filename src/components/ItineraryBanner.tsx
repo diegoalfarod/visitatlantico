@@ -1,5 +1,5 @@
 "use client";
-
+import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { 
   MapPin, 
@@ -31,7 +31,7 @@ export default function ItineraryBanner() {
     teal: "#00833E",         // Teal blue - RGB: 00833E
     green: "#00B451",        // Green - RGB: 00B451
   };
-
+  const router = useRouter();
   // Animaciones
   const customStyles = `
     @keyframes gradientFlow {
@@ -333,19 +333,21 @@ export default function ItineraryBanner() {
                     variants={itemVariants}
                   >
                     <motion.button 
-                      whileHover={{ scale: 1.03 }}
-                      whileTap={{ scale: 0.98 }}
-                      className="bg-white font-semibold py-4 px-8 rounded-full shadow-xl flex items-center gap-2 transition-all duration-300"
-                      style={{ 
-                        fontFamily: "'Fivo', 'Inter', sans-serif",
-                        color: brandColors.darkBlue,
-                        boxShadow: "0 10px 30px rgba(255, 255, 255, 0.2)" 
-                      }}
-                    >
-                      <Sparkles className="w-5 h-5" />
-                      <span>Crear Itinerario Personalizado</span>
-                      <ChevronRight className="w-5 h-5 ml-1" />
-                    </motion.button>
+  whileHover={{ scale: 1.03 }}
+  whileTap={{ scale: 0.98 }}
+  onClick={() => router.push("/planner")}
+  className="bg-white font-semibold py-4 px-8 rounded-full shadow-xl flex items-center gap-2 transition-all duration-300"
+  style={{ 
+    fontFamily: "'Fivo', 'Inter', sans-serif",
+    color: brandColors.darkBlue,
+    boxShadow: "0 10px 30px rgba(255, 255, 255, 0.2)" 
+  }}
+>
+  <Sparkles className="w-5 h-5" />
+  <span>Crear Itinerario Personalizado</span>
+  <ChevronRight className="w-5 h-5 ml-1" />
+</motion.button>
+
                   </motion.div>
                 </motion.div>
               </div>
