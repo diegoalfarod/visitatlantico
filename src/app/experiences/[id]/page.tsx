@@ -5,11 +5,12 @@ import { notFound } from "next/navigation";
 import Image from "next/image";
 
 interface PageProps {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }
 
 export default async function Page({ params }: PageProps) {
-  const experienceId = params.id;
+  // ‼️  params es una Promesa → se hace await
+  const { id: experienceId } = await params;
   if (!experienceId) return notFound();
 
   const docRef = doc(db, "experiences", experienceId);
@@ -36,7 +37,9 @@ export default async function Page({ params }: PageProps) {
           unoptimized
         />
       </div>
-      <p className="text-lg text-gray-700 leading-relaxed">{data.description}</p>
+      <p className="text-lg text-gray-700 leading-relaxed">
+        {data.description}
+      </p>
     </div>
   );
 }
