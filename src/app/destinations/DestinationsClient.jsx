@@ -133,7 +133,7 @@ export default function DestinationsClient() {
   return (
     <>
       {/* Buscador */}
-      <section className="max-w-7xl mx-auto px-6 mt-10">
+      <section className="max-w-7xl mx-auto px-6 mt-28">
         <div className="flex flex-col md:flex-row items-center gap-4">
           <div className="relative w-full">
             <input

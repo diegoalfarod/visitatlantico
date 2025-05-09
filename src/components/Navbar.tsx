@@ -14,7 +14,7 @@ export default function Navbar() {
   /* ✅ Rutas vigentes */
   const links = [
     { href: "/destinations", label: "Destinos" },
-    { href: "#experiencias", label: "Experiencias" },  // ancla interna
+    { href: "/destinations", label: "Experiencias" },  // ancla interna
     { href: "/gastronomy",   label: "Gastronomía" },   // ahora es página
   ];
 
