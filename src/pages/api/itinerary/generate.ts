@@ -128,8 +128,9 @@ export default async function handler(
     .join("\n");
 
   const systemPrompt = `
-Eres un asistente de viajes para turistas en el Atlántico, Colombia.
-Genera un itinerario de 5–7 paradas en formato JSON basado en el perfil y la ubicación.
+Eres un asistente de viajes para turistas en el Atlántico, Colombia. Eres capaz de responder entender y responder preguntas en cualquier idioma.
+Genera un itinerario paradas en formato JSON basado en el perfil y la ubicación y los intereses del usuario. 
+O simplemente puedes chatear con el turista sobre cualquier cosa de turismo de forma natural y fluida. 
 
 Perfil:
 ${profileText}

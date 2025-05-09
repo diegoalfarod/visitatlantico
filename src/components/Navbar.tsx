@@ -11,11 +11,11 @@ import "@/styles/globals.css";
 export default function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false);
 
+  /* ✅ Rutas vigentes */
   const links = [
     { href: "/destinations", label: "Destinos" },
-    { href: "#experiencias", label: "Experiencias" },
-    { href: "#eventos", label: "Eventos" },
-    { href: "#gastronomia", label: "Gastronomía" },
+    { href: "#experiencias", label: "Experiencias" },  // ancla interna
+    { href: "/gastronomy",   label: "Gastronomía" },   // ahora es página
   ];
 
   return (
@@ -62,9 +62,7 @@ export default function Navbar() {
           {/* Mobile Toggle */}
           <button
             className="mobile-menu-button text-white text-2xl focus-visible:outline focus-visible:outline-white focus-visible:outline-2 rounded-sm"
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-onClick={() => setMenuOpen(!menuOpen)}
-
+            onClick={() => setMenuOpen(!menuOpen)}
             aria-label="Abrir menú"
           >
             {menuOpen ? <FaTimes /> : <FaBars />}
@@ -78,7 +76,7 @@ onClick={() => setMenuOpen(!menuOpen)}
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
-              className={`mobile-dropdown open bg-[#4A4F55] text-white backdrop-blur-md shadow-md flex flex-col gap-6 px-6 py-8`}
+              className="mobile-dropdown open bg-[#4A4F55] text-white backdrop-blur-md shadow-md flex flex-col gap-6 px-6 py-8"
             >
               {links.map(({ href, label }) => (
                 <Link
@@ -105,29 +103,14 @@ onClick={() => setMenuOpen(!menuOpen)}
 
       {/* CSS Hardcodeado */}
       <style jsx>{`
-        /* por defecto: móvil */
-        .desktop-menu {
-          display: none;
-        }
-        .mobile-menu-button {
-          display: block;
-        }
-        .mobile-dropdown {
-          display: none;
-        }
-        .mobile-dropdown.open {
-          display: flex;
-        }
-
-        /* desktop >=768px */
+        .desktop-menu { display: none; }
+        .mobile-menu-button { display: block; }
+        .mobile-dropdown { display: none; }
+        .mobile-dropdown.open { display: flex; }
         @media (min-width: 768px) {
-          .desktop-menu {
-            display: flex !important;
-          }
+          .desktop-menu { display: flex !important; }
           .mobile-menu-button,
-          .mobile-dropdown {
-            display: none !important;
-          }
+          .mobile-dropdown { display: none !important; }
         }
       `}</style>
     </>

@@ -20,7 +20,6 @@ export default function Home() {
         <FeaturedExperiences />
         <EventsMapPreview />
         <SustainabilityBanner />
-        <DestinationsPreview />
         <ItineraryBanner />
         <InstagramFeed />
       </main>

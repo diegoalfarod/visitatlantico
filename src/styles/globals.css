@@ -1,27 +1,29 @@
 /* styles/globals.css */
 
+/* ───────── Tailwind layers ───────── */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-@import 'mapbox-gl/dist/mapbox-gl.css';
+/* ───────── CSS de librerías externas ───────── */
+@import "react-calendar/dist/Calendar.css"; /* calendario */
 
-/* Tipografías personalizadas */
+/* ───────── Tipografías personalizadas ───────── */
 @font-face {
-  font-family: 'Fivo Sans';
-  src: url('/fonts/FivoSans-Regular.woff2') format('woff2');
+  font-family: "Fivo Sans";
+  src: url("/fonts/FivoSans-Regular.woff2") format("woff2");
   font-weight: 400;
   font-style: normal;
 }
 
 @font-face {
-  font-family: 'Baloo 2';
-  src: url('/fonts/Baloo2-Regular.woff2') format('woff2');
+  font-family: "Baloo 2";
+  src: url("/fonts/Baloo2-Regular.woff2") format("woff2");
   font-weight: 400;
   font-style: normal;
 }
 
-/* Variables de color base */
+/* ───────── Variables de color ───────── */
 :root {
   --background: #ffffff;
   --foreground: #141414;
@@ -32,29 +34,59 @@
   --foreground: #ffffff;
 }
 
-/* Estilos globales */
+/* ───────── Estilos base ───────── */
 @layer base {
-  *,
-  *::before,
-  *::after {
+  *, *::before, *::after {
     box-sizing: border-box;
-    border-color: #e5e7eb; /* similar a border-gray-200 */
+    border-color: #e5e7eb; /* ≈ border-gray-200 */
   }
 
-  html {
-    scroll-behavior: smooth;
-  }
+  html { scroll-behavior: smooth; }
 
   body {
     background-color: var(--background);
     color: var(--foreground);
-    font-family: 'Fivo Sans', sans-serif;
+    font-family: "Fivo Sans", sans-serif;
     line-height: 1.5;
     -webkit-font-smoothing: antialiased;
   }
 
-  a,
-  button {
+  a, button {
     transition: color 0.2s ease-in-out, background-color 0.2s ease-in-out;
   }
 }
+
+/* ───────── Overrides y utilidades extra ───────── */
+
+/* React-Calendar adaptación Tailwind */
+.react-calendar {
+  @apply bg-white rounded-2xl shadow-md p-4 text-gray-800;
+}
+.react-calendar__navigation button:disabled {
+  @apply text-gray-400;
+}
+.react-calendar__tile--active,
+.react-calendar__tile--now:not(.gastro-day) {
+  @apply bg-[#E40E20] text-white rounded-lg;
+}
+
+/* Días con evento gastronómico */
+.gastro-day {
+  @apply relative font-semibold text-[#E40E20];
+}
+.gastro-day::after {
+  content: "🍽️";
+  @apply absolute -top-1 right-1 text-xs;
+}
+
+/* Utilidad para imágenes de tarjetas */
+.img-card {
+  @apply object-cover w-full h-full;
+}
+.gastro-day {
+    @apply relative font-semibold text-[#E40E20];
+  }
+  .gastro-day::after {
+    content: "🍽️";
+    @apply absolute -top-1 right-1 text-xs;
+  }

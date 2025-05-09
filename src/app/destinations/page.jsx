@@ -1,16 +1,15 @@
-// src/app/destinations/page.jsx
 "use client";
-export const dynamic = "force-dynamic";
+export const dynamic = "force-dynamic";   // ← se mantiene
 
-import dynamicLoad from "next/dynamic";           // Renombrada para no chocar
+import dynamicLoad from "next/dynamic";   // ← alias para evitar conflicto
 import Navbar from "@/components/Navbar";
 import InstagramFeed from "@/components/InstagramFeed";
 import Footer from "@/components/Footer";
 
-// Import dinámico del cliente sin SSR
+/* carga del componente cliente sin SSR */
 const DestinationsClient = dynamicLoad(
   () => import("./DestinationsClient.jsx"),
-  { ssr: false }
+  { ssr: false },
 );
 
 export default function DestinationsPage() {
