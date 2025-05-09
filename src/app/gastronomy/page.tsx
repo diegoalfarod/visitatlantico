@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect, type ReactNode } from "react";
-import dynamic from "next/dynamic";
 import Image from "next/image";
 import { CalendarDays, List } from "lucide-react";
 import { collection, getDocs, query, orderBy } from "firebase/firestore";
@@ -9,10 +8,7 @@ import { db } from "@/lib/firebase";
 import type { Event } from "@/types/event";
 import EventGrid from "@/components/EventGrid";
 import EventsCalendar from "@/components/EventsCalendar";
-import Navbar from "@/components/Navbar";               // 👈 nuevo import
-
-/* Cargar react-calendar solo en cliente */
-const Calendar = dynamic(() => import("react-calendar"), { ssr: false });
+import Navbar from "@/components/Navbar";
 
 type View = "list" | "calendar";
 
@@ -20,6 +16,7 @@ export default function EventsPage() {
   const [events, setEvents] = useState<Event[]>([]);
   const [view, setView] = useState<View>("list");
 
+  /* -------------------- Firestore -------------------- */
   useEffect(() => {
     (async () => {
       try {
@@ -36,6 +33,7 @@ export default function EventsPage() {
     })();
   }, []);
 
+  /* -------------------- Helper ---------------------- */
   const Btn = ({
     mode,
     label,
@@ -58,13 +56,13 @@ export default function EventsPage() {
     </button>
   );
 
+  /* -------------------- UI -------------------------- */
   return (
     <>
-      {/* ---------- NAVBAR ---------- */}
       <Navbar />
 
       <main className="pt-24 pb-16">
-        {/* ---------- HERO ---------- */}
+        {/* HERO */}
         <section className="relative h-[40vh] w-full">
           <Image
             src="/images/events-hero.jpg"
@@ -81,13 +79,13 @@ export default function EventsPage() {
           </div>
         </section>
 
-        {/* ---------- SELECTOR ---------- */}
+        {/* SELECTOR */}
         <div className="flex gap-4 justify-center mt-10">
           <Btn mode="list" icon={<List size={18} />} label="Lista" />
           <Btn mode="calendar" icon={<CalendarDays size={18} />} label="Calendario" />
         </div>
 
-        {/* ---------- CONTENIDO ---------- */}
+        {/* CONTENIDO */}
         <section className="max-w-7xl mx-auto px-6 mt-10">
           {view === "list" ? (
             <EventGrid events={events} />
