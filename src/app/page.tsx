@@ -2,7 +2,6 @@ import Navbar from "@/components/Navbar";
 import HeroCarousel from "@/components/HeroCarousel";
 import QuickFilters from "@/components/QuickFilters";
 import FeaturedExperiences from "@/components/FeaturedExperiences";
-import DestinationsPreview from "@/components/DestinationsPreview";  // ahora sí se usa
 import EventsMapPreview from "@/components/EventsMapPreview";
 import SustainabilityBanner from "@/components/SustainabilityBanner";
 import ItineraryBanner from "@/components/ItineraryBanner";
@@ -18,9 +17,6 @@ export default function Home() {
         <HeroCarousel />
         <QuickFilters />
         <FeaturedExperiences />
-        {/* ---- nuevo bloque para evitar unused import ---- */}
-        <DestinationsPreview />
-        {/* ------------------------------------------------- */}
         <EventsMapPreview />
         <SustainabilityBanner />
         <ItineraryBanner />
