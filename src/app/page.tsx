@@ -1,6 +1,8 @@
+// src/app/page.tsx
 import Navbar from "@/components/Navbar";
 import HeroCarousel from "@/components/HeroCarousel";
 import QuickFilters from "@/components/QuickFilters";
+import InstitutionalDivider from "@/components/InstitutionalDivider"; // << nuevo import
 import FeaturedExperiences from "@/components/FeaturedExperiences";
 import EventsMapPreview from "@/components/EventsMapPreview";
 import SustainabilityBanner from "@/components/SustainabilityBanner";
@@ -16,6 +18,10 @@ export default function Home() {
       <main className="min-h-screen bg-background flex flex-col">
         <HeroCarousel />
         <QuickFilters />
+
+        {/* Divider decorativo institucional */}
+        <InstitutionalDivider />
+
         <FeaturedExperiences />
         <EventsMapPreview />
         <SustainabilityBanner />

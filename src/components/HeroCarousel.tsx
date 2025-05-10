@@ -1,3 +1,5 @@
+//HeroCarousel.tsx
+
 "use client";
 
 import { useState } from "react";
@@ -19,21 +21,21 @@ interface Slide {
 const slides: Slide[] = [
   {
     image:
-    "https://firebasestorage.googleapis.com/v0/b/visitatlantico-f5c09.firebasestorage.app/o/carnaval-de-barranquilla.jpg?alt=media&token=a0896aee-9567-4506-9272-c5b67f5f5398",
-  title: "Cultura y tradición en cada rincón",
-  subtitle:
-    "Vive la auténtica experiencia caribeña con la calidez de nuestra gente.",
-  buttonText: "Planifica tu aventura",
-  link: "/planner",
+      "https://firebasestorage.googleapis.com/v0/b/visitatlantico-f5c09.firebasestorage.app/o/carnaval-de-barranquilla.jpg?alt=media&token=a0896aee-9567-4506-9272-c5b67f5f5398",
+    title: "Cultura y tradición en cada rincón",
+    subtitle:
+      "Vive la auténtica experiencia caribeña con la calidez de nuestra gente.",
+    buttonText: "Planifica tu aventura",
+    link: "/planner",
   },
   {
     image:
-    "https://appdevelopi.s3.us-east-1.amazonaws.com/AtlanticoEsMas/Parque+Cienaga+De+Mallorquin.jpeg",
-  title: "Tu próxima aventura comienza en Atlántico",
-  subtitle:
-    "Descubre playas paradisíacas, cultura vibrante y experiencias inolvidables.",
-  buttonText: "Planifica tu aventura",
-  link: "/planner",
+      "https://appdevelopi.s3.us-east-1.amazonaws.com/AtlanticoEsMas/Parque+Cienaga+De+Mallorquin.jpeg",
+    title: "Tu próxima aventura comienza en Atlántico",
+    subtitle:
+      "Descubre playas paradisíacas, cultura vibrante y experiencias inolvidables.",
+    buttonText: "Planifica tu aventura",
+    link: "/planner",
   },
 ];
 
@@ -67,18 +69,21 @@ export default function HeroCarousel() {
           <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/40 to-transparent" />
 
           {index === currentSlide && (
-            <div className="absolute bottom-24 left-0 right-0 z-10 flex flex-col items-center text-center p-6 md:p-16">
-              <video
-                src={videoSrc}
-                controls
-                poster={slide.image}
-                className="w-70 mb-6 rounded shadow-lg"
-              />
+            <div className="absolute bottom-24 left-0 right-0 z-10 flex flex-col items-center text-center p-6 md:p-16 space-y-6">
+              {/* ------------ Video Moderno ------------ */}
+              <div className="relative w-full max-w-xl mx-auto rounded-3xl overflow-hidden shadow-2xl ring-4 ring-white/20 backdrop-blur-md">
+                <video
+                  src={videoSrc}
+                  controls
+                  poster={slide.image}
+                  className="w-full h-full object-cover bg-black"
+                />
+              </div>
 
-              <h1 className="mb-4 text-3xl md:text-5xl font-fivo font-bold tracking-wide text-white">
+              <h1 className="text-3xl md:text-5xl font-fivo font-bold tracking-wide text-white">
                 {slide.title}
               </h1>
-              <p className="mb-8 max-w-2xl text-lg md:text-xl font-fivo text-white">
+              <p className="max-w-2xl text-lg md:text-xl font-fivo text-white">
                 {slide.subtitle}
               </p>
 
