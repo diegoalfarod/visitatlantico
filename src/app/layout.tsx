@@ -1,6 +1,5 @@
 import "./globals.css";
 import { Poppins, Merriweather_Sans } from "next/font/google";
-import Script from "next/script";
 
 const poppins = Poppins({
   subsets: ["latin"],
@@ -29,25 +28,7 @@ export default function RootLayout({
       lang="es"
       className={`${poppins.variable} ${merriweatherSans.variable}`}
     >
-      <head>
-        {/* Linguise: script que activa la traducción */}
-        <Script
-          strategy="beforeInteractive"
-          src="https://static.linguise.com/script-js/switcher.bundle.js?d=pk_fyLj8y0LWKceqoZ9j7uBc4jWuC85DhhM"
-        />
-        <Script
-          id="linguise-init"
-          strategy="beforeInteractive"
-          dangerouslySetInnerHTML={{
-            __html: `
-              window.linguise = {
-                api_key: "DQsjmtmecLYU2qPDPTL9I5q0gFhuFtAn",
-                auto_mode: true
-              };
-            `,
-          }}
-        />
-      </head>
+      <head />
       <body className="font-sans">{children}</body>
     </html>
   );
