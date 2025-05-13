@@ -12,6 +12,10 @@ const nextConfig = {
       },
     ],
   },
+  i18n: {
+    locales: ["es", "en", "fr"], // Puedes agregar más si los activas en Linguise
+    defaultLocale: "es",
+  },
 };
 
 export default nextConfig;
