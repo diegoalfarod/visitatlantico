@@ -1,6 +1,6 @@
 import "./globals.css";
 import { Poppins, Merriweather_Sans } from "next/font/google";
-import Script from "next/script"; // 👈 nuevo import
+import Script from "next/script";
 
 const poppins = Poppins({
   subsets: ["latin"],
@@ -30,7 +30,6 @@ export default function RootLayout({
       className={`${poppins.variable} ${merriweatherSans.variable}`}
     >
       <head>
-        {/* Linguise Script */}
         <Script
           strategy="beforeInteractive"
           src="https://static.linguise.com/script/linguise.js"
@@ -41,7 +40,8 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{
             __html: `
               window.linguise = {
-                api_key: "DQsjmtmecLYU2qPDPTL9I5q0gFhuFtAn"
+                api_key: "DQsjmtmecLYU2qPDPTL9I5q0gFhuFtAn",
+                auto_mode: true
               };
             `,
           }}
