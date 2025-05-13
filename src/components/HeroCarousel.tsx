@@ -1,5 +1,3 @@
-//HeroCarousel.tsx
-
 "use client";
 
 import { useState } from "react";
@@ -69,8 +67,10 @@ export default function HeroCarousel() {
           <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/40 to-transparent" />
 
           {index === currentSlide && (
-            <div className="absolute bottom-24 left-0 right-0 z-10 flex flex-col items-center text-center p-6 md:p-16 space-y-6">
-              {/* ------------ Video Moderno ------------ */}
+            <div
+              className="absolute bottom-24 left-0 right-0 z-10 flex flex-col items-center text-center p-6 md:p-16 space-y-6"
+              data-wg-notranslate="false"
+            >
               <div className="relative w-full max-w-xl mx-auto rounded-3xl overflow-hidden shadow-2xl ring-4 ring-white/20 backdrop-blur-md">
                 <video
                   src={videoSrc}

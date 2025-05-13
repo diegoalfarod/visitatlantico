@@ -1,4 +1,3 @@
-// src/components/Navbar.tsx
 "use client";
 
 import { useState } from "react";
@@ -11,11 +10,10 @@ import "@/styles/globals.css";
 export default function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false);
 
-  /* ✅ Rutas vigentes */
   const links = [
     { href: "/destinations", label: "Destinos" },
-    { href: "/destinations", label: "Experiencias" },  // ancla interna
-    { href: "/gastronomy",   label: "Gastronomía" },   // ahora es página
+    { href: "/destinations", label: "Experiencias" },
+    { href: "/gastronomy", label: "Gastronomía" },
   ];
 
   return (
@@ -32,15 +30,17 @@ export default function Navbar() {
               alt="VisitAtlántico Logo"
               width={145}
               height={140}
+              priority
+              style={{ height: "auto" }}
               className="object-contain"
             />
           </Link>
 
           {/* Desktop Menu */}
           <nav className="desktop-menu items-center gap-8">
-            {links.map(({ href, label }) => (
+            {links.map(({ href, label }, index) => (
               <Link
-                key={href}
+                key={`${href}-${index}`}
                 href={href}
                 className="font-fivo text-sm hover:text-[#E40E20] transition-all"
               >
@@ -78,9 +78,9 @@ export default function Navbar() {
               exit={{ opacity: 0, y: -10 }}
               className="mobile-dropdown open bg-[#4A4F55] text-white backdrop-blur-md shadow-md flex flex-col gap-6 px-6 py-8"
             >
-              {links.map(({ href, label }) => (
+              {links.map(({ href, label }, index) => (
                 <Link
-                  key={href}
+                  key={`${href}-${index}`}
                   href={href}
                   className="font-fivo hover:text-[#E40E20] transition-all"
                   onClick={() => setMenuOpen(false)}
@@ -103,14 +103,26 @@ export default function Navbar() {
 
       {/* CSS Hardcodeado */}
       <style jsx>{`
-        .desktop-menu { display: none; }
-        .mobile-menu-button { display: block; }
-        .mobile-dropdown { display: none; }
-        .mobile-dropdown.open { display: flex; }
+        .desktop-menu {
+          display: none;
+        }
+        .mobile-menu-button {
+          display: block;
+        }
+        .mobile-dropdown {
+          display: none;
+        }
+        .mobile-dropdown.open {
+          display: flex;
+        }
         @media (min-width: 768px) {
-          .desktop-menu { display: flex !important; }
+          .desktop-menu {
+            display: flex !important;
+          }
           .mobile-menu-button,
-          .mobile-dropdown { display: none !important; }
+          .mobile-dropdown {
+            display: none !important;
+          }
         }
       `}</style>
     </>

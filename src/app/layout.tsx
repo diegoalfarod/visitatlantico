@@ -30,24 +30,36 @@ export default function RootLayout({
       className={`${poppins.variable} ${merriweatherSans.variable}`}
     >
       <head>
-        <link rel="alternate" hrefLang="es" href="https://www.visitatlantico.com" />
-        <link rel="alternate" hrefLang="en" href="https://en.visitatlantico.com" />
+        <link
+          rel="alternate"
+          hrefLang="es"
+          href="https://www.visitatlantico.com"
+        />
+        <link
+          rel="alternate"
+          hrefLang="en"
+          href="https://en.visitatlantico.com"
+        />
 
-        <Script
-          src="https://cdn.weglot.com/weglot.min.js"
-          strategy="beforeInteractive"
-        />
-        <Script
-          id="weglot-init"
-          strategy="beforeInteractive"
-          dangerouslySetInnerHTML={{
-            __html: `
-              Weglot.initialize({
-                api_key: 'wg_69286db837a9e6437be697681a5d2bd63'
-              });
-            `,
-          }}
-        />
+        {process.env.NODE_ENV === "production" && (
+          <>
+            <Script
+              src="https://cdn.weglot.com/weglot.min.js"
+              strategy="beforeInteractive"
+            />
+            <Script
+              id="weglot-init"
+              strategy="beforeInteractive"
+              dangerouslySetInnerHTML={{
+                __html: `
+                  Weglot.initialize({
+                    api_key: 'wg_69286db837a9e6437be697681a5d2bd63'
+                  });
+                `,
+              }}
+            />
+          </>
+        )}
       </head>
       <body className="font-sans">{children}</body>
     </html>
