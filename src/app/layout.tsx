@@ -43,6 +43,24 @@ export default function RootLayout({
 
         {process.env.NODE_ENV === "production" && (
           <>
+            {/* Fuerza el idioma inglés si el subdominio es "en" */}
+            <Script
+              id="weglot-force-subdomain"
+              strategy="beforeInteractive"
+              dangerouslySetInnerHTML={{
+                __html: `
+                  if (window.location.hostname.startsWith('en.')) {
+                    window.Weglot = window.Weglot || {};
+                    Weglot.options = {
+                      ...Weglot.options,
+                      language: 'en'
+                    };
+                  }
+                `,
+              }}
+            />
+
+            {/* Script principal de Weglot */}
             <Script
               src="https://cdn.weglot.com/weglot.min.js"
               strategy="beforeInteractive"
