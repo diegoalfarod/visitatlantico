@@ -1,5 +1,6 @@
 import "./globals.css";
 import { Poppins, Merriweather_Sans } from "next/font/google";
+import Script from "next/script";
 
 const poppins = Poppins({
   subsets: ["latin"],
@@ -28,7 +29,28 @@ export default function RootLayout({
       lang="es"
       className={`${poppins.variable} ${merriweatherSans.variable}`}
     >
-      <head />
+      <head>
+        {/* SEO: alternate language versions */}
+        <link rel="alternate" hrefLang="es" href="https://www.visitatlantico.com" />
+        <link rel="alternate" hrefLang="en" href="https://en.visitatlantico.com" />
+
+        {/* Weglot script */}
+        <Script
+          src="https://cdn.weglot.com/weglot.min.js"
+          strategy="beforeInteractive"
+        />
+        <Script
+          id="weglot-init"
+          strategy="beforeInteractive"
+          dangerouslySetInnerHTML={{
+            __html: `
+              Weglot.initialize({
+                api_key: 'wg_69286db837a9e6437be697681a5d2bd63'
+              });
+            `,
+          }}
+        />
+      </head>
       <body className="font-sans">{children}</body>
     </html>
   );
