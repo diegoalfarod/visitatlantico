@@ -30,11 +30,9 @@ export default function RootLayout({
       className={`${poppins.variable} ${merriweatherSans.variable}`}
     >
       <head>
-        {/* SEO: alternate language versions */}
         <link rel="alternate" hrefLang="es" href="https://www.visitatlantico.com" />
         <link rel="alternate" hrefLang="en" href="https://en.visitatlantico.com" />
 
-        {/* Weglot script */}
         <Script
           src="https://cdn.weglot.com/weglot.min.js"
           strategy="beforeInteractive"
