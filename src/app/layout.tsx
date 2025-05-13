@@ -30,9 +30,10 @@ export default function RootLayout({
       className={`${poppins.variable} ${merriweatherSans.variable}`}
     >
       <head>
+        {/* Linguise: script que activa traducción */}
         <Script
           strategy="beforeInteractive"
-          src="https://static.linguise.com/script/linguise.js"
+          src="https://static.linguise.com/script-js/switcher.bundle.js?d=pk_fyLj8y0LWKceqoZ9j7u"
         />
         <Script
           id="linguise-init"
