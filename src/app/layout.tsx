@@ -1,5 +1,6 @@
 import "./globals.css";
 import { Poppins, Merriweather_Sans } from "next/font/google";
+import Script from "next/script"; // 👈 nuevo import
 
 const poppins = Poppins({
   subsets: ["latin"],
@@ -28,7 +29,24 @@ export default function RootLayout({
       lang="es"
       className={`${poppins.variable} ${merriweatherSans.variable}`}
     >
-      <head>{/* Weglot eliminado completamente */}</head>
+      <head>
+        {/* Linguise Script */}
+        <Script
+          strategy="beforeInteractive"
+          src="https://static.linguise.com/script/linguise.js"
+        />
+        <Script
+          id="linguise-init"
+          strategy="beforeInteractive"
+          dangerouslySetInnerHTML={{
+            __html: `
+              window.linguise = {
+                api_key: "DQsjmtmecLYU2qPDPTL9I5q0gFhuFtAn"
+              };
+            `,
+          }}
+        />
+      </head>
       <body className="font-sans">{children}</body>
     </html>
   );
