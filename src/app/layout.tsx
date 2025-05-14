@@ -1,3 +1,10 @@
+// src/app/layout.tsx
+declare global {
+  interface Window {
+    Weglot: any;
+  }
+}
+
 import "./globals.css";
 import { Poppins, Merriweather_Sans } from "next/font/google";
 import Script from "next/script";
@@ -26,11 +33,11 @@ export default async function RootLayout({
   children: React.ReactNode;
 }) {
   const host = (await headers()).get("host") || "";
-  const htmlLang = host.startsWith("en.") ? "en" : "es";
+  const isEn = host.startsWith("en.");
 
   return (
     <html
-      lang={htmlLang}
+      lang={isEn ? "en" : "es"}
       className={`${poppins.variable} ${merriweatherSans.variable}`}
     >
       <head>
@@ -45,50 +52,21 @@ export default async function RootLayout({
           href="https://en.visitatlantico.com"
         />
 
-        {/* Fuerza el idioma inglés si el subdominio es "en" */}
-        <Script
-          id="weglot-force-subdomain"
-          strategy="beforeInteractive"
-          dangerouslySetInnerHTML={{
-            __html: `
-              if (window.location.hostname.startsWith('en.')) {
-                window.Weglot = window.Weglot || {};
-                Weglot.options = {
-                  ...Weglot.options,
-                  language: 'en'
-                };
-                console.log('🌐 Subdomain detected: forcing English language');
-              }
-            `,
-          }}
-        />
-
-        {/* Script principal de Weglot */}
         <Script
           src="https://cdn.weglot.com/weglot.min.js"
-          strategy="beforeInteractive"
-        />
-
-        {/* Inicialización con espera para evitar errores */}
-        <Script
-          id="weglot-init"
           strategy="afterInteractive"
-          dangerouslySetInnerHTML={{
-            __html: `
-              function initWeglot() {
-                if (typeof Weglot === "undefined") {
-                  console.warn("🌐 Weglot not ready, retrying...");
-                  setTimeout(initWeglot, 100);
-                  return;
-                }
-
-                Weglot.initialize({
-                  api_key: 'wg_69286db837a9e6437be697681a5d2bd63'
-                });
+          onLoad={() => {
+            if (typeof window.Weglot !== "undefined") {
+              if (isEn) {
+                window.Weglot.options = {
+                  ...window.Weglot.options,
+                  language: "en",
+                };
               }
-
-              initWeglot();
-            `,
+              window.Weglot.initialize({
+                api_key: "wg_69286db837a9e6437be697681a5d2bd63",
+              });
+            }
           }}
         />
       </head>
