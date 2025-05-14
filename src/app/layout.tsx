@@ -24,22 +24,43 @@ export const metadata = {
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="es" className={`${poppins.variable} ${merriweatherSans.variable}`}>
+    <html
+      lang="es"
+      className={`${poppins.variable} ${merriweatherSans.variable}`}
+    >
       <head>
-        {/* SEO hreflang */}
-        <link rel="alternate" hrefLang="es" href="https://visitatlantico.com" />
-        <link rel="alternate" hrefLang="en" href="https://en.visitatlantico.com" />
+        {/* SEO: versiones alternas */}
+        <link
+          rel="alternate"
+          hrefLang="es"
+          href="https://www.visitatlantico.com"
+        />
+        <link
+          rel="alternate"
+          hrefLang="en"
+          href="https://en.visitatlantico.com"
+        />
 
-        {/* ConveyThis Script Start */}
+        {/* Weglot: carga del bundle */}
         <Script
-          src="//cdn.conveythis.com/javascript/conveythis.js?api_key=pub_a9e8672d5a83d272d4d95dc2045c6170"
+          src="https://cdn.weglot.com/weglot.min.js"
           strategy="beforeInteractive"
         />
-        {/* ConveyThis Script End */}
+
+        {/* Weglot: inicialización con tu API Key */}
+        <Script
+          id="weglot-init"
+          strategy="beforeInteractive"
+          dangerouslySetInnerHTML={{
+            __html: `
+              Weglot.initialize({
+                api_key: 'wg_69286db837a9e6437be697681a5d2bd63'
+              });
+            `,
+          }}
+        />
       </head>
-      <body className="font-sans">
-        {children}
-      </body>
+      <body className="font-sans">{children}</body>
     </html>
   );
 }
