@@ -68,14 +68,26 @@ export default async function RootLayout({
           src="https://cdn.weglot.com/weglot.min.js"
           strategy="beforeInteractive"
         />
+
+        {/* Inicialización con espera para evitar errores */}
         <Script
           id="weglot-init"
-          strategy="beforeInteractive"
+          strategy="afterInteractive"
           dangerouslySetInnerHTML={{
             __html: `
-              Weglot.initialize({
-                api_key: 'wg_69286db837a9e6437be697681a5d2bd63'
-              });
+              function initWeglot() {
+                if (typeof Weglot === "undefined") {
+                  console.warn("🌐 Weglot not ready, retrying...");
+                  setTimeout(initWeglot, 100);
+                  return;
+                }
+
+                Weglot.initialize({
+                  api_key: 'wg_69286db837a9e6437be697681a5d2bd63'
+                });
+              }
+
+              initWeglot();
             `,
           }}
         />
