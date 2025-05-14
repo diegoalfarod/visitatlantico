@@ -1,7 +1,11 @@
 // src/app/layout.tsx
+
 declare global {
   interface Window {
-    Weglot: any;
+    Weglot: {
+      initialize(options: { api_key: string }): void;
+      options?: Record<string, unknown>;
+    };
   }
 }
 
@@ -36,21 +40,10 @@ export default async function RootLayout({
   const isEn = host.startsWith("en.");
 
   return (
-    <html
-      lang={isEn ? "en" : "es"}
-      className={`${poppins.variable} ${merriweatherSans.variable}`}
-    >
+    <html lang={isEn ? "en" : "es"} className={`${poppins.variable} ${merriweatherSans.variable}`}>
       <head>
-        <link
-          rel="alternate"
-          hrefLang="es"
-          href="https://www.visitatlantico.com"
-        />
-        <link
-          rel="alternate"
-          hrefLang="en"
-          href="https://en.visitatlantico.com"
-        />
+        <link rel="alternate" hrefLang="es" href="https://www.visitatlantico.com" />
+        <link rel="alternate" hrefLang="en" href="https://en.visitatlantico.com" />
 
         <Script
           src="https://cdn.weglot.com/weglot.min.js"
