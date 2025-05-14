@@ -5,15 +5,13 @@ import { useEffect } from 'react';
 
 export default function GoogleTranslateWidget() {
   useEffect(() => {
-    // Crea el script del widget de Google Translate
     const script = document.createElement('script');
     script.src = '//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit';
     document.body.appendChild(script);
 
-    // Callback global que inicializa el widget
-    // @ts-ignore
+    // @ts-expect-error google namespace injected by external script
     window.googleTranslateElementInit = () => {
-      // @ts-ignore
+      // @ts-expect-error translate namespace injected by external script
       new window.google.translate.TranslateElement(
         { pageLanguage: 'es', includedLanguages: 'en' },
         'google_translate_element'
@@ -21,7 +19,6 @@ export default function GoogleTranslateWidget() {
     };
   }, []);
 
-  // Contenedor donde Google inyecta el widget
   return (
     <div
       id="google_translate_element"
