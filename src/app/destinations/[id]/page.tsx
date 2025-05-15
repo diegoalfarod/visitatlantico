@@ -17,12 +17,12 @@ import {
 
 export const dynamic = "force-dynamic";
 
-interface PageProps {
+// Generar metadata dinámica por destino
+export async function generateMetadata({
+  params,
+}: {
   params: { id: string };
-}
-
-// Generate dynamic metadata per destination
-export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+}): Promise<Metadata> {
   const { id } = params;
   const snap = await getDoc(doc(db, "destinations", id));
   if (!snap.exists()) {
@@ -30,11 +30,16 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   }
   const d = snap.data();
   const title = `${d.name} – VisitAtlántico`;
-  const description = d.tagline || d.description?.slice(0, 150) || "Explora este destino en Atlántico, Colombia.";
+  const description =
+    d.tagline ||
+    d.description?.slice(0, 150) ||
+    "Explora este destino en Atlántico, Colombia.";
   let imageUrl = "";
   if (d.imagePath) {
     try {
-      imageUrl = await getDownloadURL(ref(storage, d.imagePath.replace(/^\/+/, "")));
+      imageUrl = await getDownloadURL(
+        ref(storage, d.imagePath.replace(/^\/+/, ""))
+      );
     } catch {}
   }
   const url = `https://visitatlantico.com/destinations/${id}`;
@@ -70,9 +75,13 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   };
 }
 
-export default async function DestinationDetail({ params }: PageProps) {
+// Página de detalle de destino
+export default async function DestinationDetail({
+  params,
+}: {
+  params: { id: string };
+}) {
   const { id } = params;
-
   const snap = await getDoc(doc(db, "destinations", id));
   if (!snap.exists()) {
     notFound();
@@ -83,7 +92,9 @@ export default async function DestinationDetail({ params }: PageProps) {
   let imageUrl = "";
   if (d.imagePath) {
     try {
-      imageUrl = await getDownloadURL(ref(storage, d.imagePath.replace(/^\/+/, "")));
+      imageUrl = await getDownloadURL(
+        ref(storage, d.imagePath.replace(/^\/+/, ""))
+      );
     } catch (e) {
       console.error("Error obteniendo imagen:", e);
     }
@@ -95,7 +106,7 @@ export default async function DestinationDetail({ params }: PageProps) {
 
   return (
     <>
-      {/* JSON-LD Structured Data for TouristDestination */}
+      {/* JSON-LD Structured Data */}
       <Script
         id="ld-json"
         type="application/ld+json"
@@ -152,7 +163,10 @@ export default async function DestinationDetail({ params }: PageProps) {
         <div className="sticky top-16 z-30 bg-white/90 dark:bg-gray-900/90 backdrop-blur-md border-b border-gray-200 dark:border-gray-800 shadow-sm">
           <div className="max-w-5xl mx-auto flex items-center justify-between h-16 px-4 md:px-8">
             <div className="flex items-center gap-2">
-              <Link href="/destinations" className="inline-flex items-center text-sm text-gray-600 dark:text-gray-300 hover:text-primary transition-colors px-3 py-1">
+              <Link
+                href="/destinations"
+                className="inline-flex items-center text-sm text-gray-600 dark:text-gray-300 hover:text-primary transition-colors px-3 py-1"
+              >
                 <ArrowLeft className="w-4 h-4 mr-1" /> Destinos
               </Link>
               <span className="text-gray-300 dark:text-gray-700">|</span>
@@ -163,12 +177,12 @@ export default async function DestinationDetail({ params }: PageProps) {
           </div>
         </div>
 
-        {/* Content */}
+        {/* Contenido */}
         <main className="flex-1 py-8 md:py-12">
           <div className="max-w-5xl mx-auto px-4 md:px-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* Left */}
+            {/* Sección principal */}
             <div className="lg:col-span-2 space-y-8">
-              {/* Description */}
+              {/* Descripción */}
               <section className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
                 <header className="px-6 py-5 border-b border-gray-100 dark:border-gray-700">
                   <h2 className="text-2xl font-bold">Sobre este lugar</h2>
@@ -180,7 +194,7 @@ export default async function DestinationDetail({ params }: PageProps) {
                 </div>
               </section>
 
-              {/* Gallery */}
+              {/* Galería */}
               <section className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
                 <header className="px-6 py-5 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center">
                   <h2 className="text-2xl font-bold">Fotos y videos</h2>
@@ -214,7 +228,12 @@ export default async function DestinationDetail({ params }: PageProps) {
                 <h2 className="text-xl font-bold mb-4">Información</h2>
                 <InfoRow icon={<MapPin className="w-5 h-5 text-primary" />}>
                   <p className="text-sm text-gray-500">Dirección</p>
-                  <a href={mapsUrl} target="_blank" rel="noopener noreferrer" className="text-base font-medium text-primary hover:underline">
+                  <a
+                    href={mapsUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-base font-medium text-primary hover:underline"
+                  >
                     {d.address}
                   </a>
                 </InfoRow>
@@ -224,7 +243,12 @@ export default async function DestinationDetail({ params }: PageProps) {
                     {d.openingTime || "Todos los días, 9:00 – 18:00"}
                   </p>
                 </InfoRow>
-                <a href={mapsUrl} target="_blank" rel="noopener noreferrer" className="block mt-6 w-full py-3 bg-primary text-white text-center rounded-lg font-medium hover:bg-primary/90 transition-colors">
+                <a
+                  href={mapsUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="block mt-6 w-full py-3 bg-primary text-white text-center rounded-lg font-medium hover:bg-primary/90 transition-colors"
+                >
                   Cómo llegar
                 </a>
               </div>
@@ -236,7 +260,13 @@ export default async function DestinationDetail({ params }: PageProps) {
   );
 }
 
-function InfoRow({ icon, children }: { icon: React.ReactNode; children: React.ReactNode }) {
+function InfoRow({
+  icon,
+  children,
+}: {
+  icon: React.ReactNode;
+  children: React.ReactNode;
+}) {
   return (
     <div className="px-6 py-4 flex items-start gap-4 border-b last:border-none border-gray-100 dark:border-gray-700">
       <div className="bg-primary/10 p-3 rounded-full">{icon}</div>
