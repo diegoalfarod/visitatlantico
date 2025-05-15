@@ -1,8 +1,9 @@
+/* eslint-disable @next/next/no-img-element */
+
 "use client";
 
 import { useEffect } from "react";
 import { motion } from "framer-motion";
-import { Instagram, Heart } from "lucide-react";
 
 /* ------------ Colores de marca ------------ */
 const brandColors = {

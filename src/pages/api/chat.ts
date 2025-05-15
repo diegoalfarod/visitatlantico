@@ -1,3 +1,5 @@
+// src/pages/api/chat.ts
+
 import type { NextApiRequest, NextApiResponse } from "next";
 import OpenAI from "openai";
 import type { ChatCompletionMessageParam } from "openai/resources/chat/completions/completions";
@@ -7,10 +9,12 @@ interface Message {
   role: "user" | "assistant" | "system";
   content?: string;
 }
+
 interface ChatRequest {
   messages: Message[];
   language?: "es" | "en";
 }
+
 interface DestinationCard {
   id: string;
   name: string;
@@ -18,6 +22,7 @@ interface DestinationCard {
   image?: string;
   tagline?: string;
 }
+
 interface ChatResponse {
   reply?: { role: "assistant"; content: string };
   cards?: DestinationCard[];
@@ -31,49 +36,58 @@ export default async function handler(
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Método no permitido" });
   }
+
   const { messages, language } = req.body as ChatRequest;
   if (!Array.isArray(messages) || messages.length === 0) {
     return res.status(400).json({ error: "Sin mensajes para procesar" });
   }
 
-  // 1️⃣ Carga destinos
+  // 1️⃣ Carga destinos desde Firestore
   let knownDestinations: DestinationCard[] = [];
   try {
     const snap = await dbAdmin.collection("destinations").get();
-    knownDestinations = snap.docs.map((doc) => ({
-      id: doc.id,
-      name: doc.get("name"),
-      url: `${process.env.NEXT_PUBLIC_SITE_URL}/destinations/${doc.id}`,
-      image: doc.get("imagePath")
-        ? `${process.env.NEXT_PUBLIC_SITE_URL}/${doc.get("imagePath")}`
-        : undefined,
-      tagline: doc.get("tagline"),
-    }));
-  } catch {
-    // silenciar
+    knownDestinations = snap.docs.map((doc) => {
+      const name = doc.get("name") as string;
+      const rawImagePath = doc.get("imagePath") as string | undefined;
+      const tagline = doc.get("tagline") as string | undefined;
+      // Asegurarnos de remover barras iniciales
+      const cleanPath = rawImagePath?.replace(/^\/+/, "");
+      return {
+        id: doc.id,
+        name,
+        url: `${process.env.NEXT_PUBLIC_SITE_URL}/destinations/${doc.id}`,
+        image: cleanPath
+          ? `${process.env.NEXT_PUBLIC_SITE_URL}/${cleanPath}`
+          : undefined,
+        tagline,
+      };
+    });
+  } catch (e) {
+    console.error("Error cargando destinos:", e);
   }
 
-  // 2️⃣ Texto para el prompt
+  // 2️⃣ Generamos texto para el prompt
   const destListText = knownDestinations
     .map((d) => `• ${d.name}: ${d.url}`)
     .join("\n");
 
-  // 3️⃣ Prompt base
+  // 3️⃣ Construimos el prompt del sistema
   const basePrompt = `
 Eres Jimmy, un asistente alegre de turismo en Atlántico, Colombia.
 Here are the official destinations:
 ${destListText}
 
-Cuando el usuario pida recomendaciones, devuelve **una lista JSON** llamando a la función \`destination_cards\` con todos los destinos sugeridos.  Cuando des recomendaciones, **elige un máximo de 3 destinos**.
-`;
+Cuando el usuario pida recomendaciones, devuelve **una lista JSON** llamando a la función \`destination_cards\` con todos los destinos sugeridos. Cuando des recomendaciones, **elige un máximo de 3 destinos**.
+`.trim();
 
+  // 4️⃣ Directiva de idioma
   const lang = language === "en" ? "en" : "es";
   const languageDirective =
     lang === "en"
       ? "Respond ONLY in English."
       : "Responde SOLO en español.";
 
-  // 4️⃣ Definición de la función para múltiples tarjetas
+  // 5️⃣ Definición de la función para devolver tarjetas
   const functions = [
     {
       name: "destination_cards",
@@ -101,11 +115,14 @@ Cuando el usuario pida recomendaciones, devuelve **una lista JSON** llamando a l
     },
   ];
 
-  // 5️⃣ Construyo mensajes
+  // 6️⃣ Mensajes para OpenAI
   const openaiMessages: ChatCompletionMessageParam[] = [
-    { role: "system", content: basePrompt.trim() },
+    { role: "system", content: basePrompt },
     { role: "system", content: languageDirective },
-    ...messages.map((m) => ({ role: m.role, content: m.content! })),
+    ...messages.map((m) => ({
+      role: m.role,
+      content: m.content || "",
+    })),
   ];
 
   try {
@@ -120,16 +137,17 @@ Cuando el usuario pida recomendaciones, devuelve **una lista JSON** llamando a l
 
     const choice = resp.choices[0].message;
 
-    // Si OpenAI llamó a destination_cards
+    // 7️⃣ Si OpenAI invocó a destination_cards
     if (
-      choice.function_call &&
-      choice.function_call.name === "destination_cards"
+      choice.function_call?.name === "destination_cards" &&
+      choice.function_call.arguments
     ) {
       const parsed = JSON.parse(choice.function_call.arguments);
-      const cards: DestinationCard[] = parsed.cards.filter((c: any) =>
-        
-        knownDestinations.some((d) => d.id === c.id)
-      );
+      // Filtrar sólo los destinos válidos y limitar a 3
+      const cards: DestinationCard[] = (parsed.cards as DestinationCard[])
+        .filter((c) => knownDestinations.some((d) => d.id === c.id))
+        .slice(0, 3);
+
       return res.status(200).json({
         reply: {
           role: "assistant",
@@ -142,7 +160,7 @@ Cuando el usuario pida recomendaciones, devuelve **una lista JSON** llamando a l
       });
     }
 
-    // Si no, devuelvo sólo texto
+    // 8️⃣ Si no hubo invocación de función, devolvemos el texto plano
     if (choice.content) {
       return res
         .status(200)
@@ -152,8 +170,8 @@ Cuando el usuario pida recomendaciones, devuelve **una lista JSON** llamando a l
     throw new Error("Respuesta inesperada de OpenAI");
   } catch (err) {
     console.error("Error en /api/chat:", err);
-    return res
-      .status(500)
-      .json({ error: err instanceof Error ? err.message : "Error desconocido" });
+    return res.status(500).json({
+      error: err instanceof Error ? err.message : "Error desconocido",
+    });
   }
 }
