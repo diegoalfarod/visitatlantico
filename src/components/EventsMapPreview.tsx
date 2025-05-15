@@ -212,6 +212,13 @@ export default function EventsMapPreview() {
     destinations
       .filter(dest => filter === "Todos" || dest.categories.includes(filter))
       .forEach((dest) => {
+        // Trunca la descripción a 100 caracteres y añade "…" si es muy larga
+        const fullDesc = dest.description || "";
+        const shortDesc =
+          fullDesc.length > 100
+            ? fullDesc.slice(0, 100).trimEnd() + "…"
+            : fullDesc;
+
         const el = document.createElement("div");
         el.className = "marker";
         el.style.width = "36px";
@@ -237,7 +244,7 @@ export default function EventsMapPreview() {
           el.style.animation = "pulse 2s infinite";
         }
         
-        // Icono basado en la primera categoría
+        // Crear y añadir imagen del destino
         const img = document.createElement("img");
         img.src = dest.image || "https://via.placeholder.com/40";
         img.alt = dest.name;
@@ -308,7 +315,7 @@ export default function EventsMapPreview() {
                 line-height: 1.4;
                 margin-bottom: 10px;
               ">
-                ${dest.description}
+                ${shortDesc}
               </p>
               ${dest.openingTime ? `<p style="
                 font-family: 'Baloo', 'Inter', sans-serif;

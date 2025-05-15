@@ -48,9 +48,21 @@ export default function Navbar() {
               </Link>
             ))}
             <div className="flex items-center gap-4 ml-6">
-              <span className="font-fivo text-sm hover:text-[#E40E20] cursor-pointer">
-                ES | EN
-              </span>
+              {/* Language Links */}
+              <Link
+                href="https://visitatlantico.com"
+                className="font-fivo text-sm hover:text-[#E40E20] transition-all"
+              >
+                ES
+              </Link>
+              <span className="font-fivo text-sm">|</span>
+              <Link
+                href="https://en.visitatlantico.com"
+                className="font-fivo text-sm hover:text-[#E40E20] transition-all"
+              >
+                EN
+              </Link>
+              {/* Planner Button */}
               <Link href="/planner" className="rounded-full">
                 <button className="font-fivo px-5 py-2 text-sm bg-[#E40E20] font-semibold rounded-full hover:bg-[#D31A2B] shadow-md">
                   Planifica tu viaje
@@ -89,7 +101,24 @@ export default function Navbar() {
                 </Link>
               ))}
               <div className="flex flex-col gap-4 mt-4">
-                <span className="font-fivo text-sm">ES | EN</span>
+                {/* Language Links */}
+                <div className="flex items-center gap-2">
+                  <Link
+                    href="https://visitatlantico.com"
+                    className="font-fivo text-sm hover:text-[#E40E20] transition-all"
+                    onClick={() => setMenuOpen(false)}
+                  >
+                    ES
+                  </Link>
+                  <span className="font-fivo text-sm">|</span>
+                  <Link
+                    href="https://en.visitatlantico.com"
+                    className="font-fivo text-sm hover:text-[#E40E20] transition-all"
+                    onClick={() => setMenuOpen(false)}
+                  >
+                    EN
+                  </Link>
+                </div>
                 <Link href="/planner" onClick={() => setMenuOpen(false)}>
                   <button className="font-fivo w-full px-5 py-3 bg-[#E40E20] font-semibold rounded-full hover:bg-[#D31A2B]">
                     Planifica tu viaje

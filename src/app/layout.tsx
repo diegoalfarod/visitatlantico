@@ -2,7 +2,6 @@
 
 import "./globals.css";
 import { Poppins, Merriweather_Sans } from "next/font/google";
-import Script from "next/script";
 import { ReactNode } from "react";
 import type { Metadata } from "next";
 
@@ -27,8 +26,9 @@ export const metadata: Metadata = {
     apple: "/apple-touch-icon.png",
   },
   alternates: {
+    canonical: "https://visitatlantico.com",
     languages: {
-      es: "https://www.visitatlantico.com",
+      es: "https://visitatlantico.com",
       en: "https://en.visitatlantico.com",
     },
   },
@@ -72,6 +72,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
     >
       <head>
         {/* Next.js inyecta aquí todos los meta tags definidos en `metadata` */}
+
         {/* Canonical URL */}
         <link rel="canonical" href="https://visitatlantico.com" />
 
@@ -94,24 +95,6 @@ export default function RootLayout({ children }: { children: ReactNode }) {
                 },
               },
             }),
-          }}
-        />
-
-        {/* Weglot: carga del bundle sin el widget clásico */}
-        <Script
-          src="https://cdn.weglot.com/weglot.min.js"
-          strategy="beforeInteractive"
-        />
-        <Script
-          id="weglot-init"
-          strategy="beforeInteractive"
-          dangerouslySetInnerHTML={{
-            __html: `
-              Weglot.initialize({
-                api_key: 'wg_69286db837a9e6437be697681a5d2bd63',
-                classic: { enableXClassicWidget: false }
-              });
-            `,
           }}
         />
       </head>

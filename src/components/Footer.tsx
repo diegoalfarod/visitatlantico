@@ -27,18 +27,11 @@ export default function Footer() {
   /* ---- enlaces de navegación ---- */
   const footerLinks = {
     destinos: [
-      { label: "Barranquilla", href: "/destinos/barranquilla" },
-      { label: "Puerto Colombia", href: "/destinos/puerto-colombia" },
-      { label: "Tubará", href: "/destinos/tubara" },
-      { label: "Usiacurí", href: "/destinos/usiacuri" },
+      { label: "Barranquilla", href: "/destinations/barranquilla" },
+      { label: "Puerto Colombia", href: "/destinations/puerto-colombia" },
+      { label: "Tubará", href: "/destinations/tubara" },
+      { label: "Usiacurí", href: "/destinations/usiacuri" },
       { label: "Mapa Completo", href: "/mapa" },
-    ],
-    experiencias: [
-      { label: "Playas", href: "/experiencias/playas" },
-      { label: "Cultura", href: "/experiencias/cultura" },
-      { label: "Gastronomía", href: "/experiencias/gastronomia" },
-      { label: "Aventura", href: "/experiencias/aventura" },
-      { label: "Ecoturismo", href: "/experiencias/ecoturismo" },
     ],
     ayuda: [
       { label: "Preguntas Frecuentes", href: "/ayuda/faq" },
@@ -53,15 +46,15 @@ export default function Footer() {
     {
       icon: <Instagram size={20} />,
       label: "Instagram",
-      href: "https://instagram.com/visitatlantico",
+      href: "https://instagram.com/turismoatlantico_",
       color: "hover:text-pink-500",
     },
   ];
 
   const contactInfo = [
-    { icon: <Mail size={16} />, text: "info@visitatlantico.co" },
+    { icon: <Mail size={16} />, text: "atencionalciudadano@atlantico.gov.co" },
     { icon: <Phone size={16} />, text: "+57 (605) 330-7000" },
-    { icon: <MapPin size={16} />, text: "Barranquilla – Atlántico, Colombia" },
+    { icon: <MapPin size={16} />, text: "CL 40 45 46 - Barranquilla, Colombia" },
   ];
 
   /* ---------- UI ---------- */
@@ -119,9 +112,9 @@ export default function Footer() {
             </ul>
           </div>
 
-          {/* enlaces destinos / experiencias / ayuda */}
-          <div className="md:col-span-6 grid grid-cols-2 sm:grid-cols-3 gap-6">
-            {(["destinos", "experiencias", "ayuda"] as const).map((section) => (
+          {/* enlaces destinos / ayuda */}
+          <div className="md:col-span-6 grid grid-cols-2 sm:grid-cols-2 gap-6">
+            {(["destinos", "ayuda"] as const).map((section) => (
               <div key={section}>
                 <h3 className="font-semibold text-foreground mb-4 capitalize">
                   {section}
