@@ -20,9 +20,7 @@ const merriweatherSans = Merriweather_Sans({
 export const metadata: Metadata = {
   title: "VisitAtlántico · Explora el paraíso costero",
   description: "Descubre playas, cultura y aventuras en Atlántico, Colombia.",
-  viewport: { width: "device-width", initialScale: 1 },
   robots: "index, follow",
-  themeColor: "#006994",
   icons: {
     icon: "/favicon.ico",
     shortcut: "/favicon.ico",
@@ -58,14 +56,22 @@ export const metadata: Metadata = {
   },
 };
 
+// Mover viewport y themeColor a generateViewport
+export function generateViewport() {
+  return {
+    viewport: "width=device-width, initial-scale=1",
+    themeColor: "#006994",
+  };
+}
+
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html
       lang="es"
-      className={`${poppins.variable} ${merriweatherSans.variable}`}>
+      className={`${poppins.variable} ${merriweatherSans.variable}`}
+    >
       <head>
         {/* Next.js inyecta aquí todos los meta tags definidos en `metadata` */}
-
         {/* Canonical URL */}
         <link rel="canonical" href="https://visitatlantico.com" />
 
@@ -76,18 +82,18 @@ export default function RootLayout({ children }: { children: ReactNode }) {
             __html: JSON.stringify({
               "@context": "https://schema.org",
               "@type": "WebSite",
-              "url": "https://visitatlantico.com",
-              "name": "VisitAtlántico",
-              "description": "Explora el paraíso costero del Atlántico, Colombia.",
-              "publisher": {
+              url: "https://visitatlantico.com",
+              name: "VisitAtlántico",
+              description: "Explora el paraíso costero del Atlántico, Colombia.",
+              publisher: {
                 "@type": "Organization",
-                "name": "VisitAtlántico",
-                "logo": {
+                name: "VisitAtlántico",
+                logo: {
                   "@type": "ImageObject",
-                  "url": "https://visitatlantico.com/favicon.ico"
-                }
-              }
-            })
+                  url: "https://visitatlantico.com/favicon.ico",
+                },
+              },
+            }),
           }}
         />
 
