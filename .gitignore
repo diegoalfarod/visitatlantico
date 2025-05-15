@@ -61,3 +61,5 @@ scripts/serviceAccountKey.json
 npm-debug.log*
 *.pem
 serviceAccountKey.json
+serviceAccountKey.json
+scripts/serviceAccountKey.json
