@@ -1,5 +1,6 @@
 // src/app/destinations/[id]/page.tsx
 
+import { ReactNode } from "react";
 import { notFound } from "next/navigation";
 import { doc, getDoc } from "firebase/firestore";
 import { ref, getDownloadURL } from "firebase/storage";
@@ -8,14 +9,16 @@ import Image from "next/image";
 import Link from "next/link";
 import Script from "next/script";
 import type { Metadata } from "next";
-import { ReactNode } from "react";
 import { ArrowLeft, Camera, Clock, MapPin } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
+// Tipo local para nuestras funciones
+type Params = { params: { id: string } };
+
 // Genera metadata dinámica para cada destino
-export async function generateMetadata({ params }: any): Promise<Metadata> {
-  const { id } = params as { id: string };
+export async function generateMetadata({ params }: Params): Promise<Metadata> {
+  const { id } = params;
   const snap = await getDoc(doc(db, "destinations", id));
   if (!snap.exists()) {
     return { title: "Destino no encontrado - VisitAtlántico" };
@@ -33,7 +36,9 @@ export async function generateMetadata({ params }: any): Promise<Metadata> {
       imageUrl = await getDownloadURL(
         ref(storage, d.imagePath.replace(/^\/+/, ""))
       );
-    } catch {}
+    } catch {
+      // si falla la descarga de imagen, dejamos imageUrl vacía
+    }
   }
 
   const url = `https://visitatlantico.com/destinations/${id}`;
@@ -70,8 +75,8 @@ export async function generateMetadata({ params }: any): Promise<Metadata> {
 }
 
 // Página de detalle de destino
-export default async function DestinationDetail({ params }: any) {
-  const { id } = params as { id: string };
+export default async function DestinationDetail({ params }: Params) {
+  const { id } = params;
   const snap = await getDoc(doc(db, "destinations", id));
   if (!snap.exists()) {
     notFound();
@@ -170,9 +175,8 @@ export default async function DestinationDetail({ params }: any) {
         {/* Contenido */}
         <main className="flex-1 py-8 md:py-12">
           <div className="max-w-5xl mx-auto px-4 md:px-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* Sección principal */}
+            {/* Descripción y galería */}
             <div className="lg:col-span-2 space-y-8">
-              {/* Descripción */}
               <section className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
                 <header className="px-6 py-5 border-b border-gray-100 dark:border-gray-700">
                   <h2 className="text-2xl font-bold">Sobre este lugar</h2>
@@ -184,7 +188,6 @@ export default async function DestinationDetail({ params }: any) {
                 </div>
               </section>
 
-              {/* Galería */}
               <section className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
                 <header className="px-6 py-5 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center">
                   <h2 className="text-2xl font-bold">Fotos y videos</h2>
@@ -212,13 +215,12 @@ export default async function DestinationDetail({ params }: any) {
               </section>
             </div>
 
-            {/* Sidebar */} 
+            {/* Sidebar */}
             <div className="lg:col-span-1 space-y-4">
               <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden sticky top-36 p-6">
                 <h2 className="text-xl font-bold mb-4">Información</h2>
                 <InfoRow icon={<MapPin className="w-5 h-5 text-primary" />}>
-                  Dirección
-                  <br />
+                  <p className="text-sm text-gray-500">Dirección</p>
                   <a
                     href={mapsUrl}
                     target="_blank"
@@ -229,11 +231,10 @@ export default async function DestinationDetail({ params }: any) {
                   </a>
                 </InfoRow>
                 <InfoRow icon={<Clock className="w-5 h-5 text-primary" />}>
-                  Horario
-                  <br />
-                  <span className="text-base font-medium">
+                  <p className="text-sm text-gray-500">Horario</p>
+                  <p className="text-base font-medium">
                     {d.openingTime || "Todos los días, 9:00 – 18:00"}
-                  </span>
+                  </p>
                 </InfoRow>
                 <a
                   href={mapsUrl}
@@ -252,7 +253,7 @@ export default async function DestinationDetail({ params }: any) {
   );
 }
 
-// Fila de información reutilizable
+// Componente de fila de información
 function InfoRow({
   icon,
   children,
