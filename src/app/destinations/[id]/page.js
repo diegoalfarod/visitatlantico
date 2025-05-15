@@ -1,6 +1,5 @@
-// src/app/destinations/[id]/page.tsx
+// src/app/destinations/[id]/page.js
 
-import { ReactNode } from "react";
 import { notFound } from "next/navigation";
 import { doc, getDoc } from "firebase/firestore";
 import { ref, getDownloadURL } from "firebase/storage";
@@ -8,16 +7,12 @@ import { db, storage } from "@/lib/firebase";
 import Image from "next/image";
 import Link from "next/link";
 import Script from "next/script";
-import type { Metadata } from "next";
 import { ArrowLeft, Camera, Clock, MapPin } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
-// Tipo local para nuestras funciones
-type Params = { params: { id: string } };
-
 // Genera metadata dinámica para cada destino
-export async function generateMetadata({ params }: Params): Promise<Metadata> {
+export async function generateMetadata({ params }) {
   const { id } = params;
   const snap = await getDoc(doc(db, "destinations", id));
   if (!snap.exists()) {
@@ -36,9 +31,7 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
       imageUrl = await getDownloadURL(
         ref(storage, d.imagePath.replace(/^\/+/, ""))
       );
-    } catch {
-      // si falla la descarga de imagen, dejamos imageUrl vacía
-    }
+    } catch {}
   }
 
   const url = `https://visitatlantico.com/destinations/${id}`;
@@ -75,7 +68,7 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
 }
 
 // Página de detalle de destino
-export default async function DestinationDetail({ params }: Params) {
+export default async function DestinationDetail({ params }) {
   const { id } = params;
   const snap = await getDoc(doc(db, "destinations", id));
   if (!snap.exists()) {
@@ -175,10 +168,10 @@ export default async function DestinationDetail({ params }: Params) {
         {/* Contenido */}
         <main className="flex-1 py-8 md:py-12">
           <div className="max-w-5xl mx-auto px-4 md:px-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* Descripción y galería */}
             <div className="lg:col-span-2 space-y-8">
+              {/* Descripción */}
               <section className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
-                <header className="px-6 py-5 border-b border-gray-100 dark:border-gray-700">
+                <header className="px-6 py-5 border-b border-gray-100 dark:border-  gray-700">
                   <h2 className="text-2xl font-bold">Sobre este lugar</h2>
                 </header>
                 <div className="p-6">
@@ -188,6 +181,7 @@ export default async function DestinationDetail({ params }: Params) {
                 </div>
               </section>
 
+              {/* Galería */}
               <section className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
                 <header className="px-6 py-5 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center">
                   <h2 className="text-2xl font-bold">Fotos y videos</h2>
@@ -253,14 +247,8 @@ export default async function DestinationDetail({ params }: Params) {
   );
 }
 
-// Componente de fila de información
-function InfoRow({
-  icon,
-  children,
-}: {
-  icon: ReactNode;
-  children: ReactNode;
-}) {
+// Fila de información
+function InfoRow({ icon, children }) {
   return (
     <div className="px-6 py-4 flex items-start gap-4 border-b last:border-none border-gray-100 dark:border-gray-700">
       <div className="bg-primary/10 p-3 rounded-full">{icon}</div>
