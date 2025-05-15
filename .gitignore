@@ -60,3 +60,4 @@ scripts/serviceAccountKey.json
 .DS_Store
 npm-debug.log*
 *.pem
+serviceAccountKey.json
