@@ -8,22 +8,14 @@ import Image from "next/image";
 import Link from "next/link";
 import Script from "next/script";
 import type { Metadata } from "next";
-import {
-  ArrowLeft,
-  Camera,
-  Clock,
-  MapPin,
-} from "lucide-react";
+import { ReactNode } from "react";
+import { ArrowLeft, Camera, Clock, MapPin } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
-// Generar metadata dinámica por destino
-export async function generateMetadata({
-  params,
-}: {
-  params: { id: string };
-}): Promise<Metadata> {
-  const { id } = params;
+// Genera metadata dinámica para cada destino
+export async function generateMetadata({ params }: any): Promise<Metadata> {
+  const { id } = params as { id: string };
   const snap = await getDoc(doc(db, "destinations", id));
   if (!snap.exists()) {
     return { title: "Destino no encontrado - VisitAtlántico" };
@@ -34,6 +26,7 @@ export async function generateMetadata({
     d.tagline ||
     d.description?.slice(0, 150) ||
     "Explora este destino en Atlántico, Colombia.";
+
   let imageUrl = "";
   if (d.imagePath) {
     try {
@@ -42,6 +35,7 @@ export async function generateMetadata({
       );
     } catch {}
   }
+
   const url = `https://visitatlantico.com/destinations/${id}`;
 
   return {
@@ -76,12 +70,8 @@ export async function generateMetadata({
 }
 
 // Página de detalle de destino
-export default async function DestinationDetail({
-  params,
-}: {
-  params: { id: string };
-}) {
-  const { id } = params;
+export default async function DestinationDetail({ params }: any) {
+  const { id } = params as { id: string };
   const snap = await getDoc(doc(db, "destinations", id));
   if (!snap.exists()) {
     notFound();
@@ -222,12 +212,13 @@ export default async function DestinationDetail({
               </section>
             </div>
 
-            {/* Sidebar */}
+            {/* Sidebar */} 
             <div className="lg:col-span-1 space-y-4">
               <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden sticky top-36 p-6">
                 <h2 className="text-xl font-bold mb-4">Información</h2>
                 <InfoRow icon={<MapPin className="w-5 h-5 text-primary" />}>
-                  <p className="text-sm text-gray-500">Dirección</p>
+                  Dirección
+                  <br />
                   <a
                     href={mapsUrl}
                     target="_blank"
@@ -238,10 +229,11 @@ export default async function DestinationDetail({
                   </a>
                 </InfoRow>
                 <InfoRow icon={<Clock className="w-5 h-5 text-primary" />}>
-                  <p className="text-sm text-gray-500">Horario</p>
-                  <p className="text-base font-medium">
+                  Horario
+                  <br />
+                  <span className="text-base font-medium">
                     {d.openingTime || "Todos los días, 9:00 – 18:00"}
-                  </p>
+                  </span>
                 </InfoRow>
                 <a
                   href={mapsUrl}
@@ -260,12 +252,13 @@ export default async function DestinationDetail({
   );
 }
 
+// Fila de información reutilizable
 function InfoRow({
   icon,
   children,
 }: {
-  icon: React.ReactNode;
-  children: React.ReactNode;
+  icon: ReactNode;
+  children: ReactNode;
 }) {
   return (
     <div className="px-6 py-4 flex items-start gap-4 border-b last:border-none border-gray-100 dark:border-gray-700">
