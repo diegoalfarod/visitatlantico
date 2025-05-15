@@ -256,94 +256,102 @@ export default function EventsMapPreview() {
         el.appendChild(img);
 
         const popupContent = `
-          <div style="
-            max-width: 250px;
-            background: white;
-            border-radius: 12px;
-            box-shadow: 0 8px 24px rgba(0,0,0,0.15);
-            overflow: hidden;
-            font-family: 'Fivo', 'Inter', sans-serif;
-          ">
-            <div style="
-              position: relative;
-              width: 100%;
-              height: 140px;
-              overflow: hidden;
-            ">
-              <img 
-                src="${dest.image || 'https://via.placeholder.com/250x140?text=No+Image'}" 
-                alt="${dest.name}" 
-                style="
-                  width: 100%;
-                  height: 100%;
-                  object-fit: cover;
-                " 
-              />
-              <div style="
-                position: absolute;
-                top: 0;
-                left: 0;
-                width: 100%;
-                height: 4px;
-                background: linear-gradient(to right, ${brandColors.primary.main}, ${brandColors.primary.light});
-              "></div>
-            </div>
-            <div style="padding: 16px;">
-              <h3 style="
-                font-family: 'Fivo', 'Inter', sans-serif;
-                font-size: 18px;
-                font-weight: 700;
-                color: ${brandColors.primary.main};
-                margin-top: 0;
-                margin-bottom: 6px;
-              ">
-                ${dest.name}
-              </h3>
-              ${dest.tagline ? `<p style="
-                font-family: 'Baloo', 'Inter', sans-serif;
-                font-size: 14px;
-                font-style: italic;
-                color: ${brandColors.neutral.medium};
-                margin-bottom: 8px;
-              ">
-                ${dest.tagline}
-              </p>` : ''}
-              <p style="
-                font-family: 'Baloo', 'Inter', sans-serif;
-                font-size: 14px;
-                color: ${brandColors.secondary.blue.dark};
-                line-height: 1.4;
-                margin-bottom: 10px;
-              ">
-                ${shortDesc}
-              </p>
-              ${dest.openingTime ? `<p style="
-                font-family: 'Baloo', 'Inter', sans-serif;
-                font-size: 13px;
-                color: ${brandColors.neutral.medium};
-                margin-bottom: 8px;
-              ">
-                <strong>Horario:</strong> ${dest.openingTime}
-              </p>` : ''}
-              <a href="${dest.website || '#'}" target="_blank" style="
-                display: inline-block;
-                background-color: ${brandColors.primary.main};
-                color: white;
-                font-family: 'Fivo', 'Inter', sans-serif;
-                font-weight: 600;
-                font-size: 14px;
-                padding: 8px 16px;
-                border-radius: 8px;
-                text-align: center;
-                text-decoration: none;
-                width: 100%;
-                transition: background-color 0.3s;
-              " onmouseover="this.style.backgroundColor='${brandColors.primary.dark}';" onmouseout="this.style.backgroundColor='${brandColors.primary.main}';">
-                Ver más ➔
-              </a>
-            </div>
-          </div>
-        `;
+  <div style="
+    max-width: 250px;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+    overflow: hidden;
+    font-family: 'Fivo', 'Inter', sans-serif;
+  ">
+    <div style="
+      position: relative;
+      width: 100%;
+      height: 140px;
+      overflow: hidden;
+    ">
+      <img 
+        src="${dest.image || 'https://via.placeholder.com/250x140?text=No+Image'}" 
+        alt="${dest.name}" 
+        style="
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+        " 
+      />
+      <div style="
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 4px;
+        background: linear-gradient(to right, ${brandColors.primary.main}, ${brandColors.primary.light});
+      "></div>
+    </div>
+    <div style="padding: 16px;">
+      <h3 style="
+        font-family: 'Fivo', 'Inter', sans-serif;
+        font-size: 18px;
+        font-weight: 700;
+        color: ${brandColors.primary.main};
+        margin-top: 0;
+        margin-bottom: 6px;
+      ">
+        ${dest.name}
+      </h3>
+      ${dest.tagline ? `<p style="
+        font-family: 'Baloo', 'Inter', sans-serif;
+        font-size: 14px;
+        font-style: italic;
+        color: ${brandColors.neutral.medium};
+        margin-bottom: 8px;
+      ">
+        ${dest.tagline}
+      </p>` : ''}
+      <p style="
+        font-family: 'Baloo', 'Inter', sans-serif;
+        font-size: 14px;
+        color: ${brandColors.secondary.blue.dark};
+        line-height: 1.4;
+        margin-bottom: 10px;
+      ">
+        ${shortDesc}
+      </p>
+      ${dest.openingTime ? `<p style="
+        font-family: 'Baloo', 'Inter', sans-serif;
+        font-size: 13px;
+        color: ${brandColors.neutral.medium};
+        margin-bottom: 8px;
+      ">
+        <strong>Horario:</strong> ${dest.openingTime}
+      </p>` : ''}
+      <a
+        href="/destinations/${dest.id}"
+        target="_blank"
+      rel="noopener noreferrer"
+        style="
+          display: inline-block;
+          background-color: ${brandColors.primary.main};
+          color: white;
+          font-family: 'Fivo', 'Inter', sans-serif;
+          font-weight: 600;
+          font-size: 14px;
+          padding: 8px 16px;
+          border-radius: 8px;
+          text-align: center;
+          text-decoration: none;
+          width: 100%;
+          transition: background-color 0.3s;
+        "
+        onmouseover="this.style.backgroundColor='${brandColors.primary.dark}';"
+        onmouseout="this.style.backgroundColor='${brandColors.primary.main}';"
+      >
+        Ver más ➔
+      </a>
+    </div>
+  </div>
+`;
+
 
         const marker = new mapboxgl.Marker(el)
           .setLngLat([dest.coordinates.lng, dest.coordinates.lat])
