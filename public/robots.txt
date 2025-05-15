@@ -1,0 +1,9 @@
+# *
+User-agent: *
+Allow: /
+
+# Host
+Host: https://visitatlantico.com
+
+# Sitemaps
+Sitemap: https://visitatlantico.com/sitemap.xml
