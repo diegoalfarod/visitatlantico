@@ -142,29 +142,40 @@ export default function ChatBot() {
   };
 
   // Componente para mostrar cada tarjeta
-  function DestinationCard({ id, name, url, image, tagline }: Card) {
+  // Antes:
+// function DestinationCard({
+//   name,
+//   url,
+//   image,
+//   tagline,
+// }: {
+//   name: string;
+//   url: string;
+//   image?: string;
+//   tagline?: string;
+// }) { … }
+
+// Después:
+function DestinationCard(card: {
+    id: string;
+    name: string;
+    url: string;
+    image?: string;
+    tagline?: string;
+  }) {
+    const { name, url, image, tagline } = card;
     return (
-      <Link href={url} target="_blank" rel="noopener noreferrer" className="block">
-        <div className="bg-white dark:bg-gray-700 rounded-lg shadow p-4 flex flex-col hover:bg-gray-50 cursor-pointer">
-          {image && (
-            <Image
-              src={image}
-              alt={name}
-              width={300}
-              height={160}
-              className="w-full object-cover rounded-md mb-2"
-              onError={() => {}}
-            />
-          )}
-          <h3 className="font-semibold">{name}</h3>
-          {tagline && <p className="text-sm text-gray-500">{tagline}</p>}
-          <span className="mt-2 text-primary hover:underline">
-            {defaultLang === "en" ? "View details" : "Ver más"}
-          </span>
-        </div>
+      <Link
+        href={url}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="block"
+      >
+        {/* … resto igual … */}
       </Link>
     );
   }
+  
 
   return (
     <>

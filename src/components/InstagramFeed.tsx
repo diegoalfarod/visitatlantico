@@ -1,9 +1,8 @@
-/* eslint-disable @next/next/no-img-element */
-
 "use client";
 
 import { useEffect } from "react";
 import { motion } from "framer-motion";
+
 
 /* ------------ Colores de marca ------------ */
 const brandColors = {
