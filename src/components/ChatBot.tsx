@@ -9,25 +9,20 @@ import "@/styles/chatbot.css";
 
 type UserMessage = { role: "user"; content: string };
 type AssistantMessage = { role: "assistant"; content: string };
-type Card = {
-  id: string;
-  name: string;
-  url: string;
-  image?: string;
-  tagline?: string;
-};
 type CardsMessage = {
   role: "assistant";
   content: string;
-  cards: Card[];
+  cards: {
+    id: string;
+    name: string;
+    url: string;
+    image?: string;
+    tagline?: string;
+  }[];
 };
 type ChatMessage = UserMessage | AssistantMessage | CardsMessage;
 
-interface ChatAPIResponse {
-  reply?: AssistantMessage;
-  cards?: Card[];
-}
-
+// Detecta español por tildes/ñ/¿¡
 function detectLanguage(text: string): "es" | "en" {
   return /[áéíóúñ¿¡]/i.test(text) ? "es" : "en";
 }
@@ -55,7 +50,7 @@ export default function ChatBot() {
             role: "assistant",
             content:
               defaultLang === "en"
-                ? "Hello, traveler! I'm Jimmy 🌴, your guide to the Atlántico region. How can I help?"
+                ? "Hello, traveler! I’m Jimmy 🌴, your guide to the Atlántico region. How can I help?"
                 : "¡Hola, viajero! Soy Jimmy 🌴, tu guía del Atlántico. ¿En qué te ayudo?",
           },
         ]);
@@ -65,7 +60,7 @@ export default function ChatBot() {
     }
   }, [open, firstGreeting, defaultLang]);
 
-  // Mantener scroll al final
+  // Auto-scroll
   useEffect(() => {
     if (open) messagesEnd.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, open]);
@@ -73,63 +68,45 @@ export default function ChatBot() {
   const send = async () => {
     const text = input.trim();
     if (!text) return;
-
     const lang = detectLanguage(text);
     const userMsg: UserMessage = { role: "user", content: text };
-
-    // Agregamos el mensaje del usuario
-    setMessages((prev) => [...prev, userMsg]);
+    setMessages((m) => [...m, userMsg]);
     setInput("");
     setTyping(true);
 
     try {
-      // Preparamos el historial para enviar al API (solo user+assistant, sin tarjetas)
-      const history = messages
-        .filter((m): m is UserMessage | AssistantMessage => 
-          m.role === "user" || (m.role === "assistant" && !("cards" in m))
-        )
-        .map((m) => ({ role: m.role, content: m.content }));
-
-      const { data } = await axios.post<ChatAPIResponse>("/api/chat", {
-        messages: [...history, userMsg],
+      const { data } = await axios.post("/api/chat", {
+        messages: [
+          ...messages.filter((m) => !(m.role === "assistant" && "cards" in m)),
+          userMsg,
+        ],
         language: lang,
       });
 
-      // Simular tipeo
       await new Promise((r) => setTimeout(r, 800));
       setTyping(false);
 
-      // Si vienen tarjetas
-      if (data.cards) {
+      if ((data as any).cards) {
         const cardsMsg: CardsMessage = {
           role: "assistant",
-          content: data.reply?.content || "",
-          cards: data.cards,
+          content: data.reply!.content,
+          cards: (data as any).cards,
         };
-        setMessages((prev) => [...prev, cardsMsg]);
-      }
-      // Si solo viene texto
-      else if (data.reply) {
-        // Ensure data.reply is a valid ChatMessage before adding it to the array
-        const newMessage: ChatMessage = {
-          role: 'assistant',
-          content: data.reply.content || data.reply.toString(),
-          // Add any other required properties of ChatMessage
-        };
-        
-        setMessages((prev) => [...prev, newMessage]);
+        setMessages((m) => [...m, cardsMsg]);
+      } else if (data.reply) {
+        setMessages((m) => [...m, data.reply as AssistantMessage]);
       }
     } catch {
       setTyping(false);
-      setMessages((prev) => [
-        ...prev,
+      setMessages((m) => [
+        ...m,
         {
           role: "assistant",
           content:
             lang === "en"
               ? "Connection error."
               : "Error de conexión.",
-        },
+        } as AssistantMessage,
       ]);
     }
   };
@@ -141,29 +118,18 @@ export default function ChatBot() {
     }
   };
 
-  // Componente para mostrar cada tarjeta
-  // Antes:
-// function DestinationCard({
-//   name,
-//   url,
-//   image,
-//   tagline,
-// }: {
-//   name: string;
-//   url: string;
-//   image?: string;
-//   tagline?: string;
-// }) { … }
-
-// Después:
-function DestinationCard(card: {
-    id: string;
+  // Tarjeta de destino: sólo recibe name/url/image/tagline
+  function DestinationCard({
+    name,
+    url,
+    image,
+    tagline,
+  }: {
     name: string;
     url: string;
     image?: string;
     tagline?: string;
   }) {
-    const { name, url, image, tagline } = card;
     return (
       <Link
         href={url}
@@ -171,15 +137,30 @@ function DestinationCard(card: {
         rel="noopener noreferrer"
         className="block"
       >
-        {/* … resto igual … */}
+        <div className="bg-white dark:bg-gray-700 rounded-lg shadow p-4 flex flex-col hover:bg-gray-50 cursor-pointer">
+          {image && (
+            <img
+              src={image}
+              alt={name}
+              className="w-full h-32 object-cover rounded-md mb-2"
+              onError={(e) => {
+                (e.currentTarget.style as any).display = "none";
+              }}
+            />
+          )}
+          <h3 className="font-semibold">{name}</h3>
+          {tagline && <p className="text-sm text-gray-500">{tagline}</p>}
+          <span className="mt-2 text-primary hover:underline">
+            {defaultLang === "en" ? "View details" : "Ver más"}
+          </span>
+        </div>
       </Link>
     );
   }
-  
 
   return (
     <>
-      {/* FAB siempre visible */}
+      {/* FAB */}
       <button
         className="chat-fab z-50"
         onClick={() => setOpen(true)}
@@ -204,7 +185,7 @@ function DestinationCard(card: {
             onClick={() => setOpen(false)}
           />
 
-          {/* Ventana de chat, 5rem sobre el FAB */}
+          {/* Chat window */}
           <div className="fixed bottom-20 right-4 w-full max-w-sm bg-white dark:bg-gray-800 rounded-t-xl shadow-xl z-50 flex flex-col max-h-[80vh] md:max-h-[60vh]">
             <header className="flex items-center justify-between p-4 bg-primary dark:bg-primary-dark rounded-t-xl sticky top-0 z-10">
               <div className="flex items-center gap-2">
@@ -230,7 +211,6 @@ function DestinationCard(card: {
 
             <div className="flex-1 px-4 py-2 overflow-y-auto chat-body space-y-2">
               {messages.map((m, i) => {
-                // Mensaje con tarjetas
                 if ("cards" in m) {
                   return (
                     <Fragment key={i}>
@@ -240,15 +220,18 @@ function DestinationCard(card: {
                       <div className="flex flex-wrap gap-3 mt-2">
                         {m.cards.slice(0, 3).map((c) => (
                           <div key={c.id} className="w-[45%]">
-                            <DestinationCard {...c} />
+                            <DestinationCard
+                              name={c.name}
+                              url={c.url}
+                              image={c.image}
+                              tagline={c.tagline}
+                            />
                           </div>
                         ))}
                       </div>
                     </Fragment>
                   );
                 }
-
-                // Mensaje normal
                 return (
                   <div
                     key={i}
