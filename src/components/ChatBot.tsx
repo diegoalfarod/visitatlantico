@@ -9,20 +9,30 @@ import "@/styles/chatbot.css";
 
 type UserMessage = { role: "user"; content: string };
 type AssistantMessage = { role: "assistant"; content: string };
+type Card = {
+  id: string;
+  name: string;
+  url: string;
+  image?: string;
+  tagline?: string;
+};
 type CardsMessage = {
   role: "assistant";
   content: string;
-  cards: {
-    id: string;
-    name: string;
-    url: string;
-    image?: string;
-    tagline?: string;
-  }[];
+  cards: Card[];
 };
 type ChatMessage = UserMessage | AssistantMessage | CardsMessage;
 
-// Detecta español por tildes/ñ/¿¡
+interface ChatAPIResponse {
+  reply?: AssistantMessage;
+  cards?: Card[];
+}
+
+const isBasicMessage = (
+  message: ChatMessage
+): message is UserMessage | AssistantMessage =>
+  message.role === "user" || (message.role === "assistant" && !("cards" in message));
+
 function detectLanguage(text: string): "es" | "en" {
   return /[áéíóúñ¿¡]/i.test(text) ? "es" : "en";
 }
@@ -36,11 +46,9 @@ export default function ChatBot() {
   const messagesEnd = useRef<HTMLDivElement>(null);
 
   const defaultLang =
-    typeof navigator !== "undefined" && navigator.language.startsWith("en")
-      ? "en"
-      : "es";
+    typeof navigator !== "undefined" && navigator.language.startsWith("en") ? "en" : "es";
 
-  // Saludo inicial
+  /* Primer saludo */
   useEffect(() => {
     if (open && firstGreeting) {
       setTyping(true);
@@ -50,7 +58,7 @@ export default function ChatBot() {
             role: "assistant",
             content:
               defaultLang === "en"
-                ? "Hello, traveler! I’m Jimmy 🌴, your guide to the Atlántico region. How can I help?"
+                ? "Hello, traveler! I'm Jimmy 🌴, your guide to the Atlántico region. How can I help?"
                 : "¡Hola, viajero! Soy Jimmy 🌴, tu guía del Atlántico. ¿En qué te ayudo?",
           },
         ]);
@@ -60,53 +68,53 @@ export default function ChatBot() {
     }
   }, [open, firstGreeting, defaultLang]);
 
-  // Auto-scroll
+  /* Autoscroll */
   useEffect(() => {
     if (open) messagesEnd.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, open]);
 
+  /* Enviar mensaje */
   const send = async () => {
     const text = input.trim();
     if (!text) return;
+
     const lang = detectLanguage(text);
     const userMsg: UserMessage = { role: "user", content: text };
-    setMessages((m) => [...m, userMsg]);
+
+    // Añadir mensaje del usuario
+    setMessages((prev) => [...prev, userMsg]);
+
     setInput("");
     setTyping(true);
 
     try {
-      const { data } = await axios.post("/api/chat", {
-        messages: [
-          ...messages.filter((m) => !(m.role === "assistant" && "cards" in m)),
-          userMsg,
-        ],
+      const { data } = await axios.post<ChatAPIResponse>("/api/chat", {
+        messages: [...messages.filter(isBasicMessage), userMsg],
         language: lang,
       });
 
       await new Promise((r) => setTimeout(r, 800));
       setTyping(false);
 
-      if ((data as any).cards) {
+      if (data.cards) {
         const cardsMsg: CardsMessage = {
           role: "assistant",
-          content: data.reply!.content,
-          cards: (data as any).cards,
+          content: data.reply?.content || "",
+          cards: data.cards,
         };
-        setMessages((m) => [...m, cardsMsg]);
+        setMessages((prev) => [...prev, cardsMsg]);
       } else if (data.reply) {
-        setMessages((m) => [...m, data.reply as AssistantMessage]);
+        // data.reply existe, afirmamos con !
+        setMessages((prev) => [...prev, data.reply!]);
       }
     } catch {
       setTyping(false);
-      setMessages((m) => [
-        ...m,
+      setMessages((prev) => [
+        ...prev,
         {
           role: "assistant",
-          content:
-            lang === "en"
-              ? "Connection error."
-              : "Error de conexión.",
-        } as AssistantMessage,
+          content: lang === "en" ? "Connection error." : "Error de conexión.",
+        },
       ]);
     }
   };
@@ -118,7 +126,7 @@ export default function ChatBot() {
     }
   };
 
-  // Tarjeta de destino: sólo recibe name/url/image/tagline
+  /* Tarjeta destino */
   function DestinationCard({
     name,
     url,
@@ -131,21 +139,16 @@ export default function ChatBot() {
     tagline?: string;
   }) {
     return (
-      <Link
-        href={url}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="block"
-      >
+      <Link href={url} target="_blank" rel="noopener noreferrer" className="block">
         <div className="bg-white dark:bg-gray-700 rounded-lg shadow p-4 flex flex-col hover:bg-gray-50 cursor-pointer">
           {image && (
-            <img
+            <Image
               src={image}
               alt={name}
+              width={300}
+              height={160}
               className="w-full h-32 object-cover rounded-md mb-2"
-              onError={(e) => {
-                (e.currentTarget.style as any).display = "none";
-              }}
+              onError={() => {}}
             />
           )}
           <h3 className="font-semibold">{name}</h3>
@@ -164,9 +167,7 @@ export default function ChatBot() {
       <button
         className="chat-fab z-50"
         onClick={() => setOpen(true)}
-        aria-label={
-          defaultLang === "en" ? "Open chat with Jimmy" : "Abrir chat con Jimmy"
-        }
+        aria-label={defaultLang === "en" ? "Open chat with Jimmy" : "Abrir chat con Jimmy"}
       >
         <Image
           src="/jimmy-avatar.png"
@@ -180,12 +181,9 @@ export default function ChatBot() {
       {open && (
         <>
           {/* Backdrop */}
-          <div
-            className="fixed inset-0 bg-black/30 z-40"
-            onClick={() => setOpen(false)}
-          />
+          <div className="fixed inset-0 bg-black/30 z-40" onClick={() => setOpen(false)} />
 
-          {/* Chat window */}
+          {/* Ventana de chat */}
           <div className="fixed bottom-20 right-4 w-full max-w-sm bg-white dark:bg-gray-800 rounded-t-xl shadow-xl z-50 flex flex-col max-h-[80vh] md:max-h-[60vh]">
             <header className="flex items-center justify-between p-4 bg-primary dark:bg-primary-dark rounded-t-xl sticky top-0 z-10">
               <div className="flex items-center gap-2">
@@ -201,9 +199,7 @@ export default function ChatBot() {
               <button
                 className="text-white text-xl"
                 onClick={() => setOpen(false)}
-                aria-label={
-                  defaultLang === "en" ? "Close chat" : "Cerrar chat"
-                }
+                aria-label={defaultLang === "en" ? "Close chat" : "Cerrar chat"}
               >
                 ✕
               </button>
@@ -235,14 +231,11 @@ export default function ChatBot() {
                 return (
                   <div
                     key={i}
-                    className={`
-                      max-w-[80%] p-3 rounded-lg
-                      ${
-                        m.role === "assistant"
-                          ? "bg-neumo-light dark:bg-neumo-dark self-start italic"
-                          : "bg-primary/10 dark:bg-primary/30 self-end font-medium"
-                      }
-                    `}
+                    className={`max-w-[80%] p-3 rounded-lg ${
+                      m.role === "assistant"
+                        ? "bg-neumo-light dark:bg-neumo-dark self-start italic"
+                        : "bg-primary/10 dark:bg-primary/30 self-end font-medium"
+                    }`}
                   >
                     {m.content}
                   </div>
@@ -267,11 +260,7 @@ export default function ChatBot() {
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={onKeyDown}
-                placeholder={
-                  defaultLang === "en"
-                    ? "Type your question..."
-                    : "Escribe tu pregunta..."
-                }
+                placeholder={defaultLang === "en" ? "Type your question..." : "Escribe tu pregunta..."}
               />
               <button
                 className="px-4 py-2 bg-primary text-white rounded-full hover:bg-primary/90 transition"
