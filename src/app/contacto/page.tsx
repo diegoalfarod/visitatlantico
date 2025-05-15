@@ -1,3 +1,4 @@
+// src/app/contacto/page.tsx
 "use client";
 
 import { useState } from "react";
@@ -22,12 +23,8 @@ export default function ContactoPage() {
       <Navbar />
 
       <main className="pt-24 pb-20">
-        <section className="relative h-[35vh]">
-          <img
-            src="/images/contact-hero.jpg"
-            alt="Contacto"
-            className="object-cover w-full h-full"
-          />
+        {/* Hero sin imagen */}
+        <section className="relative h-[35vh] bg-gray-800">
           <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
             <h1 className="text-4xl md:text-5xl text-white font-fivo">
               Contáctanos

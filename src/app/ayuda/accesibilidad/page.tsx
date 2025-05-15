@@ -10,13 +10,8 @@ export default function AccesibilidadPage() {
       <Navbar />
 
       <main className="pt-24 pb-20">
-        {/* Hero */}
-        <section className="relative h-[35vh]">
-          <img
-            src="/images/accessibility-hero.jpg"
-            alt="Accesibilidad en VisitAtlántico"
-            className="object-cover w-full h-full"
-          />
+        {/* Hero without image */}
+        <section className="relative h-[35vh] bg-gray-800">
           <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
             <h1 className="text-4xl md:text-5xl text-white font-fivo">
               Accesibilidad
@@ -56,7 +51,7 @@ export default function AccesibilidadPage() {
           <h2 className="text-xl font-semibold">5. Estructura Semántica y ARIA</h2>
           <p>
             Utilizamos HTML5 semántico (<code>&lt;header&gt;</code>, <code>&lt;nav&gt;</code>, <code>&lt;main&gt;</code>, <code>&lt;footer&gt;</code>)
-            y roles ARIA (<code>role="banner"</code>, <code>role="navigation"</code>, <code>role="main"</code>) para que
+            y roles ARIA (<code>role=&quot;banner&quot;</code>, <code>role=&quot;navigation&quot;</code>, <code>role=&quot;main&quot;</code>) para que
             los lectores de pantalla interpreten correctamente la página.
           </p>
 
@@ -74,7 +69,7 @@ export default function AccesibilidadPage() {
 
           <h2 className="text-xl font-semibold">8. Pruebas y Auditorías</h2>
           <p>
-            Realizamos pruebas automáticas (axe, Lighthouse) y manuales con <em>screen readers</em> (NVDA, VoiceOver)
+            Realizamos pruebas automáticas (axe, Lighthouse) y manuales con lectores de pantalla (NVDA, VoiceOver)
             y usuarios reales para asegurar la conformidad continua.
           </p>
 
@@ -83,10 +78,10 @@ export default function AccesibilidadPage() {
             Si encuentras alguna barrera de accesibilidad, por favor contáctanos:
             <br />
             <a
-              href="mailto:atencionalciudadano@atlantico.gov.co "
+              href="mailto:accesibilidad@visitatlantico.co"
               className="text-primary hover:underline"
             >
-              atencionalciudadano@atlantico.gov.co 
+              accesibilidad@visitatlantico.co
             </a>
           </p>
 

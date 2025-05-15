@@ -10,13 +10,8 @@ export default function PrivacidadPage() {
       <Navbar />
 
       <main className="pt-24 pb-20">
-        {/* Hero */}
-        <section className="relative h-[35vh]">
-          <img
-            src="/images/privacy-hero.jpg"
-            alt="Política de privacidad"
-            className="object-cover w-full h-full"
-          />
+        {/* Hero sin imagen */}
+        <section className="relative h-[35vh] bg-gray-800">
           <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
             <h1 className="text-4xl md:text-5xl text-white font-fivo">
               Política de Privacidad
@@ -29,13 +24,13 @@ export default function PrivacidadPage() {
           
           <h2 className="text-xl font-semibold">1. Información que Recopilamos</h2>
           <p>
-            <strong>Datos de Registro:</strong> Cuando te suscribes a nuestro boletín o creas una cuenta, podemos recopilar tu nombre, dirección de correo electrónico y país de residencia.  
+            <strong>Datos de Registro:</strong> Cuando te suscribes a nuestro boletín o creas una cuenta, podemos recopilar tu nombre, dirección de correo electrónico y país de residencia.
           </p>
           <p>
-            <strong>Datos de Uso:</strong> Recopilamos automáticamente información sobre tu interacción con VisitAtlántico, incluyendo páginas vistas, rutas de navegación, búsquedas y duración de las visitas, mediante cookies y tecnologías similares.  
+            <strong>Datos de Uso:</strong> Recopilamos automáticamente información sobre tu interacción con VisitAtlántico, incluyendo páginas vistas, rutas de navegación, búsquedas y duración de las visitas, mediante cookies y tecnologías similares.
           </p>
           <p>
-            <strong>Datos de Dispositivo:</strong> Recogemos información técnica sobre tu dispositivo (tipo de navegador, sistema operativo, dirección IP) para mejorar la seguridad y la compatibilidad.  
+            <strong>Datos de Dispositivo:</strong> Recogemos información técnica sobre tu dispositivo (tipo de navegador, sistema operativo, dirección IP) para mejorar la seguridad y la compatibilidad.
           </p>
 
           <h2 className="text-xl font-semibold">2. Cómo Utilizamos Tus Datos</h2>
@@ -123,9 +118,10 @@ export default function PrivacidadPage() {
             Si tienes preguntas o quejas sobre esta Política, escríbenos a:
           </p>
           <ul className="list-disc list-inside space-y-2">
-            <li>Email:{" "}
+            <li>
+              Email:{" "}
               <a href="mailto:privacy@visitatlantico.com" className="text-primary hover:underline">
-              atencionalciudadano@atlantico.gov.co
+                privacy@visitatlantico.com
               </a>
             </li>
             <li>Dirección: Calle 84 #45-12, Barranquilla, Colombia</li>

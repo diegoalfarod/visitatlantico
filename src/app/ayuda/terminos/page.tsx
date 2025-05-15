@@ -10,16 +10,11 @@ export default function TerminosPage() {
       <Navbar />
 
       <main className="pt-24 pb-20">
-        {/* Hero */}
-        <section className="relative h-[35vh]">
-          <img
-            src="/images/legal-hero.jpg"
-            alt="Términos y condiciones"
-            className="object-cover w-full h-full"
-          />
+        {/* Hero sin imagen */}
+        <section className="relative h-[35vh] bg-gray-800">
           <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
             <h1 className="text-4xl md:text-5xl text-white font-fivo">
-              Términos & Condiciones
+              Términos &amp; Condiciones
             </h1>
           </div>
         </section>
@@ -39,7 +34,7 @@ export default function TerminosPage() {
               <strong>Usuario:</strong> Toda persona que accede o utiliza el Sitio.
             </li>
             <li>
-              <strong>Contenido:</strong> Información, imágenes, textos, videos, y cualquier otro material
+              <strong>Contenido:</strong> Información, imágenes, textos, videos y cualquier otro material
               disponible en el Sitio.
             </li>
             <li>
@@ -128,9 +123,10 @@ export default function TerminosPage() {
             Si tienes dudas o comentarios sobre estos Términos y Condiciones, puedes escribir a:
           </p>
           <ul className="list-disc list-inside space-y-2">
-            <li>Email:{" "}
-              <a href="mailto:atencionalciudadano@atlantico.gov.co " className="text-primary hover:underline">
-              atencionalciudadano@atlantico.gov.co 
+            <li>
+              Email:{" "}
+              <a href="mailto:atencionalciudadano@atlantico.gov.co" className="text-primary hover:underline">
+                atencionalciudadano@atlantico.gov.co
               </a>
             </li>
             <li>Dirección: Calle 84 #45-12, Barranquilla, Colombia</li>

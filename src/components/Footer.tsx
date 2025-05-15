@@ -37,7 +37,6 @@ export default function Footer() {
       { label: "Preguntas Frecuentes", href: "/ayuda/faq" },
       { label: "Términos y Condiciones", href: "/ayuda/terminos" },
       { label: "Política de Privacidad", href: "/ayuda/privacidad" },
-      { label: "Accesibilidad", href: "/ayuda/accesibilidad" },
       { label: "Contacto", href: "/contacto" },
     ],
   };
