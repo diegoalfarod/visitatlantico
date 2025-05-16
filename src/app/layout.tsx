@@ -20,11 +20,6 @@ export const metadata: Metadata = {
   title: "VisitAtlántico · Explora el paraíso costero",
   description: "Descubre playas, cultura y aventuras en Atlántico, Colombia.",
   robots: "index, follow",
-  icons: {
-    icon: "/favicon.ico",
-    shortcut: "/favicon.ico",
-    apple: "/apple-touch-icon.png",
-  },
   alternates: {
     canonical: "https://visitatlantico.com",
     languages: {
