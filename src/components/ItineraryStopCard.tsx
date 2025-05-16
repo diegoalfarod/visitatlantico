@@ -1,3 +1,4 @@
+// File: src/components/ItineraryStopCard.tsx
 "use client";
 
 import React, { useState } from "react";
@@ -40,12 +41,14 @@ interface Props {
 export default function ItineraryStopCard({ stop }: Props) {
   const [showTip, setShowTip] = useState(false);
   const [activePhotoIndex, setActivePhotoIndex] = useState(0);
+
+  const photos = stop.photos || [stop.imageUrl || "/placeholder.jpg"];
   const mapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${stop.lat},${stop.lng}`;
 
-  const getCategoryIcon = (category?: string) => {
-    if (!category) return <Star className="w-4 h-4" />;
-
-    switch (category.toLowerCase()) {
+  /* ── helpers ── */
+  const getCategoryIcon = (cat?: string) => {
+    if (!cat) return <Star className="w-4 h-4" />;
+    switch (cat.toLowerCase()) {
       case "gastronomía":
       case "restaurante":
       case "comida":
@@ -58,11 +61,28 @@ export default function ItineraryStopCard({ stop }: Props) {
     }
   };
 
-  const photos = stop.photos || [stop.imageUrl || "/placeholder.jpg"];
+  const formatTime = (t: string) => {
+    if (!t) return "Hora no disponible";
+    if (/^\d{1,2}:\d{2}$/.test(t)) {
+      const [h, m] = t.split(":").map(Number);
+      const period = h >= 12 ? "PM" : "AM";
+      const hh = h % 12 || 12;
+      return `${hh}:${m.toString().padStart(2, "0")} ${period}`;
+    }
+    return t;
+  };
+
+  const openDetails = () => {
+    const url =
+      stop.type === "destination"
+        ? `/destinations/${stop.id}`
+        : `/experiences/${stop.id}`;
+    window.open(url, "_blank", "noopener,noreferrer");
+  };
 
   return (
     <div className="p-6">
-      {/* Gallery */}
+      {/* ── Galería ── */}
       <div className="relative mb-6 overflow-hidden rounded-2xl aspect-video w-full">
         <AnimatePresence mode="wait">
           <motion.div
@@ -87,13 +107,13 @@ export default function ItineraryStopCard({ stop }: Props) {
         </AnimatePresence>
 
         {photos.length > 1 && (
-          <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex gap-2">
-            {photos.map((_, index) => (
+          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
+            {photos.map((_, i) => (
               <button
-                key={index}
-                onClick={() => setActivePhotoIndex(index)}
+                key={i}
+                onClick={() => setActivePhotoIndex(i)}
                 className={`w-2.5 h-2.5 rounded-full ${
-                  index === activePhotoIndex ? "bg-white" : "bg-white/50"
+                  i === activePhotoIndex ? "bg-white" : "bg-white/50"
                 }`}
               />
             ))}
@@ -101,22 +121,22 @@ export default function ItineraryStopCard({ stop }: Props) {
         )}
 
         <span
-          className={`absolute top-4 left-4 px-3 py-1.5 text-xs font-semibold text-white rounded-full 
-            ${stop.type === "destination" ? "bg-blue-600" : "bg-green-500"} shadow-md backdrop-blur-sm bg-opacity-90`}
+          className={`absolute top-4 left-4 px-3 py-1.5 text-xs font-semibold text-white rounded-full ${
+            stop.type === "destination" ? "bg-blue-600" : "bg-green-500"
+          } shadow-md backdrop-blur-sm bg-opacity-90`}
         >
           {stop.type === "destination" ? "Destino" : "Experiencia"}
         </span>
 
         <span className="absolute top-4 right-4 px-3 py-1.5 text-xs font-semibold bg-white/90 backdrop-blur-sm text-gray-700 rounded-full shadow-md flex items-center gap-1.5">
-          <Clock className="w-3.5 h-3.5" /> {stop.startTime}
+          <Clock className="w-3.5 h-3.5" /> {formatTime(stop.startTime)}
         </span>
       </div>
 
-      {/* Content */}
+      {/* ── Contenido ── */}
       <div className="space-y-4">
         <div className="flex items-start justify-between">
           <h3 className="text-2xl font-bold">{stop.name}</h3>
-
           {stop.rating && (
             <span className="inline-flex items-center bg-yellow-100 text-yellow-800 px-2 py-1 rounded-lg text-sm font-medium">
               <Star className="w-4 h-4 mr-1 fill-yellow-500 text-yellow-500" />
@@ -128,21 +148,19 @@ export default function ItineraryStopCard({ stop }: Props) {
         <div className="flex items-center gap-3 text-sm text-gray-600">
           {stop.municipality && (
             <span className="flex items-center gap-1.5">
-              <MapPin className="w-4 h-4 text-red-600 flex-shrink-0" />
+              <MapPin className="w-4 h-4 text-red-600" />
               <span className="truncate">{stop.municipality}</span>
             </span>
           )}
-
           {stop.distance && (
             <>
-              <div className="w-1 h-1 rounded-full bg-gray-300 flex-shrink-0"></div>
-              <span className="flex-shrink-0">{Math.round(stop.distance)} km</span>
+              <div className="w-1 h-1 rounded-full bg-gray-300" />
+              <span>{Math.round(stop.distance)} km</span>
             </>
           )}
-
           {stop.cost && (
             <>
-              <div className="w-1 h-1 rounded-full bg-gray-300 flex-shrink-0"></div>
+              <div className="w-1 h-1 rounded-full bg-gray-300" />
               <span>{stop.cost}</span>
             </>
           )}
@@ -157,10 +175,12 @@ export default function ItineraryStopCard({ stop }: Props) {
               {stop.category}
             </span>
           )}
-
-          {stop.amenities?.map((amenity, i) => (
-            <span key={i} className="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-xs">
-              {amenity}
+          {stop.amenities?.map((a, i) => (
+            <span
+              key={i}
+              className="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-xs"
+            >
+              {a}
             </span>
           ))}
         </div>
@@ -176,10 +196,11 @@ export default function ItineraryStopCard({ stop }: Props) {
                 Consejo del local
               </span>
               <ChevronRight
-                className={`w-5 h-5 text-amber-500 transition-transform ${showTip ? "rotate-90" : ""}`}
+                className={`w-5 h-5 text-amber-500 transition-transform ${
+                  showTip ? "rotate-90" : ""
+                }`}
               />
             </button>
-
             <AnimatePresence>
               {showTip && (
                 <motion.div
@@ -197,8 +218,9 @@ export default function ItineraryStopCard({ stop }: Props) {
           </motion.div>
         )}
 
-        {/* Action buttons */}
+        {/* ── Botones ── */}
         <div className="grid grid-cols-2 gap-3 pt-2">
+          {/* Google Maps */}
           <a
             href={mapsUrl}
             target="_blank"
@@ -209,15 +231,14 @@ export default function ItineraryStopCard({ stop }: Props) {
             Cómo llegar
           </a>
 
-          <a
-            href={`/${stop.type === "destination" ? "destinations" : "experiences"}/${stop.id}`}
-            target="_blank"
-            rel="noopener noreferrer"
+          {/* Detalle en nueva pestaña */}
+          <button
+            onClick={openDetails}
             className="flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-xl font-medium hover:from-red-700 hover:to-red-800 transition shadow-sm"
           >
             <ExternalLink className="w-5 h-5" />
             Más información
-          </a>
+          </button>
         </div>
       </div>
     </div>

@@ -1,193 +1,339 @@
+// File: src/components/ItineraryTimeline.tsx
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import ItineraryStopCard, { Stop } from "./ItineraryStopCard";
-import { Clock, Calendar, ChevronDown, ChevronUp } from "lucide-react";
+import { Stop } from "./ItineraryStopCard";
+import {
+  Clock,
+  MapPin,
+  ChevronDown,
+  ChevronUp,
+  Calendar,
+  Utensils,
+  Camera,
+  Anchor,
+  Music,
+  Coffee,
+  Landmark,
+  Navigation,
+  ExternalLink,
+  Info,
+  Star,
+} from "lucide-react";
 
 interface Props {
   stops: Stop[];
 }
 
-export default function ItineraryTimeline({ stops }: Props) {
-  const [expandedStop, setExpandedStop] = useState<string | null>(null);
+/* ───────── helpers ───────── */
+const getCategoryIcon = (c?: string) => {
+  if (!c) return <MapPin className="w-4 h-4" />;
+  const cat = c.toLowerCase();
+  if (cat.match(/gastronomía|restaurante|comida/)) return <Utensils className="w-4 h-4" />;
+  if (cat.match(/fotografía|paisaje/)) return <Camera className="w-4 h-4" />;
+  if (cat.match(/playa|mar/)) return <Anchor className="w-4 h-4" />;
+  if (cat.match(/música|fiesta/)) return <Music className="w-4 h-4" />;
+  if (cat.match(/café|descanso/)) return <Coffee className="w-4 h-4" />;
+  if (cat.match(/museo|cultura|arte/)) return <Landmark className="w-4 h-4" />;
+  return <MapPin className="w-4 h-4" />;
+};
 
-  // Group stops by category for filtering
-  const categories = Array.from(new Set(stops.map(stop => stop.category)));
+// convierte "HH:MM" a minutos
+const toMin = (t: string) => {
+  const [h, m] = t.split(":").map(Number);
+  return h * 60 + m;
+};
+// convierte minutos a "HH:MM"
+const toHHMM = (min: number) =>
+  `${Math.floor(min / 60)
+    .toString()
+    .padStart(2, "0")}:${(min % 60).toString().padStart(2, "0")}`;
+
+// formato 12 h bonito
+const formatTime = (t: string) => {
+  if (!t) return "--:--";
+  const [h, m] = t.split(":").map(Number);
+  const period = h >= 12 ? "PM" : "AM";
+  const hh = h % 12 || 12;
+  return `${hh}:${m.toString().padStart(2, "0")} ${period}`;
+};
+
+/* ───────── componente ───────── */
+export default function ItineraryTimeline({ stops }: Props) {
+  /* ▸ 1. COMPLETAR HORARIOS FALTANTES */
+  const filledStops = useMemo(() => {
+    let current = 9 * 60; // 09:00 default
+    return stops.map((s, idx) => {
+      let start = s.startTime && /^\d{1,2}:\d{2}$/.test(s.startTime) ? s.startTime : "";
+      if (start) current = toMin(start); // usa la hora provista
+      else start = toHHMM(current); // calcula
+      current += s.durationMinutes || 60; // avanza
+      return { ...s, startTime: start };
+    });
+  }, [stops]);
+
+  /* ▸ 2. UI states */
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+
+  /* filtros */
+  const categories = Array.from(new Set(filledStops.map((s) => s.category)));
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
 
-  const filteredStops = activeCategory 
-    ? stops.filter(stop => stop.category === activeCategory)
-    : stops;
+  const filteredStops = activeCategory
+    ? filledStops.filter((s) => s.category === activeCategory)
+    : filledStops;
 
-  // Calculate total duration for this timeline
-  const totalDuration = filteredStops.reduce((acc, stop) => acc + stop.durationMinutes, 0);
-  const totalHours = Math.floor(totalDuration / 60);
-  const totalMinutes = totalDuration % 60;
+  /* resumen */
+  const totalMin = filteredStops.reduce((sum, s) => sum + s.durationMinutes, 0);
+  const h = Math.floor(totalMin / 60);
+  const min = totalMin % 60;
 
-  return (
-    <div className="relative">
-      {/* Timeline summary */}
-      <motion.div 
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="mb-8 bg-gradient-to-r from-red-600 to-red-800 rounded-2xl p-6 text-white shadow-lg"
-      >
-        <div className="flex flex-wrap justify-between items-center gap-4">
-          <div>
-            <h3 className="text-2xl font-bold">Aventura del día</h3>
-            <p className="text-red-100">
-              {filteredStops.length} paradas • {totalHours}h {totalMinutes}min
-            </p>
+  const startTime =
+    filteredStops.length > 0 ? formatTime(filteredStops[0].startTime) : "";
+  const endTime =
+    filteredStops.length > 0
+      ? formatTime(
+          toHHMM(toMin(filteredStops[filteredStops.length - 1].startTime) +
+            (filteredStops[filteredStops.length - 1].durationMinutes || 0))
+        )
+      : "";
+
+  /* ▸ 3. Tarjeta interna (sin cambios de lógica) */
+  const StopCard = ({
+    stop,
+    expanded,
+    toggleExpand,
+    isLast,
+  }: {
+    stop: Stop;
+    expanded: boolean;
+    toggleExpand: () => void;
+    isLast: boolean;
+  }) => {
+    const [photoIndex, setPhotoIndex] = useState(0);
+    const photos = stop.photos || (stop.imageUrl ? [stop.imageUrl] : []);
+    const mapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${stop.lat},${stop.lng}`;
+
+    const colors = {
+      destination: {
+        primary: "bg-blue-600",
+        secondary: "bg-blue-500",
+        light: "bg-blue-50",
+        border: "border-blue-200",
+        text: "text-blue-700",
+      },
+      experience: {
+        primary: "bg-green-600",
+        secondary: "bg-green-500",
+        light: "bg-green-50",
+        border: "border-green-200",
+        text: "text-green-700",
+      },
+    } as const;
+
+    const c = colors[stop.type];
+
+    return (
+      <div className="relative">
+        {!isLast && (
+          <div className={`absolute left-4 top-12 bottom-0 w-0.5 ${c.secondary}`} />
+        )}
+
+        <div className="relative z-10 mb-6">
+          {/* hora + duración */}
+          <div className="flex items-center mb-2">
+            <div className={`w-8 h-8 ${c.primary} rounded-full flex items-center justify-center shadow-md`}>
+              <Clock className="w-4 h-4 text-white" />
+            </div>
+            <div className={`${c.text} font-semibold ml-3`}>
+              {formatTime(stop.startTime)}
+            </div>
+            <div className="ml-2 px-2 py-0.5 bg-gray-100 rounded-full text-xs text-gray-600">
+              {stop.durationMinutes} min
+            </div>
           </div>
-          
-          <div className="flex items-center gap-3">
-            <span className="flex items-center gap-2">
-              <Clock className="w-5 h-5" />
-              {filteredStops[0]?.startTime} - {filteredStops[filteredStops.length-1]?.startTime}
-            </span>
-            <div className="h-6 w-px bg-red-400/50"></div>
-            <span className="flex items-center gap-2">
-              <Calendar className="w-5 h-5" />
-              Actividades: {filteredStops.length}
-            </span>
+
+          {/* tarjeta cabecera */}
+          <div className={`ml-10 rounded-xl shadow-md border ${c.border} bg-white`}>
+            <div className="flex items-center cursor-pointer" onClick={toggleExpand}>
+              {!expanded && stop.imageUrl && (
+                <div
+                  className="w-20 h-20 bg-cover bg-center flex-shrink-0"
+                  style={{ backgroundImage: `url(${stop.imageUrl})` }}
+                />
+              )}
+              <div className="flex-1 p-3 min-w-0">
+                <div className="flex items-start justify-between">
+                  <h3 className="font-bold text-gray-800 pr-2 line-clamp-2">
+                    {stop.name}
+                  </h3>
+                  {expanded ? (
+                    <ChevronUp className="w-5 h-5 text-gray-400" />
+                  ) : (
+                    <ChevronDown className="w-5 h-5 text-gray-400" />
+                  )}
+                </div>
+
+                {/* meta */}
+                <div className="mt-1 flex items-center text-xs text-gray-500">
+                  {stop.municipality && (
+                    <span className="flex items-center">
+                      <MapPin className="w-3 h-3 mr-1" />
+                      {stop.municipality}
+                    </span>
+                  )}
+                </div>
+
+                {/* chips */}
+                <div className="mt-1 flex flex-wrap gap-1">
+                  <span
+                    className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs ${c.light} ${c.text}`}
+                  >
+                    {stop.type === "destination" ? "Destino" : "Experiencia"}
+                  </span>
+                  {stop.category && (
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-gray-100 text-gray-700">
+                      {getCategoryIcon(stop.category)}
+                      <span className="ml-1">{stop.category}</span>
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* contenido expandido */}
+            <AnimatePresence>
+              {expanded && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  exit={{ opacity: 0, height: 0 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  {/* galería */}
+                  {photos.length > 0 && (
+                    <div className="relative aspect-video w-full overflow-hidden">
+                      <div
+                        className="w-full h-full bg-cover bg-center"
+                        style={{ backgroundImage: `url(${photos[photoIndex]})` }}
+                      />
+                      {photos.length > 1 && (
+                        <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1.5">
+                          {photos.map((_, i) => (
+                            <button
+                              key={i}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setPhotoIndex(i);
+                              }}
+                              className={`w-2 h-2 rounded-full ${
+                                i === photoIndex ? "bg-white" : "bg-white/50"
+                              }`}
+                            />
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* desc & acciones */}
+                  <div className="p-4 space-y-3 text-sm text-gray-700">
+                    {stop.description && <p>{stop.description}</p>}
+
+                    <div className="grid grid-cols-2 gap-2 pt-2">
+                      <a
+                        href={mapsUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center justify-center gap-1.5 px-4 py-2.5 bg-white border border-gray-200 rounded-lg text-gray-700 hover:bg-gray-50 transition"
+                      >
+                        <Navigation className="w-3.5 h-3.5" />
+                        Navegar
+                      </a>
+
+                      <a
+                        href={`/${
+                          stop.type === "destination" ? "destinations" : "experiences"
+                        }/${stop.id}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className={`flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-lg text-white hover:opacity-90 transition ${c.primary}`}
+                      >
+                        <ExternalLink className="w-3.5 h-3.5" />
+                        Detalles
+                      </a>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
         </div>
-      </motion.div>
+      </div>
+    );
+  };
 
-      {/* Category filters */}
+  /* ▸ 4. Render principal */
+  return (
+    <div className="relative">
+      {/* encabezado */}
+      <div className="bg-gradient-to-r from-red-600 to-red-800 rounded-xl shadow-lg p-4 mb-6">
+        <div className="flex justify-between items-center flex-wrap gap-2">
+          <div className="text-white">
+            <h3 className="text-xl font-bold flex items-center">
+              <Calendar className="w-5 h-5 mr-2" />
+              Aventura del día
+            </h3>
+            <p className="text-red-100 text-sm mt-1">
+              {filteredStops.length} actividades • {h} h {min > 0 ? `${min} min` : ""}
+            </p>
+          </div>
+          <div className="bg-white/20 backdrop-blur-sm px-3 py-1.5 rounded-lg text-white text-sm">
+            {startTime} - {endTime}
+          </div>
+        </div>
+      </div>
+
+      {/* filtros */}
       {categories.length > 1 && (
-        <div className="flex flex-wrap gap-2 mb-6">
-          <button
-            onClick={() => setActiveCategory(null)}
-            className={`px-4 py-2 rounded-full text-sm font-medium transition ${
-              activeCategory === null 
-                ? "bg-red-600 text-white shadow-lg" 
-                : "bg-white text-gray-700 hover:bg-gray-100 border border-gray-200"
-            }`}
-          >
-            Todas
-          </button>
-          
-          {categories.map(category => (
+        <div className="mb-4 overflow-x-auto flex gap-1.5 pb-1">
+          {["Todas", ...categories].map((cat) => (
             <button
-              key={category}
-              onClick={() => setActiveCategory(category)}
-              className={`px-4 py-2 rounded-full text-sm font-medium transition ${
-                activeCategory === category 
-                  ? "bg-red-600 text-white shadow-lg" 
-                  : "bg-white text-gray-700 hover:bg-gray-100 border border-gray-200"
+              key={cat}
+              onClick={() => setActiveCategory(cat === "Todas" ? null : cat)}
+              className={`px-3 py-1.5 rounded-full text-sm font-medium transition flex items-center gap-1 ${
+                (activeCategory ?? "Todas") === cat
+                  ? "bg-red-600 text-white"
+                  : "bg-white border border-gray-200 text-gray-700"
               }`}
             >
-              {category}
+              {cat !== "Todas" && getCategoryIcon(cat)}
+              {cat}
             </button>
           ))}
         </div>
       )}
 
-      {/* Main timeline */}
-      <div className="relative pt-8 pb-12">
-        {/* Vertical timeline line with gradient */}
-        <div className="absolute left-1/2 top-0 h-full w-1 bg-gradient-to-b from-red-500 via-red-600 to-red-800 rounded-full" />
+      {/* timeline */}
+      <div className="relative pt-4 pb-8">
+        {filteredStops.map((s, i) => (
+          <StopCard
+            key={s.id}
+            stop={s}
+            expanded={expandedId === s.id}
+            toggleExpand={() => setExpandedId(expandedId === s.id ? null : s.id)}
+            isLast={i === filteredStops.length - 1}
+          />
+        ))}
 
-        {/* Timeline stops */}
-        <div className="space-y-32">
-          {filteredStops.map((stop, i) => {
-            const isExpanded = expandedStop === stop.id;
-            const isRight = i % 2 === 1;
-            
-            return (
-              <motion.div
-                key={stop.id}
-                initial={{ opacity: 0, x: isRight ? 60 : -60 }}
-                whileInView={{ opacity: 1, x: 0 }}
-                viewport={{ once: true, margin: "-100px" }}
-                transition={{ duration: 0.5, delay: i * 0.1 }}
-                className={`relative flex w-full ${
-                  isRight ? "justify-end" : "justify-start"
-                }`}
-              >
-                {/* Timeline time indicator with connector line */}
-                <div className="absolute left-1/2 transform -translate-x-1/2 top-8 z-10 flex flex-col items-center">
-                  <div className="bg-red-600 text-white text-xs font-medium px-3 py-1.5 rounded-full shadow-md whitespace-nowrap">
-                    {stop.startTime}
-                  </div>
-                  <div className="h-8 w-px bg-red-300 mt-1"></div>
-                </div>
-
-                {/* Card container - different width based on expanded state */}
-                <motion.div 
-                  layout
-                  className={`relative max-w-lg ${isRight ? 'ml-12' : 'mr-12'} mt-16`}
-                  style={{ width: isExpanded ? '100%' : '80%' }}
-                >
-                  <div className="bg-white rounded-2xl overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-300 border border-gray-100">
-                    {/* Badge del tipo */}
-                    <div className="absolute top-0 right-0">
-                      <div className={`${stop.type === 'destination' ? 'bg-blue-600' : 'bg-green-500'} text-white text-xs font-semibold px-3 py-1 rounded-bl-lg`}>
-                        {stop.type === 'destination' ? 'Destino' : 'Experiencia'}
-                      </div>
-                    </div>
-                    {/* Interactive card header */}
-                    <motion.div 
-                      layout="position"
-                      onClick={() => setExpandedStop(isExpanded ? null : stop.id)}
-                      className="flex items-start cursor-pointer bg-gradient-to-r from-gray-50 to-white border-b relative"
-                    >
-                      {/* Contenido principal con título */}
-                      <div className="flex items-start gap-3 p-5 flex-1 min-w-0">
-                        <div className={`w-3 h-12 rounded-full flex-shrink-0 ${stop.type === 'destination' ? 'bg-blue-600' : 'bg-green-500'}`} />
-                        <div className="min-w-0 flex-1">
-                          <h3 className="text-xl font-bold leading-tight line-clamp-4">{stop.name}</h3>
-                          <p className="text-sm text-gray-500 mt-2 truncate">{stop.municipality || "Ubicación desconocida"}</p>
-                        </div>
-                      </div>
-                      
-                      {/* Panel lateral con duración y controles */}
-                      <div className="flex flex-col justify-between items-end p-4 bg-gray-50 border-l border-gray-100 h-full">
-                        <span className="text-sm bg-white px-2.5 py-1.5 rounded-full flex items-center gap-1 whitespace-nowrap shadow-sm">
-                          <Clock className="w-3.5 h-3.5 text-red-600" /> {stop.durationMinutes} min
-                        </span>
-                        <div className="mt-2">
-                          {isExpanded ? 
-                            <ChevronUp className="text-gray-400 w-5 h-5" /> : 
-                            <ChevronDown className="text-gray-400 w-5 h-5" />
-                          }
-                        </div>
-                      </div>
-                    </motion.div>
-                    
-                    {/* Expandable content */}
-                    <AnimatePresence>
-                      {isExpanded && (
-                        <motion.div
-                          key={`expanded-${stop.id}`}
-                          initial={{ opacity: 0, height: 0 }}
-                          animate={{ opacity: 1, height: 'auto' }}
-                          exit={{ opacity: 0, height: 0 }}
-                          transition={{ duration: 0.3 }}
-                        >
-                          <ItineraryStopCard stop={stop} />
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-                  </div>
-                </motion.div>
-              </motion.div>
-            );
-          })}
+        {/* fin */}
+        <div className="flex items-center justify-center mt-8">
+          <div className="px-4 py-2 bg-gray-100 text-gray-600 rounded-full text-sm font-medium">
+            Fin del día
+          </div>
         </div>
       </div>
-      
-      {/* End of timeline marker */}
-      <motion.div 
-        initial={{ opacity: 0 }}
-        whileInView={{ opacity: 1 }}
-        viewport={{ once: true }}
-        className="relative flex justify-center mt-8"
-      >
-        <p className="text-sm font-medium text-gray-600">Fin del día</p>
-      </motion.div>
     </div>
   );
 }

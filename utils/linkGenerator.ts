@@ -2,13 +2,17 @@ import { collection, addDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import type { Stop } from "@/components/ItineraryStopCard";
 
-export async function generateUniqueLink(itinerary: Stop[] | null): Promise<string> {
-  if (!itinerary || itinerary.length === 0) throw new Error("Itinerario vacío");
+export async function generateUniqueLink(
+  itinerary: Stop[],
+  days: number
+): Promise<string> {
+  if (!itinerary.length) throw new Error("Itinerario vacío");
 
-  const docRef = await addDoc(collection(db, "sharedItineraries"), {
+  const ref = await addDoc(collection(db, "sharedItineraries"), {
     itinerary,
-    createdAt: new Date(),
+    days,
+    createdAt: Date.now(),
   });
 
-  return `${window.location.origin}/shared/${docRef.id}`;
+  return `${window.location.origin}/shared/${ref.id}`;
 }

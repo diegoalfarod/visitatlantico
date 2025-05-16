@@ -1,4 +1,3 @@
-// src/app/planner/page.tsx
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
@@ -13,17 +12,31 @@ import {
   Calendar,
   Share2,
   FileText,
+  Download,
 } from "lucide-react";
-import jsPDF from "jspdf";
-import html2canvas from "html2canvas";
 import { generateUniqueLink } from "utils/linkGenerator";
 
 /* ─────────── tipos & helpers ─────────── */
 
-type RawStop = Omit<Stop, "tip" | "municipality"> & { id: string };
-type ApiResponse = { itinerary: RawStop[]; error?: string };
+type ApiStop = {
+  id: string;
+  name: string;
+  description: string;
+  lat: number;
+  lng: number;
+  startTime: string;
+  durationMinutes: number;
+  tip?: string;
+  municipality?: string;
+  category?: string;
+  imageUrl?: string;
+  photos?: string[]; 
+  type: "destination" | "experience";
+};
 
-/** mapa simple para escribir estilos evitando readonly props  */
+type ApiResponse = { itinerary: ApiStop[]; error?: string };
+type SharedData = { itinerary: Stop[]; days: number } | null;
+
 type WritableStyle = Record<string, string>;
 
 declare global {
@@ -50,40 +63,31 @@ const promptCards = [
 
 /* ═════════════════ COMPONENTE ═════════════════ */
 
-export default function PremiumPlannerPage() {
+export default function PremiumPlannerPage({ shared = null }: { shared?: SharedData }) {
   /* wizard answers */
   const [answers, setAnswers] = useState<{
     days?: number;
     motivo?: string;
-    ninos?: boolean;
     otros?: boolean;
+    email?: string;
   }>({});
   const [qIndex, setQIndex] = useState(0);
 
   /* ubicación */
   const [useLocation, setUseLocation] = useState(false);
-  const [location, setLocation] = useState<{ lat: number; lng: number } | null>(
-    null
-  );
+  const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [userPlace, setUserPlace] = useState<string | null>(null);
   const [fetchingPlace, setFetchingPlace] = useState(false);
   const [geoError, setGeoError] = useState<string | null>(null);
 
- /* exponer setters para GPS-spoof (alias incluidos) */
-if (typeof window !== "undefined") {
-    // API actual
+  /* exponer setters para GPS-spoof */
+  if (typeof window !== "undefined") {
     window.setPlannerLocation = setLocation;
-    window.setGeoError        = setGeoError;
-    window.setFetchingPlace   = setFetchingPlace;
+    window.setGeoError = setGeoError;
+    window.setFetchingPlace = setFetchingPlace;
     window.setUserPlaceGlobal = setUserPlace;
-  
-    // 🔄 alias legacy para extensiones antiguas
-    // @ts-expect-error legacy GPS-spoof alias
-    window.setLocation = setLocation;
-    // @ts-expect-error legacy GPS-spoof alias
-    window.setUserPlace = setUserPlace;
   }
-  
+
   /* efecto ubicación */
   useEffect(() => {
     if (!useLocation) {
@@ -92,25 +96,25 @@ if (typeof window !== "undefined") {
       setGeoError(null);
       return;
     }
-  
+
     let cancelled = false;
     setFetchingPlace(true);
-  
+
     navigator.geolocation.getCurrentPosition(
       async (pos) => {
         if (cancelled) return;
-  
+
         setGeoError(null);
         const coords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
         setLocation(coords);
-  
+
         try {
           const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN!;
           const resp = await fetch(
             `https://api.mapbox.com/geocoding/v5/mapbox.places/${coords.lng},${coords.lat}.json?types=place&access_token=${token}`
           );
           if (!resp.ok) throw new Error(`Mapbox status ${resp.status}`);
-  
+
           const js = await resp.json();
           const place = js.features?.[0]?.place_name;
           setUserPlace(place ?? "Ubicación detectada");
@@ -123,7 +127,7 @@ if (typeof window !== "undefined") {
       },
       (err) => {
         if (cancelled) return;
-  
+
         setFetchingPlace(false);
         setUseLocation(false);
         setLocation(null);
@@ -134,12 +138,12 @@ if (typeof window !== "undefined") {
         );
       }
     );
-  
+
     return () => {
       cancelled = true;
     };
   }, [useLocation]);
-  
+
   /* pasos wizard */
   const steps = [
     {
@@ -197,27 +201,6 @@ if (typeof window !== "undefined") {
       ),
     },
     {
-      label: "¿Viajas con niños?",
-      valid: answers.ninos !== undefined,
-      element: (
-        <div className="flex gap-4">
-          {["Sí", "No"].map((opt, i) => (
-            <button
-              key={opt}
-              onClick={() => setAnswers((a) => ({ ...a, ninos: i === 0 }))}
-              className={`flex-1 py-3 rounded-full text-lg font-medium transition ${
-                answers.ninos === (i === 0)
-                  ? "bg-red-600 text-white shadow-lg"
-                  : "bg-gray-200 text-gray-700 hover:bg-gray-300"
-              }`}
-            >
-              {opt}
-            </button>
-          ))}
-        </div>
-      ),
-    },
-    {
       label: "¿Estás dispuesto a visitar otros municipios?",
       valid: answers.otros !== undefined,
       element: (
@@ -238,6 +221,20 @@ if (typeof window !== "undefined") {
         </div>
       ),
     },
+    {
+      label: "Ingresa tu correo electrónico",
+      helper: "Te enviaremos el plan generado a este correo",
+      valid: /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(answers.email || ""),
+      element: (
+        <input
+          type="email"
+          value={answers.email ?? ""}
+          onChange={(e) => setAnswers((a) => ({ ...a, email: e.target.value }))}
+          placeholder="Ej. tuemail@ejemplo.com"
+          className="w-full border-b-2 border-gray-300 pb-2 focus:border-red-500 outline-none text-lg"
+        />
+      ),
+    },
   ];
 
   const next = () => qIndex < steps.length - 1 && setQIndex((i) => i + 1);
@@ -250,145 +247,246 @@ if (typeof window !== "undefined") {
     useState<"questions" | "loading" | "itinerary">("questions");
   const pdfRef = useRef<HTMLDivElement>(null);
 
+  /* efecto para itinerario compartido */
+  useEffect(() => {
+    if (shared) {
+      setItinerary(shared.itinerary);
+      setAnswers({ days: shared.days });
+      setView("itinerary");
+    }
+  }, [shared]);
+
+  function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
+    const R = 6371; // Radio de la Tierra en km
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = 
+      Math.sin(dLat/2) * Math.sin(dLat/2) +
+      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+      Math.sin(dLon/2) * Math.sin(dLon/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    return R * c; // Distancia en km
+  }
+
   const generateItinerary = async () => {
     if (!steps.every((s) => s.valid)) return;
     setView("loading");
     const profile = {
       Días: String(answers.days),
       Motivo: answers.motivo,
-      "Viaja con niños": answers.ninos ? "Sí" : "No",
       "Otros municipios": answers.otros ? "Sí" : "No",
+      Email: answers.email,
     };
-    const res = await fetch("/api/itinerary/generate", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ profile, location }),
-    });
-    const { itinerary: raw } = (await res.json()) as ApiResponse;
-    setItinerary(raw as Stop[]);
-    setView("itinerary");
+    
+    try {
+      const res = await fetch("/api/itinerary/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 
+          profile, 
+          location: location ? { 
+            lat: location.lat, 
+            lng: location.lng 
+          } : null
+        }),
+      });
+      
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || `HTTP error! status: ${res.status}`);
+      }
+      
+      const { itinerary: apiStops, error } = (await res.json()) as ApiResponse;
+      
+      if (error || !apiStops?.length) {
+        throw new Error(error || "No se recibieron destinos");
+      }
+
+      // Filtrar paradas inválidas
+      const validStops = apiStops.filter(stop => 
+        stop.id && stop.lat && stop.lng && stop.description && stop.type
+      );
+
+      if (!validStops.length) {
+        throw new Error("No se encontraron destinos válidos");
+      }
+
+      // Ordenar por hora
+      const sortedStops = [...validStops].sort((a, b) => 
+        a.startTime.localeCompare(b.startTime)
+      );
+
+      // Convertir a tipo Stop
+      const processedItinerary: Stop[] = sortedStops.map((apiStop, index) => ({
+        id: apiStop.id,
+        name: apiStop.name || `Destino ${index + 1}`,
+        description: apiStop.description,
+        lat: apiStop.lat,
+        lng: apiStop.lng,
+        durationMinutes: apiStop.durationMinutes || 60,
+        tip: apiStop.tip || `Consejo: ${apiStop.name || 'este lugar'}`,
+        municipality: apiStop.municipality || "Ubicación desconocida",
+        startTime: apiStop.startTime,
+        category: apiStop.category || "attraction",
+        imageUrl: apiStop.imageUrl || "/default-place.jpg",
+        photos: apiStop.photos, 
+        distance: location ? calculateDistance(
+          location.lat, 
+          location.lng, 
+          apiStop.lat, 
+          apiStop.lng
+        ) : 0,
+        type: apiStop.type
+      }));
+      
+      setItinerary(processedItinerary);
+      setView("itinerary");
+    } catch (error) {
+      console.error("Error generando itinerario:", error);
+      alert(
+        error instanceof Error ? error.message :
+        "Error al generar el itinerario. Por favor intenta con otros parámetros."
+      );
+      setView("questions");
+    }
   };
 
   const handleShare = async () => {
-    console.log("🔗 Botón compartir clickeado");
-    if (!itinerary || itinerary.length === 0) return alert("Itinerario vacío");
-  
+    if (!itinerary?.length) return alert("Itinerario vacío");
     try {
-      const link = await generateUniqueLink(itinerary);
-      await navigator.clipboard.writeText(link);
-      alert("Link copiado al portapapeles ✅");
-    } catch (error) {
-      console.error("Error al generar link:", error);
-      alert("Hubo un error al copiar el link.");
+      const url = await generateUniqueLink(itinerary, answers.days ?? 1);
+      await navigator.clipboard.writeText(url);
+      alert("Link copiado ✅");
+    } catch (e) {
+      console.error(e);
+      alert("No se pudo generar el link");
     }
   };
-  
 
-  /* descarga PDF sin colores oklch */
   const downloadPDF = async () => {
-    console.log("🧾 Botón descargar PDF clickeado");
-    if (!pdfRef.current) return alert("No se encontró el contenido del itinerario.");
+    if (!pdfRef.current) {
+      alert("No se encontró el contenido del itinerario.");
+      return;
+    }
   
-    const clone = pdfRef.current.cloneNode(true) as HTMLElement;
-  
-    // 🔴 Eliminar estilos <style> que contengan oklch
-    clone.querySelectorAll("style").forEach((el) => {
-      if (el.textContent?.includes("oklch(")) el.remove();
-    });
-  
-    // 🟡 Función para detectar estilos problemáticos
-    const isBad = (val: string): boolean => val.includes("oklch(");
-    const replaceIfBad = (el: HTMLElement, prop: string) => {
-      const val = getComputedStyle(el)[prop as keyof CSSStyleDeclaration] ?? "";
-      if (typeof val === "string" && isBad(val)) {
-        (el.style as unknown as WritableStyle)[prop] = prop.includes("background") ? "#fff" : "#000";
-      }
-    };
-  
-    // 🔵 Limpiar estilos peligrosos de cada elemento
-    clone.querySelectorAll<HTMLElement>("*").forEach((el) => {
-      const cs = getComputedStyle(el);
-  
-      // Quitar fondo con gradiente
-      if (cs.backgroundImage.includes("gradient") || isBad(cs.backgroundImage)) {
-        el.style.backgroundImage = "none";
+    try {
+      // 1. Clonar y limpiar el contenido
+      const clone = pdfRef.current.cloneNode(true) as HTMLElement;
+      
+      // Limpiar elementos interactivos
+      clone.querySelectorAll('button, input, select, .map-container').forEach(el => el.remove());
+      
+      // Reemplazar el mapa interactivo con un placeholder estático
+      const mapPlaceholder = `<div class="map-static" style="height:400px;background:#eee;display:flex;align-items:center;justify-content:center;border-radius:1rem;margin:1rem 0">
+        <div style="text-align:center">
+          <h3 style="color:#333">Mapa del Itinerario</h3>
+          <p style="color:#666">${userPlace || 'Ubicación principal'}</p>
+        </div>
+      </div>`;
+      
+      const mapContainer = clone.querySelector('.map-container');
+      if (mapContainer) {
+        mapContainer.outerHTML = mapPlaceholder;
       }
   
-      // Quitar sombra si es con oklch
-      if (isBad(cs.boxShadow)) {
-        el.style.boxShadow = "none";
+      // 2. Crear HTML completo
+      const html = `<!DOCTYPE html>
+  <html lang="es">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Itinerario de Viaje - ${userPlace || 'Atlántico'}</title>
+    <style>
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, 
+                     Ubuntu, Cantarell, sans-serif;
+        background-color: #f8fafc;
+        color: #1e293b;
+        padding: 20px;
       }
-  
-      // Reemplazar colores conflictivos
-      [
-        "backgroundColor",
-        "color",
-        "borderColor",
-        "borderTopColor",
-        "borderRightColor",
-        "borderBottomColor",
-        "borderLeftColor",
-        "outlineColor",
-        "textDecorationColor",
-        "columnRuleColor",
-      ].forEach((p) => replaceIfBad(el, p));
-  
-      // Quitar custom props con oklch
-      for (let i = 0; i < cs.length; i++) {
-        const key = cs.item(i);
-        if (key.startsWith("--") && isBad(cs.getPropertyValue(key))) {
-          el.style.setProperty(key, "inherit");
+      .container {
+        max-width: 800px;
+        margin: 0 auto;
+      }
+      .header {
+        background: #dc2626;
+        color: white;
+        padding: 4rem 1rem;
+        text-align: center;
+        margin-bottom: 20px;
+      }
+      .card {
+        background: white;
+        border-radius: 1.5rem;
+        padding: 2rem;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        margin-bottom: 2rem;
+        break-inside: avoid;
+      }
+      .timeline-item {
+        border-left: 2px solid #dc2626;
+        padding-left: 1.5rem;
+        margin: 1.5rem 0;
+      }
+      @media print {
+        body { 
+          background: white;
+          padding: 0;
+        }
+        .header { 
+          padding: 2rem 1rem;
+        }
+        .card {
+          box-shadow: none;
+          page-break-inside: avoid;
         }
       }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <!-- Header -->
+      <div class="header">
+        <h1 style="font-size: 2.5rem; font-weight: 800; margin: 0;">Tu Aventura Generada</h1>
+        ${userPlace ? `<p style="margin-top: 0.5rem; font-size: 1rem;">📍 ${userPlace}</p>` : ''}
+      </div>
+      
+      <!-- Contenido clonado -->
+      ${clone.innerHTML}
+    </div>
+  </body>
+  </html>`;
   
-      // Expandir tarjetas colapsadas
-      if (el.style.height === "0px") {
-        el.style.height = "auto";
-        el.style.overflow = "visible";
-        el.style.opacity = "1";
-      }
-    });
-  
-    // 🔷 Mostrar el clon fuera del viewport
-    clone.style.position = "fixed";
-    clone.style.left = "-9999px";
-    document.body.appendChild(clone);
-  
-    // 🔁 Esperar a que todas las imágenes estén cargadas
-    const images = Array.from(clone.querySelectorAll("img"));
-    await Promise.all(
-      images.map((img) =>
-        new Promise((resolve) => {
-          if (img.complete) resolve(true);
-          else img.onload = img.onerror = () => resolve(true);
-        })
-      )
-    );
-  
-    // 🖼️ Capturar canvas
-    try {
-      const canvas = await html2canvas(clone, {
-        scale: 2,
-        useCORS: true,
-        backgroundColor: "#ffffff",
-        scrollY: -window.scrollY, // corregir posición si estás scrolleado
+      // 3. Enviar HTML al servidor para generar PDF
+      const response = await fetch('/api/generate-pdf', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ html }),
       });
   
-      const pdf = new jsPDF("p", "mm", "a4");
-      const img = canvas.toDataURL("image/png");
-      const pageWidth = pdf.internal.pageSize.getWidth();
-      const pageHeight = (canvas.height * pageWidth) / canvas.width;
+      if (!response.ok) {
+        throw new Error('Error al generar PDF');
+      }
   
-      pdf.addImage(img, "PNG", 0, 0, pageWidth, pageHeight);
-      pdf.save("itinerario.pdf");
-    } catch (err) {
-      console.error("Error al generar PDF:", err);
-      alert("Ocurrió un error al generar el PDF.");
-    } finally {
-      document.body.removeChild(clone);
+      // 4. Descargar el PDF
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `itinerario-${new Date().toISOString().split('T')[0]}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+  
+    } catch (error) {
+      console.error("Error al generar PDF:", error);
+      alert("Error al generar el PDF. Inténtalo de nuevo.");
     }
   };
-  
+
   /* ═════ vista loading ════ */
   if (view === "loading") {
     const frases = [
@@ -402,15 +500,12 @@ if (typeof window !== "undefined") {
   
     return (
       <div className="flex flex-col items-center justify-center h-screen bg-blue-50 px-4 text-center space-y-6">
-        {/* Barra animada de progreso */}
         <div className="relative w-full max-w-md h-3 bg-gray-200 rounded-full overflow-hidden">
           <div className="absolute h-full bg-red-600 animate-pulse w-full" />
         </div>
   
-        {/* Spinner opcional */}
         <Loader2 className="animate-spin w-10 h-10 text-red-600" />
   
-        {/* Frase motivadora */}
         <p className="text-gray-700 text-lg font-medium animate-pulse">
           {randomFrase}
         </p>
@@ -423,7 +518,8 @@ if (typeof window !== "undefined") {
     const totalH = Math.round(
       itinerary.reduce((s, t) => s + t.durationMinutes, 0) / 60
     );
-    const perDay = Math.ceil(itinerary.length / (answers.days ?? 1));
+    const days = answers.days ?? 1;
+    const perDay = Math.ceil(itinerary.length / days);
 
     return (
       <main ref={pdfRef} className="min-h-screen bg-blue-50 pb-16">
@@ -441,7 +537,7 @@ if (typeof window !== "undefined") {
             <h2 className="text-3xl font-bold">Resumen</h2>
             <div className="flex flex-wrap gap-6 text-gray-600">
               <span className="flex items-center gap-2">
-                <Calendar /> {answers.days} días
+                <Calendar /> {days} día{days > 1 ? "s" : ""}
               </span>
               <span className="flex items-center gap-2">
                 <MapPin /> {itinerary.length} paradas
@@ -450,17 +546,16 @@ if (typeof window !== "undefined") {
                 <Clock /> {totalH} h
               </span>
             </div>
-            <div className="flex gap-4">
+            <div className="flex gap-4 flex-wrap">
               <button
-                type="button" onClick={downloadPDF} 
-                className="bg-red-600 text-white px-5 py-3 rounded-full inline-flex items-center shadow hover:shadow-lg transition"
+                onClick={downloadPDF}
+                className="bg-green-600 text-white px-5 py-3 rounded-full inline-flex items-center shadow hover:shadow-lg transition"
               >
-                <FileText className="mr-2" /> Descargar PDF
+                <Download className="mr-2" /> Guardar para offline
               </button>
               <button
-                type="button" 
                 onClick={handleShare} 
-                className="bg-blue-600 text-white px-5 py-3 rounded-full inline-flex items-center shadow hover:shadow-lg transition"
+                className="bg-purple-600 text-white px-5 py-3 rounded-full inline-flex items-center shadow hover:shadow-lg transition"
               >
                 <Share2 className="mr-2" /> Compartir link
               </button>
@@ -468,22 +563,23 @@ if (typeof window !== "undefined") {
           </section>
 
           {/* mapa */}
-          <div className="bg-white rounded-3xl shadow-2xl overflow-hidden h-96">
+          <div className="bg-white rounded-3xl shadow-2xl overflow-hidden h-96 map-container">
             <ItineraryMap stops={itinerary} userLocation={location} />
           </div>
 
           {/* timeline por día */}
-          {Array.from({ length: answers.days ?? 1 }).map((_, d) => (
-            <section
-              key={d}
-              className="bg-white p-8 rounded-3xl shadow-2xl space-y-6"
-            >
-              <h3 className="text-2xl font-semibold">Día {d + 1}</h3>
-              <ItineraryTimeline
-                stops={itinerary.slice(d * perDay, d * perDay + perDay)}
-              />
-            </section>
-          ))}
+          {Array.from({ length: days }).map((_, d) => {
+            const dayStops = itinerary.slice(d * perDay, (d + 1) * perDay);
+            return (
+              <section
+                key={d}
+                className="bg-white p-8 rounded-3xl shadow-2xl space-y-6"
+              >
+                <h3 className="text-2xl font-semibold">Día {d + 1}</h3>
+                <ItineraryTimeline stops={dayStops} />
+              </section>
+            );
+          })}
         </div>
       </main>
     );
