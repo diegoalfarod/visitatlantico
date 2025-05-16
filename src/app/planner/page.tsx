@@ -63,7 +63,7 @@ const promptCards = [
 
 /* ═════════════════ COMPONENTE ═════════════════ */
 
-export default function PremiumPlannerPage({ shared = null }: { shared?: SharedData }) {
+export default function PremiumPlannerPage() {
   /* wizard answers */
   const [answers, setAnswers] = useState<{
     days?: number;
@@ -247,14 +247,7 @@ export default function PremiumPlannerPage({ shared = null }: { shared?: SharedD
     useState<"questions" | "loading" | "itinerary">("questions");
   const pdfRef = useRef<HTMLDivElement>(null);
 
-  /* efecto para itinerario compartido */
-  useEffect(() => {
-    if (shared) {
-      setItinerary(shared.itinerary);
-      setAnswers({ days: shared.days });
-      setView("itinerary");
-    }
-  }, [shared]);
+ 
 
   function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
     const R = 6371; // Radio de la Tierra en km

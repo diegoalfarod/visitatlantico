@@ -1,41 +1,50 @@
-import { notFound } from "next/navigation";
-import { doc, getDoc } from "firebase/firestore";
-import { db } from "@/lib/firebase";
+// src/app/shared/[id]/page.tsx
+import { notFound } from 'next/navigation'
+import { doc, getDoc } from 'firebase/firestore'
+import { db } from '@/lib/firebase'
 
-import ItineraryMap from "@/components/ItineraryMap";
-import ItineraryTimeline from "@/components/ItineraryTimeline";
+import ItineraryMap from '@/components/ItineraryMap'
+import ItineraryTimeline from '@/components/ItineraryTimeline'
 
-import { MapPin, Clock, Calendar } from "lucide-react";
+import { MapPin, Clock, Calendar } from 'lucide-react'
 
-export const dynamic = "force-dynamic";
+export const dynamic = 'force-dynamic'
 
 export async function generateMetadata() {
   return {
-    title: "Itinerario compartido | Atlántico",
-    description:
-      "Explora este itinerario turístico en el Atlántico, Colombia.",
-  };
+    title: 'Itinerario compartido | Atlántico',
+    description: 'Explora este itinerario turístico en el Atlántico, Colombia.',
+  }
 }
 
-export default async function SharedItineraryPage({ params }) {
-  const { id } = params;
+export default async function SharedItineraryPage({
+  params,
+}: {
+  params: Promise<{ id: string }>
+}) {
+  // 1) Esperamos el Promise para obtener el id
+  const { id } = await params
 
-  const snap = await getDoc(doc(db, "sharedItineraries", id));
-  if (!snap.exists()) notFound();
+  // 2) Obtenemos el documento de Firestore
+  const snap = await getDoc(doc(db, 'sharedItineraries', id))
+  if (!snap.exists()) return notFound()
 
-  const itinerary = snap.get("itinerary") || [];
+  // 3) Extraemos el itinerario
+  const itinerary = snap.get('itinerary') || []
   if (!Array.isArray(itinerary) || itinerary.length === 0) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <p className="text-xl text-gray-600">Itinerario no disponible.</p>
       </div>
-    );
+    )
   }
 
+  // 4) Cálculo de horas totales
   const totalHours = Math.round(
     itinerary.reduce((sum, stop) => sum + (stop.durationMinutes || 0), 0) / 60
-  );
+  )
 
+  // 5) Renderizado
   return (
     <main className="min-h-screen bg-gradient-to-b from-blue-50 to-red-50 pb-16">
       {/* Hero */}
@@ -78,5 +87,5 @@ export default async function SharedItineraryPage({ params }) {
         </div>
       </section>
     </main>
-  );
+  )
 }
