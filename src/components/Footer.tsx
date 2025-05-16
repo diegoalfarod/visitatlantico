@@ -207,12 +207,12 @@ export default function Footer() {
               Gobernación del Atlántico <ExternalLink size={12} />
             </a>
             <a
-              href="https://github.com/diegoalfarod/visitatlantico"
+              href=""
               target="_blank"
               className="hover:text-primary flex items-center gap-1"
               rel="noopener noreferrer"
             >
-              Créditos <ExternalLink size={12} />
+               <ExternalLink size={12} />
             </a>
           </div>
         </div>
