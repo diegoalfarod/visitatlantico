@@ -1,6 +1,9 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
+import { DndProvider } from "react-dnd";
+import { HTML5Backend } from "react-dnd-html5-backend";
+import { useTranslations } from "next-intl";
 import ItineraryMap from "@/components/ItineraryMap";
 import ItineraryTimeline from "@/components/ItineraryTimeline";
 import type { Stop } from "@/components/ItineraryStopCard";
@@ -60,6 +63,7 @@ const promptCards = [
 /* ═════════════════ COMPONENTE ═════════════════ */
 
 export default function PremiumPlannerPage() {
+  const t = useTranslations('planner');
   /* wizard answers */
   const [answers, setAnswers] = useState<{
     days?: number;
@@ -75,6 +79,9 @@ export default function PremiumPlannerPage() {
   const [userPlace, setUserPlace] = useState<string | null>(null);
   const [fetchingPlace, setFetchingPlace] = useState(false);
   const [geoError, setGeoError] = useState<string | null>(null);
+  const [dynamicQuestions, setDynamicQuestions] = useState<string[]>([]);
+  const [dynamicAnswers, setDynamicAnswers] = useState<Record<number, string>>({});
+  const [manualLocation, setManualLocation] = useState("");
 
   /* exponer setters para GPS-spoof */
   if (typeof window !== "undefined") {
@@ -140,8 +147,34 @@ export default function PremiumPlannerPage() {
     };
   }, [useLocation]);
 
+  useEffect(() => {
+    fetch('/api/itinerary/profile', { method: 'POST' })
+      .then((res) => res.json())
+      .then((data) => {
+        if (Array.isArray(data.questions)) {
+          setDynamicQuestions(data.questions);
+        }
+      })
+      .catch((err) => console.error('profile fetch error', err));
+  }, []);
+
   /* pasos wizard */
+  const dynamicSteps = dynamicQuestions.map((q, idx) => ({
+    label: q,
+    valid: !!dynamicAnswers[idx],
+    element: (
+      <input
+        value={dynamicAnswers[idx] || ""}
+        onChange={(e) =>
+          setDynamicAnswers((a) => ({ ...a, [idx]: e.target.value }))
+        }
+        className="w-full border-b-2 border-gray-300 pb-2 focus:border-red-500 outline-none text-lg"
+      />
+    ),
+  }));
+
   const steps = [
+    ...dynamicSteps,
     {
       label: "¿Cuántos días planeas visitar?",
       valid: answers.days !== undefined,
@@ -260,12 +293,15 @@ export default function PremiumPlannerPage() {
   const generateItinerary = async () => {
     if (!steps.every((s) => s.valid)) return;
     setView("loading");
-    const profile = {
+    const profile: Record<string, string> = {
       Días: String(answers.days),
-      Motivo: answers.motivo,
+      Motivo: answers.motivo || "",
       "Otros municipios": answers.otros ? "Sí" : "No",
-      Email: answers.email,
+      Email: answers.email || "",
     };
+    dynamicQuestions.forEach((q, i) => {
+      profile[q] = dynamicAnswers[i] || "";
+    });
     
     try {
       const res = await fetch("/api/itinerary/generate", {
@@ -507,8 +543,7 @@ export default function PremiumPlannerPage() {
     const totalH = Math.round(
       itinerary.reduce((s, t) => s + t.durationMinutes, 0) / 60
     );
-    const days = answers.days ?? 1;
-    const perDay = Math.ceil(itinerary.length / days);
+    const days = Math.max(1, ...itinerary.map((s) => s.day));
 
     return (
       <main ref={pdfRef} className="min-h-screen bg-blue-50 pb-16">
@@ -540,13 +575,13 @@ export default function PremiumPlannerPage() {
                 onClick={downloadPDF}
                 className="bg-green-600 text-white px-5 py-3 rounded-full inline-flex items-center shadow hover:shadow-lg transition"
               >
-                <Download className="mr-2" /> Guardar para offline
+                <Download className="mr-2" /> {t('save')}
               </button>
               <button
-                onClick={handleShare} 
+                onClick={handleShare}
                 className="bg-purple-600 text-white px-5 py-3 rounded-full inline-flex items-center shadow hover:shadow-lg transition"
               >
-                <Share2 className="mr-2" /> Compartir link
+                <Share2 className="mr-2" /> {t('share')}
               </button>
             </div>
           </section>
@@ -557,18 +592,36 @@ export default function PremiumPlannerPage() {
           </div>
 
           {/* timeline por día */}
-          {Array.from({ length: days }).map((_, d) => {
-            const dayStops = itinerary.slice(d * perDay, (d + 1) * perDay);
-            return (
-              <section
-                key={d}
-                className="bg-white p-8 rounded-3xl shadow-2xl space-y-6"
-              >
-                <h3 className="text-2xl font-semibold">Día {d + 1}</h3>
-                <ItineraryTimeline stops={dayStops} />
-              </section>
-            );
-          })}
+          <DndProvider backend={HTML5Backend}>
+          {(() => {
+            let index = 0;
+            return Array.from({ length: days }).map((_, d) => {
+              const dayStops = itinerary.filter((s) => s.day === d + 1);
+              const offset = index;
+              index += dayStops.length;
+              return (
+                <section
+                  key={d}
+                  className="bg-white p-8 rounded-3xl shadow-2xl space-y-6"
+                >
+                  <h3 className="text-2xl font-semibold">Día {d + 1}</h3>
+                  <ItineraryTimeline
+                    stops={dayStops}
+                    globalOffset={offset}
+                    onMove={(from, to) =>
+                      setItinerary((prev) => {
+                        if (!prev) return prev;
+                        const arr = [...prev];
+                        arr.splice(to, 0, arr.splice(from, 1)[0]);
+                        return arr;
+                      })
+                    }
+                  />
+                </section>
+              );
+            });
+          })()}
+          </DndProvider>
         </div>
       </main>
     );
@@ -581,7 +634,7 @@ export default function PremiumPlannerPage() {
       {/* hero */}
       <div className="bg-gradient-to-r from-red-600 to-red-800 text-white py-16">
         <div className="max-w-4xl mx-auto text-center">
-          <h1 className="text-6xl font-extrabold">Descubre el Atlántico</h1>
+          <h1 className="text-6xl font-extrabold">{t('title')}</h1>
         </div>
       </div>
 
@@ -635,9 +688,7 @@ export default function PremiumPlannerPage() {
                   }`}
                 />
               </div>
-              <span className="text-lg">
-                Generar plan turístico basado en mi ubicación actual
-              </span>
+              <span className="text-lg">{t('start_location')}</span>
             </label>
 
             {fetchingPlace && (
@@ -650,6 +701,43 @@ export default function PremiumPlannerPage() {
             {userPlace && !fetchingPlace && !geoError && (
               <p className="text-sm text-gray-700">📍 {userPlace}</p>
             )}
+            {!useLocation && (
+              <div className="mt-2 flex gap-2">
+                <input
+                  value={manualLocation}
+                  onChange={(e) => setManualLocation(e.target.value)}
+                  placeholder="Ingresa una ciudad o dirección"
+                  className="flex-1 border-b-2 border-gray-300 pb-1 outline-none"
+                />
+                <button
+                  className="bg-blue-600 text-white px-3 rounded"
+                  onClick={async () => {
+                    if (!manualLocation) return;
+                    try {
+                      const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN!;
+                      const resp = await fetch(
+                        `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(
+                          manualLocation
+                        )}.json?access_token=${token}`
+                      );
+                      const js = await resp.json();
+                      const feat = js.features?.[0];
+                      if (feat) {
+                        setLocation({ lat: feat.center[1], lng: feat.center[0] });
+                        setUserPlace(feat.place_name);
+                        setGeoError(null);
+                      } else {
+                        setGeoError('Lugar no encontrado');
+                      }
+                    } catch {
+                      setGeoError('Error buscando lugar');
+                    }
+                  }}
+                >
+                  Establecer
+                </button>
+              </div>
+            )}
           </div>
 
           {/* navegación */}
@@ -659,7 +747,7 @@ export default function PremiumPlannerPage() {
               disabled={qIndex === 0}
               className="text-gray-500 hover:text-gray-700"
             >
-              Anterior
+              {t('previous')}
             </button>
 
             {qIndex < steps.length - 1 ? (
@@ -668,7 +756,7 @@ export default function PremiumPlannerPage() {
                 disabled={!step.valid}
                 className="bg-red-600 text-white px-6 py-3 rounded-full shadow hover:shadow-lg transition disabled:opacity-50"
               >
-                Siguiente
+                {t('next')}
               </button>
             ) : (
               <button
@@ -676,7 +764,7 @@ export default function PremiumPlannerPage() {
                 disabled={!step.valid}
                 className="bg-red-600 text-white px-6 py-3 rounded-full shadow hover:shadow-lg transition disabled:opacity-50"
               >
-                Generar itinerario
+                {t('generate')}
               </button>
             )}
           </div>

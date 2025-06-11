@@ -68,6 +68,8 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       <head>
         {/* Next.js inyecta aquí todos los meta tags definidos en `metadata` */}
 
+        <link rel="manifest" href="/manifest.json" />
+
         {/* Canonical URL */}
         <link rel="canonical" href="https://visitatlantico.com" />
 
@@ -93,7 +95,14 @@ export default function RootLayout({ children }: { children: ReactNode }) {
           }}
         />
       </head>
-      <body className="font-sans">{children}</body>
+      <body className="font-sans">
+        {children}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('/sw.js'));}`,
+          }}
+        />
+      </body>
     </html>
   );
 }
