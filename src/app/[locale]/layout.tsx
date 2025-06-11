@@ -13,7 +13,7 @@ export default async function LocaleLayout({ children, params: { locale } }:{ ch
     notFound();
   }
   return (
-    <RootLayout>
+    <RootLayout locale={locale}>
       <NextIntlClientProvider locale={locale} messages={messages}>
         {children}
       </NextIntlClientProvider>

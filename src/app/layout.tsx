@@ -59,10 +59,16 @@ export function generateViewport() {
   };
 }
 
-export default function RootLayout({ children }: { children: ReactNode }) {
+export default function RootLayout({
+  children,
+  locale = 'es',
+}: {
+  children: ReactNode;
+  locale?: string;
+}) {
   return (
     <html
-      lang="es"
+      lang={locale}
       className={`${poppins.variable} ${merriweatherSans.variable}`}
     >
       <head>
