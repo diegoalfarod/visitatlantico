@@ -22,6 +22,7 @@ export interface ItineraryStop {
   lat: number;
   lng: number;
   municipality: string;
+  day: number;
   startTime: string;
   durationMinutes: number;
   description: string;
@@ -29,6 +30,7 @@ export interface ItineraryStop {
   category?: string;
   imageUrl?: string;
   photos?: string[];              // 👈 se añade galería
+  transport?: string;
 }
 
 /* ─────────── Helpers ─────────── */
@@ -43,8 +45,21 @@ const haversine = (a: { lat: number; lng: number }, b: { lat: number; lng: numbe
   return 2 * R * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h));
 };
 
-const travelMinutes = (a: ItineraryStop, b: ItineraryStop) =>
-  Math.max(10, Math.round((haversine(a, b) / 30) * 60));
+function speedFor(transport?: string) {
+  if (!transport) return 30;
+  const t = transport.toLowerCase();
+  if (t.includes('pie') || t.includes('walk')) return 5;
+  if (t.includes('bici')) return 15;
+  if (t.includes('bus')) return 35;
+  if (t.includes('taxi') || t.includes('carro') || t.includes('auto') || t.includes('car')) return 40;
+  if (t.includes('moto')) return 50;
+  return 30;
+}
+
+const travelMinutes = (a: ItineraryStop, b: ItineraryStop) => {
+  const speed = speedFor(b.transport);
+  return Math.max(5, Math.round((haversine(a, b) / speed) * 60));
+};
 
 const toMin = (t: string) => {
   const [h = 0, m = 0] = t.split(":").map(Number);
@@ -189,6 +204,7 @@ async function loadCollection(
             "/default-image.jpg",
           photos: Array.isArray(data.imagePaths) ? data.imagePaths : undefined,
           type: collection === "destinations" ? "destination" : "experience",
+          day: 1,
           startTime: "",
           durationMinutes: 0,
         } as ItineraryStop;
@@ -225,9 +241,10 @@ ${stops
 Reglas:
 1. Usa únicamente IDs listados.
 2. Entre 2 y 3 paradas por día (idealmente 3).
-3. Formato JSON final: {"itinerary":[{"id":"xxx","startTime":"HH:MM","durationMinutes":NN},…]}
-4. Horario entre 08:00 y 20:00 y respeta cercanía geográfica.
-5. Balancea destinos y experiencias.
+3. Formato JSON final: {"itinerary":[{"id":"xxx","day":1,"startTime":"HH:MM","durationMinutes":NN,"transport":"caminar"},…]}
+4. Cada objeto debe indicar el "day" (número de día) y sugerir "transport" para llegar desde la parada anterior.
+5. Horario entre 08:00 y 20:00 y respeta cercanía geográfica y preferencias de transporte.
+6. Balancea destinos y experiencias.
 
 ${
   location
@@ -237,12 +254,10 @@ ${
 }
 
 function buildUserPrompt(profile: Record<string, string>) {
-  return `
-Viajero:
-• Días: ${profile.Días}
-• Intereses: ${profile.Motivo}
-• ¿Visitar otros municipios?: ${profile["Otros municipios"] ?? "No"}
-`.trim();
+  const lines = Object.entries(profile)
+    .map(([k, v]) => `• ${k}: ${v}`)
+    .join("\n");
+  return `Viajero:\n${lines}`.trim();
 }
 
 async function generateAIItinerary(
@@ -279,8 +294,10 @@ function validateAIResponse(aiJSON: string, allStops: ItineraryStop[]) {
 
     interface AIItem {
       id: string;
+      day?: number;
       startTime?: string;
       durationMinutes?: number;
+      transport?: string;
     }
 
     aiItinerary.forEach((item: AIItem) => {
@@ -293,9 +310,14 @@ function validateAIResponse(aiJSON: string, allStops: ItineraryStop[]) {
       }
       valid.push({
         ...found,
+        day: Number.isFinite(item.day) ? Number(item.day) : 1,
         // handle optional times gracefully
         startTime: validateTime(item.startTime ?? ''),
         durationMinutes: validateDuration(item.durationMinutes),
+        transport:
+          typeof item.transport === 'string' && item.transport.trim()
+            ? item.transport.trim()
+            : undefined,
       });
     });
 
@@ -326,9 +348,16 @@ async function verifyFirestoreDocuments(
 }
 
 function calculateTimings(itinerary: ItineraryStop[]) {
+  const sorted = [...itinerary].sort((a, b) => a.day - b.day);
   let current = 9 * 60;
-  return itinerary.map((s, idx) => {
-    if (idx) current += travelMinutes(itinerary[idx - 1], s);
+  let prevDay = sorted.length ? sorted[0].day : 1;
+  return sorted.map((s, idx) => {
+    if (s.day !== prevDay) {
+      current = 9 * 60;
+      prevDay = s.day;
+    } else if (idx) {
+      current += travelMinutes(sorted[idx - 1], s);
+    }
     const start = s.startTime || toHHMM(current);
     current = toMin(start) + s.durationMinutes;
     return { ...s, startTime: start };

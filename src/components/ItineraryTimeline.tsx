@@ -2,6 +2,7 @@
 "use client";
 
 import React, { useState, useMemo } from "react";
+import { useDrag, useDrop } from "react-dnd";
 import { motion, AnimatePresence } from "framer-motion";
 import { Stop } from "./ItineraryStopCard";
 import {
@@ -22,6 +23,8 @@ import {
 
 interface Props {
   stops: Stop[];
+  globalOffset?: number;
+  onMove?: (from: number, to: number) => void;
 }
 
 /* ───────── helpers ───────── */
@@ -58,7 +61,7 @@ const formatTime = (t: string) => {
 };
 
 /* ───────── componente ───────── */
-export default function ItineraryTimeline({ stops }: Props) {
+export default function ItineraryTimeline({ stops, globalOffset = 0, onMove }: Props) {
   /* ▸ 1. COMPLETAR HORARIOS FALTANTES */
   const filledStops = useMemo(() => {
     let current = 9 * 60; // 09:00 default
@@ -103,15 +106,36 @@ export default function ItineraryTimeline({ stops }: Props) {
     expanded,
     toggleExpand,
     isLast,
+    index,
   }: {
     stop: Stop;
     expanded: boolean;
     toggleExpand: () => void;
     isLast: boolean;
+    index: number;
   }) => {
     const [photoIndex, setPhotoIndex] = useState(0);
     const photos = stop.photos || (stop.imageUrl ? [stop.imageUrl] : []);
     const mapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${stop.lat},${stop.lng}`;
+
+    const [{ isDragging }, drag] = useDrag(() => ({
+      type: "stop",
+      item: { index },
+      collect: (m) => ({ isDragging: m.isDragging() }),
+    }), [index]);
+
+    const [, drop] = useDrop(
+      () => ({
+        accept: "stop",
+        hover: (item: { index: number }) => {
+          if (item.index !== index && onMove) {
+            onMove(item.index, index);
+            item.index = index;
+          }
+        },
+      }),
+      [index, onMove]
+    );
 
     const colors = {
       destination: {
@@ -133,7 +157,12 @@ export default function ItineraryTimeline({ stops }: Props) {
     const c = colors[stop.type];
 
     return (
-      <div className="relative">
+      <div
+        ref={(node) => {
+          if (node) drag(drop(node));
+        }}
+        className={`relative ${isDragging ? 'opacity-50' : ''}`}
+      >
         {!isLast && (
           <div className={`absolute left-4 top-12 bottom-0 w-0.5 ${c.secondary}`} />
         )}
@@ -238,6 +267,11 @@ export default function ItineraryTimeline({ stops }: Props) {
                   {/* desc & acciones */}
                   <div className="p-4 space-y-3 text-sm text-gray-700">
                     {stop.description && <p>{stop.description}</p>}
+                    {stop.transport && (
+                      <p className="text-xs text-gray-600">
+                        Transporte sugerido: {stop.transport}
+                      </p>
+                    )}
 
                     <div className="grid grid-cols-2 gap-2 pt-2">
                       <a
@@ -322,6 +356,7 @@ export default function ItineraryTimeline({ stops }: Props) {
             expanded={expandedId === s.id}
             toggleExpand={() => setExpandedId(expandedId === s.id ? null : s.id)}
             isLast={i === filteredStops.length - 1}
+            index={globalOffset + i}
           />
         ))}
 
