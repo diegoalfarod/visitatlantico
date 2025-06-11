@@ -1,7 +1,8 @@
 // File: src/components/ItineraryTimeline.tsx
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useCallback, useRef } from "react";
+import { useDrag, useDrop } from "react-dnd";
 import { motion, AnimatePresence } from "framer-motion";
 import { Stop } from "./ItineraryStopCard";
 import {
@@ -18,12 +19,12 @@ import {
   Landmark,
   Navigation,
   ExternalLink,
-  Info,
-  Star,
 } from "lucide-react";
 
 interface Props {
   stops: Stop[];
+  editable?: boolean;
+  onChange?: (stops: Stop[]) => void;
 }
 
 /* ───────── helpers ───────── */
@@ -59,12 +60,14 @@ const formatTime = (t: string) => {
   return `${hh}:${m.toString().padStart(2, "0")} ${period}`;
 };
 
+const ItemType = "STOP";
+
 /* ───────── componente ───────── */
-export default function ItineraryTimeline({ stops }: Props) {
+export default function ItineraryTimeline({ stops, editable, onChange }: Props) {
   /* ▸ 1. COMPLETAR HORARIOS FALTANTES */
   const filledStops = useMemo(() => {
     let current = 9 * 60; // 09:00 default
-    return stops.map((s, idx) => {
+    return stops.map((s) => {
       let start = s.startTime && /^\d{1,2}:\d{2}$/.test(s.startTime) ? s.startTime : "";
       if (start) current = toMin(start); // usa la hora provista
       else start = toHHMM(current); // calcula
@@ -83,6 +86,27 @@ export default function ItineraryTimeline({ stops }: Props) {
   const filteredStops = activeCategory
     ? filledStops.filter((s) => s.category === activeCategory)
     : filledStops;
+
+  const moveStop = useCallback(
+    (from: number, to: number) => {
+      if (!onChange) return;
+      const updated = [...stops];
+      const [item] = updated.splice(from, 1);
+      updated.splice(to, 0, item);
+      onChange(updated);
+    },
+    [stops, onChange]
+  );
+
+  const updateStop = useCallback(
+    (index: number, changes: Partial<Stop>) => {
+      if (!onChange) return;
+      const updated = [...stops];
+      updated[index] = { ...updated[index], ...changes };
+      onChange(updated);
+    },
+    [stops, onChange]
+  );
 
   /* resumen */
   const totalMin = filteredStops.reduce((sum, s) => sum + s.durationMinutes, 0);
@@ -105,15 +129,35 @@ export default function ItineraryTimeline({ stops }: Props) {
     expanded,
     toggleExpand,
     isLast,
+    index,
   }: {
     stop: Stop;
     expanded: boolean;
     toggleExpand: () => void;
     isLast: boolean;
+    index: number;
   }) => {
     const [photoIndex, setPhotoIndex] = useState(0);
     const photos = stop.photos || (stop.imageUrl ? [stop.imageUrl] : []);
     const mapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${stop.lat},${stop.lng}`;
+
+    const ref = useRef<HTMLDivElement | null>(null);
+    const [, drop] = useDrop({
+      accept: ItemType,
+      hover(item: { index: number }) {
+        if (!ref.current || item.index === index) return;
+        moveStop(item.index, index);
+        item.index = index;
+      },
+    });
+    const [{ isDragging }, drag] = useDrag({
+      type: ItemType,
+      item: { index },
+      collect: (m) => ({ isDragging: m.isDragging() }),
+    });
+    if (editable) {
+      drag(drop(ref));
+    }
 
     const colors = {
       destination: {
@@ -140,18 +184,37 @@ export default function ItineraryTimeline({ stops }: Props) {
           <div className={`absolute left-4 top-12 bottom-0 w-0.5 ${c.secondary}`} />
         )}
 
-        <div className="relative z-10 mb-6">
+        <div className="relative z-10 mb-6" ref={editable ? ref : undefined} style={{ opacity: isDragging ? 0.5 : 1 }}>
           {/* hora + duración */}
           <div className="flex items-center mb-2">
             <div className={`w-8 h-8 ${c.primary} rounded-full flex items-center justify-center shadow-md`}>
               <Clock className="w-4 h-4 text-white" />
             </div>
-            <div className={`${c.text} font-semibold ml-3`}>
-              {formatTime(stop.startTime)}
-            </div>
-            <div className="ml-2 px-2 py-0.5 bg-gray-100 rounded-full text-xs text-gray-600">
-              {stop.durationMinutes} min
-            </div>
+            {editable ? (
+              <>
+                <input
+                  type="time"
+                  value={stop.startTime}
+                  onChange={(e) => updateStop(index, { startTime: e.target.value })}
+                  className="ml-3 text-xs border rounded px-1"
+                />
+                <input
+                  type="number"
+                  min={10}
+                  step={5}
+                  value={stop.durationMinutes}
+                  onChange={(e) => updateStop(index, { durationMinutes: Number(e.target.value) })}
+                  className="ml-2 w-16 text-xs border rounded px-1"
+                />
+              </>
+            ) : (
+              <>
+                <div className={`${c.text} font-semibold ml-3`}>{formatTime(stop.startTime)}</div>
+                <div className="ml-2 px-2 py-0.5 bg-gray-100 rounded-full text-xs text-gray-600">
+                  {stop.durationMinutes} min
+                </div>
+              </>
+            )}
           </div>
 
           {/* tarjeta cabecera */}
@@ -317,15 +380,19 @@ export default function ItineraryTimeline({ stops }: Props) {
 
       {/* timeline */}
       <div className="relative pt-4 pb-8">
-        {filteredStops.map((s, i) => (
-          <StopCard
-            key={s.id}
-            stop={s}
-            expanded={expandedId === s.id}
-            toggleExpand={() => setExpandedId(expandedId === s.id ? null : s.id)}
-            isLast={i === filteredStops.length - 1}
-          />
-        ))}
+        {filteredStops.map((s, i) => {
+          const realIndex = stops.findIndex((st) => st.id === s.id);
+          return (
+            <StopCard
+              key={s.id}
+              stop={s}
+              expanded={expandedId === s.id}
+              toggleExpand={() => setExpandedId(expandedId === s.id ? null : s.id)}
+              isLast={i === filteredStops.length - 1}
+              index={realIndex}
+            />
+          );
+        })}
 
         {/* fin */}
         <div className="flex items-center justify-center mt-8">

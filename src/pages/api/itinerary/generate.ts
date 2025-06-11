@@ -277,6 +277,7 @@ function validateAIResponse(aiJSON: string, allStops: ItineraryStop[]) {
     const invalid: string[] = [];
     const seen = new Set<string>();
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     aiItinerary.forEach((item: any) => {
       if (!item?.id || seen.has(item.id)) return;
       seen.add(item.id);
@@ -331,6 +332,7 @@ function calculateTimings(itinerary: ItineraryStop[]) {
 async function savePlanningRequest(
   db: FirebaseFirestore.Firestore,
   profile: Record<string, string>,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   location: any,
   itinerary: ItineraryStop[]
 ) {
