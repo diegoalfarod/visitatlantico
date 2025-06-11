@@ -1,7 +1,8 @@
 // File: src/components/ItineraryTimeline.tsx
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect, useRef } from "react";
+import { useDrag, useDrop } from "react-dnd";
 import { motion, AnimatePresence } from "framer-motion";
 import { Stop } from "./ItineraryStopCard";
 import {
@@ -22,6 +23,7 @@ import {
 
 interface Props {
   stops: Stop[];
+  onReorder?: (stops: Stop[]) => void;
 }
 
 /* ───────── helpers ───────── */
@@ -58,42 +60,48 @@ const formatTime = (t: string) => {
 };
 
 /* ───────── componente ───────── */
-export default function ItineraryTimeline({ stops }: Props) {
+export default function ItineraryTimeline({ stops, onReorder }: Props) {
+  const [orderedStops, setOrderedStops] = useState(stops)
+
+  useEffect(() => {
+    setOrderedStops(stops)
+  }, [stops])
   /* ▸ 1. COMPLETAR HORARIOS FALTANTES */
   const filledStops = useMemo(() => {
     let current = 9 * 60; // 09:00 default
-    return stops.map((s) => {
+    return orderedStops.map((s) => {
       let start = s.startTime && /^\d{1,2}:\d{2}$/.test(s.startTime) ? s.startTime : "";
       if (start) current = toMin(start); // usa la hora provista
       else start = toHHMM(current); // calcula
       current += s.durationMinutes || 60; // avanza
       return { ...s, startTime: start };
     });
-  }, [stops]);
+  }, [orderedStops]);
 
   /* ▸ 2. UI states */
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
   /* filtros */
-  const categories = Array.from(new Set(filledStops.map((s) => s.category)));
+  const categories = Array.from(new Set(orderedStops.map((s) => s.category)));
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
 
+  const indexedStops = filledStops.map((s, idx) => ({ stop: s, index: idx }));
   const filteredStops = activeCategory
-    ? filledStops.filter((s) => s.category === activeCategory)
-    : filledStops;
+    ? indexedStops.filter((s) => s.stop.category === activeCategory)
+    : indexedStops;
 
   /* resumen */
-  const totalMin = filteredStops.reduce((sum, s) => sum + s.durationMinutes, 0);
+  const totalMin = filteredStops.reduce((sum, s) => sum + s.stop.durationMinutes, 0);
   const h = Math.floor(totalMin / 60);
   const min = totalMin % 60;
 
   const startTime =
-    filteredStops.length > 0 ? formatTime(filteredStops[0].startTime) : "";
+    filteredStops.length > 0 ? formatTime(filteredStops[0].stop.startTime) : "";
   const endTime =
     filteredStops.length > 0
       ? formatTime(
-          toHHMM(toMin(filteredStops[filteredStops.length - 1].startTime) +
-            (filteredStops[filteredStops.length - 1].durationMinutes || 0))
+          toHHMM(toMin(filteredStops[filteredStops.length - 1].stop.startTime) +
+            (filteredStops[filteredStops.length - 1].stop.durationMinutes || 0))
         )
       : "";
 
@@ -272,6 +280,73 @@ export default function ItineraryTimeline({ stops }: Props) {
     );
   };
 
+  /* ▸ 3b. Drag wrapper */
+  interface DragItem {
+    index: number;
+    id: string;
+    type: string;
+  }
+
+  const moveStop = (from: number, to: number) => {
+    setOrderedStops((prev) => {
+      const updated = [...prev];
+      const [removed] = updated.splice(from, 1);
+      updated.splice(to, 0, removed);
+      onReorder?.(updated);
+      return updated;
+    });
+  };
+
+  const SortableCard = ({
+    stop,
+    index,
+    expanded,
+    toggleExpand,
+    isLast,
+    moveStop,
+  }: {
+    stop: Stop;
+    index: number;
+    expanded: boolean;
+    toggleExpand: () => void;
+    isLast: boolean;
+    moveStop: (from: number, to: number) => void;
+  }) => {
+    const ref = useRef<HTMLDivElement>(null);
+    const [, drop] = useDrop<DragItem>({
+      accept: "stop",
+      hover(item: DragItem) {
+        if (!ref.current) return;
+        const dragIndex = item.index;
+        const hoverIndex = index;
+        if (dragIndex === hoverIndex) return;
+        moveStop(dragIndex, hoverIndex);
+        item.index = hoverIndex;
+      },
+    });
+
+    const [{ isDragging }, drag] = useDrag({
+      type: "stop",
+      item: { id: stop.id, index },
+      collect: (monitor) => ({
+        isDragging: monitor.isDragging(),
+      }),
+    });
+
+    drag(drop(ref));
+
+    return (
+      <div ref={ref} style={{ opacity: isDragging ? 0.5 : 1 }}>
+        <StopCard
+          stop={stop}
+          expanded={expanded}
+          toggleExpand={toggleExpand}
+          isLast={isLast}
+        />
+      </div>
+    );
+  };
+
   /* ▸ 4. Render principal */
   return (
     <div className="relative">
@@ -315,12 +390,16 @@ export default function ItineraryTimeline({ stops }: Props) {
 
       {/* timeline */}
       <div className="relative pt-4 pb-8">
-        {filteredStops.map((s, i) => (
-          <StopCard
-            key={s.id}
-            stop={s}
-            expanded={expandedId === s.id}
-            toggleExpand={() => setExpandedId(expandedId === s.id ? null : s.id)}
+        {filteredStops.map(({ stop, index }, i) => (
+          <SortableCard
+            key={stop.id}
+            index={index}
+            stop={stop}
+            expanded={expandedId === stop.id}
+            moveStop={moveStop}
+            toggleExpand={() =>
+              setExpandedId(expandedId === stop.id ? null : stop.id)
+            }
             isLast={i === filteredStops.length - 1}
           />
         ))}
