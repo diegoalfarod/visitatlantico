@@ -68,7 +68,7 @@
   color: rgb(31 41 55); /* text-gray-800 */
 }
 .react-calendar__navigation button:disabled {
-  @apply text-gray-400;
+  color: rgb(156 163 175); /* text-gray-400 */
 }
 .react-calendar__tile--active,
 .react-calendar__tile--now:not(.gastro-day) {

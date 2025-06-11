@@ -307,7 +307,7 @@ function validateAIResponse(aiJSON: string, allStops: ItineraryStop[]) {
 }
 
 const validateTime = (t: string) => (/^\d{1,2}:\d{2}$/.test(t) ? t : "");
-const validateDuration = (d: number) => Math.max(30, Math.min(d || 60, 240));
+const validateDuration = (d?: number) => Math.max(30, Math.min(d || 60, 240));
 
 async function verifyFirestoreDocuments(
   db: FirebaseFirestore.Firestore,
