@@ -23,6 +23,7 @@ type ApiStop = {
   description: string;
   lat: number;
   lng: number;
+  day: number;
   startTime: string;
   durationMinutes: number;
   tip?: string;
@@ -300,10 +301,11 @@ export default function PremiumPlannerPage() {
         throw new Error("No se encontraron destinos válidos");
       }
 
-      // Ordenar por hora
-      const sortedStops = [...validStops].sort((a, b) => 
-        a.startTime.localeCompare(b.startTime)
-      );
+      // Ordenar por día y hora
+      const sortedStops = [...validStops].sort((a, b) => {
+        if (a.day !== b.day) return a.day - b.day;
+        return a.startTime.localeCompare(b.startTime);
+      });
 
       // Convertir a tipo Stop
       const processedItinerary: Stop[] = sortedStops.map((apiStop, index) => ({
@@ -312,6 +314,7 @@ export default function PremiumPlannerPage() {
         description: apiStop.description,
         lat: apiStop.lat,
         lng: apiStop.lng,
+        day: apiStop.day ?? 1,
         durationMinutes: apiStop.durationMinutes || 60,
         tip: apiStop.tip || `Consejo: ${apiStop.name || 'este lugar'}`,
         municipality: apiStop.municipality || "Ubicación desconocida",
@@ -507,8 +510,10 @@ export default function PremiumPlannerPage() {
     const totalH = Math.round(
       itinerary.reduce((s, t) => s + t.durationMinutes, 0) / 60
     );
-    const days = answers.days ?? 1;
-    const perDay = Math.ceil(itinerary.length / days);
+    const days = Math.max(
+      answers.days ?? 1,
+      ...itinerary.map((s) => s.day)
+    );
 
     return (
       <main ref={pdfRef} className="min-h-screen bg-blue-50 pb-16">
@@ -558,7 +563,7 @@ export default function PremiumPlannerPage() {
 
           {/* timeline por día */}
           {Array.from({ length: days }).map((_, d) => {
-            const dayStops = itinerary.slice(d * perDay, (d + 1) * perDay);
+            const dayStops = itinerary.filter((s) => s.day === d + 1);
             return (
               <section
                 key={d}
