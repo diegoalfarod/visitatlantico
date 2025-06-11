@@ -6,7 +6,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   try {
     // Para producción (Vercel)
     if (process.env.NODE_ENV === 'production') {
-      const chromium = await import('chrome-aws-lambda');
+      const { default: chromium } = await import('chrome-aws-lambda');
       browser = await chromium.puppeteer.launch({
         args: chromium.args,
         executablePath: await chromium.executablePath,
