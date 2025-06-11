@@ -66,8 +66,10 @@ export default function PremiumPlannerPage() {
     motivo?: string;
     otros?: boolean;
     email?: string;
+    [key: string]: string | number | boolean | undefined;
   }>({});
   const [qIndex, setQIndex] = useState(0);
+  const [dynamicQuestions, setDynamicQuestions] = useState<string[]>([]);
 
   /* ubicación */
   const [useLocation, setUseLocation] = useState(false);
@@ -140,8 +142,24 @@ export default function PremiumPlannerPage() {
     };
   }, [useLocation]);
 
+  useEffect(() => {
+    const fetchQuestions = async () => {
+      try {
+        const res = await fetch('/api/itinerary/profile', { method: 'POST' });
+        if (!res.ok) return;
+        const data = await res.json();
+        if (Array.isArray(data.questions)) {
+          setDynamicQuestions(data.questions);
+        }
+      } catch (err) {
+        console.error('Error fetching profile questions:', err);
+      }
+    };
+    fetchQuestions();
+  }, []);
+
   /* pasos wizard */
-  const steps = [
+  const baseSteps = [
     {
       label: "¿Cuántos días planeas visitar?",
       valid: answers.days !== undefined,
@@ -151,8 +169,8 @@ export default function PremiumPlannerPage() {
           onChange={(e) =>
             setAnswers((a) => ({ ...a, days: Number(e.target.value) }))
           }
-          className="w-full border-b-2 border-gray-300 pb-2 focus:border-red-500 outline-none text-lg"
-        >
+      className="w-full border-b-2 border-gray-300 pb-2 focus:border-red-500 outline-none text-lg"
+      >
           <option value="" disabled>
             Selecciona días
           </option>
@@ -233,6 +251,23 @@ export default function PremiumPlannerPage() {
     },
   ];
 
+  const dynamicSteps = dynamicQuestions.map((q, idx) => ({
+    label: q,
+    valid: !!answers[`dynamic${idx}`],
+    element: (
+      <input
+        value={(answers[`dynamic${idx}`] as string | undefined) ?? ""}
+        onChange={(e) =>
+          setAnswers((a) => ({ ...a, [`dynamic${idx}`]: e.target.value }))
+        }
+        placeholder="Tu respuesta"
+        className="w-full border-b-2 border-gray-300 pb-2 focus:border-red-500 outline-none text-lg"
+      />
+    ),
+  }));
+
+  const steps = [...baseSteps, ...dynamicSteps];
+
   const next = () => qIndex < steps.length - 1 && setQIndex((i) => i + 1);
   const prev = () => qIndex > 0 && setQIndex((i) => i - 1);
   const progress = ((qIndex + 1) / steps.length) * 100;
@@ -260,12 +295,19 @@ export default function PremiumPlannerPage() {
   const generateItinerary = async () => {
     if (!steps.every((s) => s.valid)) return;
     setView("loading");
-    const profile = {
+    const profile: Record<string, string> = {
       Días: String(answers.days),
-      Motivo: answers.motivo,
+      Motivo: String(answers.motivo),
       "Otros municipios": answers.otros ? "Sí" : "No",
-      Email: answers.email,
+      Email: String(answers.email),
     };
+
+    dynamicQuestions.forEach((q, idx) => {
+      const key = `dynamic${idx}`;
+      if (answers[key] !== undefined) {
+        profile[q] = String(answers[key]);
+      }
+    });
     
     try {
       const res = await fetch("/api/itinerary/generate", {
