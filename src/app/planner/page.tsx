@@ -1,6 +1,8 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
+import { DndProvider } from "react-dnd";
+import { HTML5Backend } from "react-dnd-html5-backend";
 import ItineraryMap from "@/components/ItineraryMap";
 import ItineraryTimeline from "@/components/ItineraryTimeline";
 import type { Stop } from "@/components/ItineraryStopCard";
@@ -558,6 +560,7 @@ export default function PremiumPlannerPage() {
     );
 
     return (
+      <DndProvider backend={HTML5Backend}>
       <main ref={pdfRef} className="min-h-screen bg-blue-50 pb-16">
         {/* HERO */}
         <div className="bg-gradient-to-r from-red-600 to-red-800 text-white py-16">
@@ -605,19 +608,33 @@ export default function PremiumPlannerPage() {
 
           {/* timeline por día */}
           {Array.from({ length: days }).map((_, d) => {
+
+            const start = d * perDay;
+            const dayStops = itinerary.slice(start, start + perDay);
             const dayStops = itinerary.filter((s) => s.day === d + 1);
+
             return (
               <section
                 key={d}
                 className="bg-white p-8 rounded-3xl shadow-2xl space-y-6"
               >
                 <h3 className="text-2xl font-semibold">Día {d + 1}</h3>
-                <ItineraryTimeline stops={dayStops} />
+                <ItineraryTimeline
+                  stops={dayStops}
+                  onReorder={(newDay) =>
+                    setItinerary((prev) => {
+                      const copy = [...prev];
+                      copy.splice(start, newDay.length, ...newDay);
+                      return copy;
+                    })
+                  }
+                />
               </section>
             );
           })}
         </div>
       </main>
+      </DndProvider>
     );
   }
 
