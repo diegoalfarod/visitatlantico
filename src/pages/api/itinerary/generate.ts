@@ -22,6 +22,7 @@ export interface ItineraryStop {
   lat: number;
   lng: number;
   municipality: string;
+  day?: number;             // new field indicating the day of the itinerary
   startTime: string;
   durationMinutes: number;
   description: string;
@@ -225,7 +226,7 @@ ${stops
 Reglas:
 1. Usa únicamente IDs listados.
 2. Entre 2 y 3 paradas por día (idealmente 3).
-3. Formato JSON final: {"itinerary":[{"id":"xxx","startTime":"HH:MM","durationMinutes":NN},…]}
+3. Formato JSON final: {"itinerary":[{"id":"xxx","day":1,"startTime":"HH:MM","durationMinutes":NN},…]}
 4. Horario entre 08:00 y 20:00 y respeta cercanía geográfica.
 5. Balancea destinos y experiencias.
 
@@ -279,6 +280,7 @@ function validateAIResponse(aiJSON: string, allStops: ItineraryStop[]) {
 
     interface AIItem {
       id: string;
+      day?: number;
       startTime?: string;
       durationMinutes?: number;
     }
@@ -293,6 +295,7 @@ function validateAIResponse(aiJSON: string, allStops: ItineraryStop[]) {
       }
       valid.push({
         ...found,
+        day: validateDay(item.day),
         // handle optional times gracefully
         startTime: validateTime(item.startTime ?? ''),
         durationMinutes: validateDuration(item.durationMinutes),
@@ -308,6 +311,7 @@ function validateAIResponse(aiJSON: string, allStops: ItineraryStop[]) {
 
 const validateTime = (t: string) => (/^\d{1,2}:\d{2}$/.test(t) ? t : "");
 const validateDuration = (d?: number) => Math.max(30, Math.min(d || 60, 240));
+const validateDay = (d?: number) => (d && d > 0 ? Math.floor(d) : 1);
 
 async function verifyFirestoreDocuments(
   db: FirebaseFirestore.Firestore,
