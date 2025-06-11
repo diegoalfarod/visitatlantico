@@ -12,6 +12,7 @@ export interface ItineraryStop {
   name: string;
   lat: number | string;
   lng: number | string;
+  day: number;
   startTime: string;
   durationMinutes: number;
   description: string;

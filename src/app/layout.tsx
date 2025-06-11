@@ -1,19 +1,20 @@
 // src/app/layout.tsx
 
 import "./globals.css";
-import { Poppins, Merriweather_Sans } from "next/font/google";
-import { ReactNode } from "react";
+import localFont from "next/font/local";
 import type { Metadata } from "next";
 
-const poppins = Poppins({
-  subsets: ["latin"],
-  weight: ["400", "600", "700"],
+const poppins = localFont({
+  src: "../../public/fonts/FivoSans-Regular.woff",
   variable: "--font-poppins",
+  weight: "400",
+  style: "normal",
 });
-const merriweatherSans = Merriweather_Sans({
-  subsets: ["latin"],
-  weight: ["400", "600", "700"],
+const merriweatherSans = localFont({
+  src: "../../public/fonts/Baloo2-Regular.woff",
   variable: "--font-merriweather-sans",
+  weight: "400",
+  style: "normal",
 });
 
 export const metadata: Metadata = {
@@ -59,14 +60,20 @@ export function generateViewport() {
   };
 }
 
-export default function RootLayout({ children }: { children: ReactNode }) {
+export default function RootLayout(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  props: any
+) {
+  const { children, locale = 'es' } = props;
   return (
     <html
-      lang="es"
+      lang={locale}
       className={`${poppins.variable} ${merriweatherSans.variable}`}
     >
       <head>
         {/* Next.js inyecta aquí todos los meta tags definidos en `metadata` */}
+
+        <link rel="manifest" href="/manifest.json" />
 
         {/* Canonical URL */}
         <link rel="canonical" href="https://visitatlantico.com" />
@@ -93,7 +100,14 @@ export default function RootLayout({ children }: { children: ReactNode }) {
           }}
         />
       </head>
-      <body className="font-sans">{children}</body>
+      <body className="font-sans">
+        {children}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('/sw.js'));}`,
+          }}
+        />
+      </body>
     </html>
   );
 }

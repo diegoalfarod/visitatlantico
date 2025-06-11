@@ -1,0 +1,11 @@
+{
+  "planner": {
+    "title": "Discover Atlantico",
+    "start_location": "Generate tour plan based on my current location",
+    "next": "Next",
+    "previous": "Previous",
+    "generate": "Generate itinerary",
+    "share": "Share link",
+    "save": "Save offline"
+  }
+}
