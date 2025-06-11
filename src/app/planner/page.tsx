@@ -609,9 +609,8 @@ export default function PremiumPlannerPage() {
           {/* timeline por día */}
           {Array.from({ length: days }).map((_, d) => {
 
-            const start = d * perDay;
-            const dayStops = itinerary.slice(start, start + perDay);
             const dayStops = itinerary.filter((s) => s.day === d + 1);
+            const start = itinerary.findIndex((s) => s.day === d + 1);
 
             return (
               <section
