@@ -4,6 +4,7 @@ import "./globals.css";
 import { Poppins, Merriweather_Sans } from "next/font/google";
 import { ReactNode } from "react";
 import type { Metadata } from "next";
+import { NextIntlClientProvider, getMessages, getLocale, setRequestLocale } from "next-intl/server";
 
 const poppins = Poppins({
   subsets: ["latin"],
@@ -59,10 +60,13 @@ export function generateViewport() {
   };
 }
 
-export default function RootLayout({ children }: { children: ReactNode }) {
+export default async function RootLayout({ children }: { children: ReactNode }) {
+  const locale = await getLocale();
+  setRequestLocale(locale);
+  const messages = await getMessages();
   return (
     <html
-      lang="es"
+      lang={locale}
       className={`${poppins.variable} ${merriweatherSans.variable}`}
     >
       <head>
@@ -93,7 +97,11 @@ export default function RootLayout({ children }: { children: ReactNode }) {
           }}
         />
       </head>
-      <body className="font-sans">{children}</body>
+      <body className="font-sans">
+        <NextIntlClientProvider locale={locale} messages={messages}>
+          {children}
+        </NextIntlClientProvider>
+      </body>
     </html>
   );
 }

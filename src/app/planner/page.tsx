@@ -11,9 +11,9 @@ import {
   Clock,
   Calendar,
   Share2,
-  FileText,
   Download,
 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { generateUniqueLink } from "utils/linkGenerator";
 
 /* ─────────── tipos & helpers ─────────── */
@@ -35,9 +35,6 @@ type ApiStop = {
 };
 
 type ApiResponse = { itinerary: ApiStop[]; error?: string };
-type SharedData = { itinerary: Stop[]; days: number } | null;
-
-type WritableStyle = Record<string, string>;
 
 declare global {
   interface Window {
@@ -64,6 +61,7 @@ const promptCards = [
 /* ═════════════════ COMPONENTE ═════════════════ */
 
 export default function PremiumPlannerPage() {
+  const t = useTranslations('planner');
   /* wizard answers */
   const [answers, setAnswers] = useState<{
     days?: number;
@@ -147,7 +145,7 @@ export default function PremiumPlannerPage() {
   /* pasos wizard */
   const steps = [
     {
-      label: "¿Cuántos días planeas visitar?",
+      label: t('step.days.label'),
       valid: answers.days !== undefined,
       element: (
         <select
@@ -158,19 +156,19 @@ export default function PremiumPlannerPage() {
           className="w-full border-b-2 border-gray-300 pb-2 focus:border-red-500 outline-none text-lg"
         >
           <option value="" disabled>
-            Selecciona días
+            {t('step.days.placeholder')}
           </option>
           {Array.from({ length: 14 }, (_, i) => i + 1).map((d) => (
             <option key={d} value={d}>
-              {d} día{d > 1 ? "s" : ""}
+              {d} {d === 1 ? 'día' : 'días'}
             </option>
           ))}
         </select>
       ),
     },
     {
-      label: "Cuéntanos qué te gustaría hacer o aprender",
-      helper: "Elige un prompt o escribe tu propio motivo",
+      label: t('step.reason.label'),
+      helper: t('step.reason.helper'),
       valid: !!answers.motivo,
       element: (
         <>
@@ -179,7 +177,7 @@ export default function PremiumPlannerPage() {
             onChange={(e) =>
               setAnswers((a) => ({ ...a, motivo: e.target.value }))
             }
-            placeholder="Ej. Tour gastronómico costeño…"
+            placeholder={t('step.reason.placeholder')}
             className="w-full border-b-2 border-gray-300 pb-2 focus:border-red-500 outline-none text-lg"
           />
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-6">
@@ -201,11 +199,11 @@ export default function PremiumPlannerPage() {
       ),
     },
     {
-      label: "¿Estás dispuesto a visitar otros municipios?",
+      label: t('step.others.label'),
       valid: answers.otros !== undefined,
       element: (
         <div className="flex gap-4">
-          {["Sí", "No"].map((opt, i) => (
+          {[t('yes'), t('no')].map((opt, i) => (
             <button
               key={opt}
               onClick={() => setAnswers((a) => ({ ...a, otros: i === 0 }))}
@@ -222,15 +220,15 @@ export default function PremiumPlannerPage() {
       ),
     },
     {
-      label: "Ingresa tu correo electrónico",
-      helper: "Te enviaremos el plan generado a este correo",
+      label: t('step.email.label'),
+      helper: t('step.email.helper'),
       valid: /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(answers.email || ""),
       element: (
         <input
           type="email"
           value={answers.email ?? ""}
           onChange={(e) => setAnswers((a) => ({ ...a, email: e.target.value }))}
-          placeholder="Ej. tuemail@ejemplo.com"
+          placeholder={t('step.email.placeholder')}
           className="w-full border-b-2 border-gray-300 pb-2 focus:border-red-500 outline-none text-lg"
         />
       ),
@@ -483,11 +481,11 @@ export default function PremiumPlannerPage() {
   /* ═════ vista loading ════ */
   if (view === "loading") {
     const frases = [
-      "🧠 Generando experiencias inolvidables…",
-      "🌅 Buscando atardeceres mágicos…",
-      "🥥 Consultando a las iguanas locales…",
-      "🚣‍♀️ Ajustando los remos del plan…",
-      "🗺️ Calculando rutas con sabor caribeño…",
+      t('loading1'),
+      t('loading2'),
+      t('loading3'),
+      t('loading4'),
+      t('loading5'),
     ];
     const randomFrase = frases[Math.floor(Math.random() * frases.length)];
   
@@ -519,7 +517,7 @@ export default function PremiumPlannerPage() {
         {/* HERO */}
         <div className="bg-gradient-to-r from-red-600 to-red-800 text-white py-16">
           <div className="max-w-4xl mx-auto text-center">
-            <h1 className="text-5xl font-extrabold">Tu Aventura Generada</h1>
+            <h1 className="text-5xl font-extrabold">{t('itineraryTitle')}</h1>
             {userPlace && <p className="mt-2 text-lg">📍 {userPlace}</p>}
           </div>
         </div>
@@ -527,7 +525,7 @@ export default function PremiumPlannerPage() {
         <div className="max-w-4xl mx-auto px-4 -mt-12 space-y-10">
           {/* resumen */}
           <section className="bg-white p-8 rounded-3xl shadow-2xl space-y-6">
-            <h2 className="text-3xl font-bold">Resumen</h2>
+            <h2 className="text-3xl font-bold">{t('summary')}</h2>
             <div className="flex flex-wrap gap-6 text-gray-600">
               <span className="flex items-center gap-2">
                 <Calendar /> {days} día{days > 1 ? "s" : ""}
@@ -544,13 +542,13 @@ export default function PremiumPlannerPage() {
                 onClick={downloadPDF}
                 className="bg-green-600 text-white px-5 py-3 rounded-full inline-flex items-center shadow hover:shadow-lg transition"
               >
-                <Download className="mr-2" /> Guardar para offline
+                <Download className="mr-2" /> {t('download')}
               </button>
               <button
                 onClick={handleShare} 
                 className="bg-purple-600 text-white px-5 py-3 rounded-full inline-flex items-center shadow hover:shadow-lg transition"
               >
-                <Share2 className="mr-2" /> Compartir link
+                <Share2 className="mr-2" /> {t('share')}
               </button>
             </div>
           </section>
@@ -585,7 +583,7 @@ export default function PremiumPlannerPage() {
       {/* hero */}
       <div className="bg-gradient-to-r from-red-600 to-red-800 text-white py-16">
         <div className="max-w-4xl mx-auto text-center">
-          <h1 className="text-6xl font-extrabold">Descubre el Atlántico</h1>
+          <h1 className="text-6xl font-extrabold">{t('hero')}</h1>
         </div>
       </div>
 
@@ -598,7 +596,7 @@ export default function PremiumPlannerPage() {
           />
         </div>
         <p className="text-sm text-gray-600 mt-1 text-right">
-          Paso {qIndex + 1} de {steps.length}
+          {t('step', {current: qIndex + 1, total: steps.length})}
         </p>
       </div>
 
@@ -640,14 +638,14 @@ export default function PremiumPlannerPage() {
                 />
               </div>
               <span className="text-lg">
-                Generar plan turístico basado en mi ubicación actual
+                {t('useLocation')}
               </span>
             </label>
 
             {fetchingPlace && (
               <p className="text-gray-600 flex items-center gap-2 text-sm">
                 <Loader2 className="w-4 h-4 animate-spin" />
-                Detectando ubicación…
+                {t('detecting')}
               </p>
             )}
             {geoError && <p className="text-red-600 text-sm">{geoError}</p>}
@@ -663,7 +661,7 @@ export default function PremiumPlannerPage() {
               disabled={qIndex === 0}
               className="text-gray-500 hover:text-gray-700"
             >
-              Anterior
+              {t('prev')}
             </button>
 
             {qIndex < steps.length - 1 ? (
@@ -672,7 +670,7 @@ export default function PremiumPlannerPage() {
                 disabled={!step.valid}
                 className="bg-red-600 text-white px-6 py-3 rounded-full shadow hover:shadow-lg transition disabled:opacity-50"
               >
-                Siguiente
+                {t('next')}
               </button>
             ) : (
               <button
@@ -680,7 +678,7 @@ export default function PremiumPlannerPage() {
                 disabled={!step.valid}
                 className="bg-red-600 text-white px-6 py-3 rounded-full shadow hover:shadow-lg transition disabled:opacity-50"
               >
-                Generar itinerario
+                {t('generate')}
               </button>
             )}
           </div>

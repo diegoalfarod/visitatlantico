@@ -13,6 +13,7 @@ import {
   ChevronRight,
   ExternalLink,
 } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 export interface Stop {
   id: string;
@@ -39,6 +40,7 @@ interface Props {
 }
 
 export default function ItineraryStopCard({ stop }: Props) {
+  const t = useTranslations('stopCard');
   const [showTip, setShowTip] = useState(false);
   const [activePhotoIndex, setActivePhotoIndex] = useState(0);
 
@@ -62,7 +64,7 @@ export default function ItineraryStopCard({ stop }: Props) {
   };
 
   const formatTime = (t: string) => {
-    if (!t) return "Hora no disponible";
+    if (!t) return t('noTime');
     if (/^\d{1,2}:\d{2}$/.test(t)) {
       const [h, m] = t.split(":").map(Number);
       const period = h >= 12 ? "PM" : "AM";
@@ -125,7 +127,7 @@ export default function ItineraryStopCard({ stop }: Props) {
             stop.type === "destination" ? "bg-blue-600" : "bg-green-500"
           } shadow-md backdrop-blur-sm bg-opacity-90`}
         >
-          {stop.type === "destination" ? "Destino" : "Experiencia"}
+          {stop.type === "destination" ? t('destination') : t('experience')}
         </span>
 
         <span className="absolute top-4 right-4 px-3 py-1.5 text-xs font-semibold bg-white/90 backdrop-blur-sm text-gray-700 rounded-full shadow-md flex items-center gap-1.5">
@@ -193,7 +195,7 @@ export default function ItineraryStopCard({ stop }: Props) {
             >
               <span className="flex items-center gap-2">
                 <Info className="w-5 h-5 text-amber-600" />
-                Consejo del local
+                {t('localTip')}
               </span>
               <ChevronRight
                 className={`w-5 h-5 text-amber-500 transition-transform ${
@@ -228,7 +230,7 @@ export default function ItineraryStopCard({ stop }: Props) {
             className="flex items-center justify-center gap-2 px-4 py-3 bg-white border border-gray-200 rounded-xl text-gray-700 font-medium hover:bg-gray-50 transition shadow-sm"
           >
             <MapPin className="w-5 h-5 text-red-600" />
-            Cómo llegar
+            {t('howToArrive')}
           </a>
 
           {/* Detalle en nueva pestaña */}
@@ -237,7 +239,7 @@ export default function ItineraryStopCard({ stop }: Props) {
             className="flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-xl font-medium hover:from-red-700 hover:to-red-800 transition shadow-sm"
           >
             <ExternalLink className="w-5 h-5" />
-            Más información
+            {t('moreInfo')}
           </button>
         </div>
       </div>

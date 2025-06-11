@@ -18,9 +18,8 @@ import {
   Landmark,
   Navigation,
   ExternalLink,
-  Info,
-  Star,
 } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 interface Props {
   stops: Stop[];
@@ -61,10 +60,11 @@ const formatTime = (t: string) => {
 
 /* ───────── componente ───────── */
 export default function ItineraryTimeline({ stops }: Props) {
+  const t = useTranslations('stopCard');
   /* ▸ 1. COMPLETAR HORARIOS FALTANTES */
   const filledStops = useMemo(() => {
     let current = 9 * 60; // 09:00 default
-    return stops.map((s, idx) => {
+    return stops.map((s) => {
       let start = s.startTime && /^\d{1,2}:\d{2}$/.test(s.startTime) ? s.startTime : "";
       if (start) current = toMin(start); // usa la hora provista
       else start = toHHMM(current); // calcula
@@ -249,7 +249,7 @@ export default function ItineraryTimeline({ stops }: Props) {
                         className="flex items-center justify-center gap-1.5 px-4 py-2.5 bg-white border border-gray-200 rounded-lg text-gray-700 hover:bg-gray-50 transition"
                       >
                         <Navigation className="w-3.5 h-3.5" />
-                        Navegar
+                        {t('navigate')}
                       </a>
 
                       <a
@@ -261,7 +261,7 @@ export default function ItineraryTimeline({ stops }: Props) {
                         className={`flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-lg text-white hover:opacity-90 transition ${c.primary}`}
                       >
                         <ExternalLink className="w-3.5 h-3.5" />
-                        Detalles
+                        {t('details')}
                       </a>
                     </div>
                   </div>
@@ -283,7 +283,7 @@ export default function ItineraryTimeline({ stops }: Props) {
           <div className="text-white">
             <h3 className="text-xl font-bold flex items-center">
               <Calendar className="w-5 h-5 mr-2" />
-              Aventura del día
+              {t('dayAdventure')}
             </h3>
             <p className="text-red-100 text-sm mt-1">
               {filteredStops.length} actividades • {h} h {min > 0 ? `${min} min` : ""}
@@ -298,17 +298,17 @@ export default function ItineraryTimeline({ stops }: Props) {
       {/* filtros */}
       {categories.length > 1 && (
         <div className="mb-4 overflow-x-auto flex gap-1.5 pb-1">
-          {["Todas", ...categories].map((cat) => (
+          {[t('all'), ...categories].map((cat) => (
             <button
               key={cat}
-              onClick={() => setActiveCategory(cat === "Todas" ? null : cat)}
+              onClick={() => setActiveCategory(cat === t('all') ? null : cat)}
               className={`px-3 py-1.5 rounded-full text-sm font-medium transition flex items-center gap-1 ${
-                (activeCategory ?? "Todas") === cat
+                (activeCategory ?? t('all')) === cat
                   ? "bg-red-600 text-white"
                   : "bg-white border border-gray-200 text-gray-700"
               }`}
             >
-              {cat !== "Todas" && getCategoryIcon(cat)}
+              {cat !== t('all') && getCategoryIcon(cat)}
               {cat}
             </button>
           ))}
@@ -330,7 +330,7 @@ export default function ItineraryTimeline({ stops }: Props) {
         {/* fin */}
         <div className="flex items-center justify-center mt-8">
           <div className="px-4 py-2 bg-gray-100 text-gray-600 rounded-full text-sm font-medium">
-            Fin del día
+            {t('endOfDay')}
           </div>
         </div>
       </div>
