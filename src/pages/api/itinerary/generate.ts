@@ -293,7 +293,8 @@ function validateAIResponse(aiJSON: string, allStops: ItineraryStop[]) {
       }
       valid.push({
         ...found,
-        startTime: validateTime(item.startTime),
+        // handle optional times gracefully
+        startTime: validateTime(item.startTime ?? ''),
         durationMinutes: validateDuration(item.durationMinutes),
       });
     });
