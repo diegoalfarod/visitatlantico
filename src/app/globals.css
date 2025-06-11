@@ -1,6 +1,7 @@
 /* src/app/globals.css */
 
 @import 'mapbox-gl/dist/mapbox-gl.css';
+@import '@mapbox/mapbox-gl-directions/dist/mapbox-gl-directions.css';
 @import "tailwindcss";
 @import "tw-animate-css";
 
