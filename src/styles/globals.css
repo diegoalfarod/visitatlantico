@@ -60,7 +60,8 @@
 
 /* React-Calendar adaptación Tailwind */
 .react-calendar {
-  @apply bg-white rounded-2xl shadow-md p-4 text-gray-800;
+  background-color: #fff;
+  @apply rounded-2xl shadow-md p-4 text-gray-800;
 }
 .react-calendar__navigation button:disabled {
   @apply text-gray-400;
