@@ -2,6 +2,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { useTranslations } from "next-intl";
 import mapboxgl from "mapbox-gl";
 import type { Feature, LineString, GeoJsonProperties } from "geojson";
 
@@ -24,6 +25,7 @@ interface Props {
 }
 
 export default function ItineraryMap({ stops, userLocation }: Props) {
+  const t = useTranslations('stopCard');
   const mapContainer = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
 
@@ -127,7 +129,7 @@ export default function ItineraryMap({ stops, userLocation }: Props) {
         new mapboxgl.Marker(userEl)
           .setLngLat([userLocation.lng, userLocation.lat])
           .setPopup(
-            new mapboxgl.Popup({ offset: 25 }).setText("Tú estás aquí")
+            new mapboxgl.Popup({ offset: 25 }).setText(t('youAreHere'))
           )
           .addTo(map);
       }
@@ -150,7 +152,7 @@ export default function ItineraryMap({ stops, userLocation }: Props) {
     });
 
     return () => map.remove();
-  }, [stops, userLocation]);
+  }, [stops, userLocation, t]);
 
   return (
     <div
