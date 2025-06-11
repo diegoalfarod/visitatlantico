@@ -3,6 +3,8 @@
 export const dynamic = 'force-dynamic';
 
 import React, { useState, useEffect, useRef } from "react";
+import en from "../../../messages/en.json";
+import es from "../../../messages/es.json";
 import { DndProvider } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
 import ItineraryMap from "@/components/ItineraryMap";
@@ -66,6 +68,13 @@ const promptCards = [
 /* ═════════════════ COMPONENTE ═════════════════ */
 
 export default function PremiumPlannerPage() {
+  const locale =
+    typeof document !== 'undefined'
+      ? document.documentElement.lang
+      : 'es';
+  const msgs: Record<string, Record<string, string>> =
+    locale.startsWith('en') ? (en as Record<string, Record<string, string>>) : (es as Record<string, Record<string, string>>);
+  const t = (key: string) => msgs.planner[key] || key;
   /* wizard answers */
   const [answers, setAnswers] = useState<{
     days?: number;
@@ -579,13 +588,13 @@ export default function PremiumPlannerPage() {
                 onClick={downloadPDF}
                 className="bg-green-600 text-white px-5 py-3 rounded-full inline-flex items-center shadow hover:shadow-lg transition"
               >
-                <Download className="mr-2" /> Guardar
+                <Download className="mr-2" /> {t('save')}
               </button>
               <button
                 onClick={handleShare}
                 className="bg-purple-600 text-white px-5 py-3 rounded-full inline-flex items-center shadow hover:shadow-lg transition"
               >
-                <Share2 className="mr-2" /> Compartir
+                <Share2 className="mr-2" /> {t('share')}
               </button>
             </div>
           </section>
@@ -638,7 +647,7 @@ export default function PremiumPlannerPage() {
       {/* hero */}
       <div className="bg-gradient-to-r from-red-600 to-red-800 text-white py-16">
         <div className="max-w-4xl mx-auto text-center">
-          <h1 className="text-6xl font-extrabold">Descubre el Atlántico</h1>
+          <h1 className="text-6xl font-extrabold">{t('title')}</h1>
         </div>
       </div>
 
@@ -692,7 +701,7 @@ export default function PremiumPlannerPage() {
                   }`}
                 />
               </div>
-              <span className="text-lg">Generar plan turístico basado en mi ubicación actual</span>
+              <span className="text-lg">{t('start_location')}</span>
             </label>
 
             {fetchingPlace && (
@@ -751,7 +760,7 @@ export default function PremiumPlannerPage() {
               disabled={qIndex === 0}
               className="text-gray-500 hover:text-gray-700"
             >
-              Anterior
+              {t('previous')}
             </button>
 
             {qIndex < steps.length - 1 ? (
@@ -760,7 +769,7 @@ export default function PremiumPlannerPage() {
                 disabled={!step.valid}
                 className="bg-red-600 text-white px-6 py-3 rounded-full shadow hover:shadow-lg transition disabled:opacity-50"
               >
-                Siguiente
+                {t('next')}
               </button>
             ) : (
               <button
@@ -768,7 +777,7 @@ export default function PremiumPlannerPage() {
                 disabled={!step.valid}
                 className="bg-red-600 text-white px-6 py-3 rounded-full shadow hover:shadow-lg transition disabled:opacity-50"
               >
-                Generar itinerario
+                {t('generate')}
               </button>
             )}
           </div>
