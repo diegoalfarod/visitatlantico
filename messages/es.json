@@ -1,0 +1,11 @@
+{
+  "planner": {
+    "title": "Descubre el Atlántico",
+    "start_location": "Generar plan turístico basado en mi ubicación actual",
+    "next": "Siguiente",
+    "previous": "Anterior",
+    "generate": "Generar itinerario",
+    "share": "Compartir link",
+    "save": "Guardar para offline"
+  }
+}
