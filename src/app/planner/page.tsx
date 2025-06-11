@@ -11,7 +11,6 @@ import {
   Clock,
   Calendar,
   Share2,
-  FileText,
   Download,
 } from "lucide-react";
 import { generateUniqueLink } from "utils/linkGenerator";
@@ -35,9 +34,6 @@ type ApiStop = {
 };
 
 type ApiResponse = { itinerary: ApiStop[]; error?: string };
-type SharedData = { itinerary: Stop[]; days: number } | null;
-
-type WritableStyle = Record<string, string>;
 
 declare global {
   interface Window {

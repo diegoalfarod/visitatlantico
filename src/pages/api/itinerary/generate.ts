@@ -277,7 +277,13 @@ function validateAIResponse(aiJSON: string, allStops: ItineraryStop[]) {
     const invalid: string[] = [];
     const seen = new Set<string>();
 
-    aiItinerary.forEach((item: any) => {
+    interface AIItem {
+      id: string;
+      startTime?: string;
+      durationMinutes?: number;
+    }
+
+    aiItinerary.forEach((item: AIItem) => {
       if (!item?.id || seen.has(item.id)) return;
       seen.add(item.id);
       const found = allStops.find((s) => s.id === item.id);
@@ -287,7 +293,8 @@ function validateAIResponse(aiJSON: string, allStops: ItineraryStop[]) {
       }
       valid.push({
         ...found,
-        startTime: validateTime(item.startTime),
+        // handle optional times gracefully
+        startTime: validateTime(item.startTime ?? ''),
         durationMinutes: validateDuration(item.durationMinutes),
       });
     });
@@ -300,7 +307,7 @@ function validateAIResponse(aiJSON: string, allStops: ItineraryStop[]) {
 }
 
 const validateTime = (t: string) => (/^\d{1,2}:\d{2}$/.test(t) ? t : "");
-const validateDuration = (d: number) => Math.max(30, Math.min(d || 60, 240));
+const validateDuration = (d?: number) => Math.max(30, Math.min(d || 60, 240));
 
 async function verifyFirestoreDocuments(
   db: FirebaseFirestore.Firestore,
@@ -331,7 +338,7 @@ function calculateTimings(itinerary: ItineraryStop[]) {
 async function savePlanningRequest(
   db: FirebaseFirestore.Firestore,
   profile: Record<string, string>,
-  location: any,
+  location: { lat: number; lng: number } | null,
   itinerary: ItineraryStop[]
 ) {
   try {

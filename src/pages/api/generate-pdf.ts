@@ -6,7 +6,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   try {
     // Para producción (Vercel)
     if (process.env.NODE_ENV === 'production') {
-      const chromium = require('chrome-aws-lambda');
+      const { default: chromium } = await import('chrome-aws-lambda');
       browser = await chromium.puppeteer.launch({
         args: chromium.args,
         executablePath: await chromium.executablePath,
@@ -15,15 +15,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     } 
     // Para desarrollo local
     else {
-      const puppeteer = require('puppeteer');
-      browser = await puppeteer.launch();
+      const puppeteer = await import('puppeteer');
+      browser = await puppeteer.default.launch();
     }
 
     const page = await browser.newPage();
     await page.goto(req.body.url, { waitUntil: 'networkidle2' });
     
     const pdf = await page.pdf({
-      format: 'A4',
+      format: 'a4',
       printBackground: true,
       margin: { top: '1cm', right: '1cm', bottom: '1cm', left: '1cm' },
     });

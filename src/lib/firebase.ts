@@ -6,14 +6,17 @@ import { initializeApp, getApps } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 
+const env = (name: string) =>
+  process.env[`NEXT_PUBLIC_${name}`] ?? process.env[name];
+
 const firebaseConfig = {
-    apiKey: "AIzaSyB_KbSPZjdXgR_u8r-c6NZ8oxR85loKvUU",
-    authDomain: "visitatlantico-f5c09.firebaseapp.com",
-    projectId: "visitatlantico-f5c09",
-    storageBucket: "visitatlantico-f5c09.firebasestorage.app",
-    messagingSenderId: "1097999694057",
-    appId: "1:1097999694057:web:2e01d75dabe931d24dd878",
-    measurementId: "G-P11NC2E1RQ"
+  apiKey: env("FIREBASE_API_KEY") ?? "",
+  authDomain: env("FIREBASE_AUTH_DOMAIN") ?? "",
+  projectId: env("FIREBASE_PROJECT_ID") ?? "",
+  storageBucket: env("FIREBASE_STORAGE_BUCKET") ?? "",
+  messagingSenderId: env("FIREBASE_MESSAGING_SENDER_ID") ?? "",
+  appId: env("FIREBASE_APP_ID") ?? "",
+  measurementId: env("FIREBASE_MEASUREMENT_ID") ?? "",
 };
 
 if (!getApps().length) initializeApp(firebaseConfig);

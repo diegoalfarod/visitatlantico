@@ -36,6 +36,7 @@ export default function DestinationsClient() {
   /* -------------- state -------------- */
   const [allItems, setAllItems] = useState([]);    // destinos + experiencias
   const [visible, setVisible] = useState(ITEMS_PER_PAGE);
+  const [error, setError] = useState("");
 
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState(paramCategory);
@@ -95,6 +96,7 @@ export default function DestinationsClient() {
         setAllItems([...dest, ...exp]);
       } catch (e) {
         console.error("Firestore fetch error:", e);
+        setError("No se pudo conectar a la base de datos");
       }
     }
     fetchAll();
@@ -179,7 +181,9 @@ export default function DestinationsClient() {
 
       {/* Grid */}
       <section className="max-w-7xl mx-auto px-6 py-16">
-        {itemsToShow.length === 0 ? (
+        {error ? (
+          <p className="text-center text-lg text-red-600">{error}</p>
+        ) : itemsToShow.length === 0 ? (
           <p className="text-center text-lg text-gray-500">
             No se encontraron resultados.
           </p>
