@@ -13,7 +13,6 @@ import {
   Clock,
   Calendar,
   Share2,
-  FileText,
   Download,
 } from "lucide-react";
 import { generateUniqueLink } from "utils/linkGenerator";
@@ -47,29 +46,13 @@ declare global {
   }
 }
 
-const promptCards = [
-  "Vivir el Carnaval de Barranquilla",
-  "Ruta de museos y galerías",
-  "Tour gastronómico costeño",
-  "Playas paradisíacas y deportes acuáticos",
-  "Pueblos patrimoniales y cultura indígena",
-  "Senderismo y avistamiento de fauna",
-  "Fotografía de paisajes y atardeceres",
-  "Ruta de la música y la vida nocturna",
-  "Arquitectura colonial e historia",
-  "Experiencia de voluntariado ecológico",
-];
 
 /* ═════════════════ COMPONENTE ═════════════════ */
 
 export default function PremiumPlannerPage() {
-  /* wizard answers */
-  const [answers, setAnswers] = useState<{
-    days?: number;
-    motivo?: string;
-    otros?: boolean;
-    email?: string;
-  }>({});
+  /* preguntas y respuestas */
+  const [questions, setQuestions] = useState<string[]>([]);
+  const [answers, setAnswers] = useState<string[]>([]);
   const [qIndex, setQIndex] = useState(0);
 
   /* ubicación */
@@ -143,108 +126,66 @@ export default function PremiumPlannerPage() {
     };
   }, [useLocation]);
 
+  /* cargar preguntas al iniciar */
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const res = await fetch('/api/itinerary/profile', { method: 'POST' });
+        const data = await res.json();
+        if (Array.isArray(data.questions)) {
+          setQuestions(data.questions);
+          setAnswers(Array(data.questions.length).fill(''));
+        }
+      } catch (err) {
+        console.error('Error cargando preguntas:', err);
+      }
+    };
+    load();
+  }, []);
+
   /* pasos wizard */
-  const steps = [
-    {
-      label: "¿Cuántos días planeas visitar?",
-      valid: answers.days !== undefined,
-      element: (
-        <select
-          value={answers.days ?? ""}
-          onChange={(e) =>
-            setAnswers((a) => ({ ...a, days: Number(e.target.value) }))
-          }
-          className="w-full border-b-2 border-gray-300 pb-2 focus:border-red-500 outline-none text-lg"
-        >
-          <option value="" disabled>
-            Selecciona días
-          </option>
-          {Array.from({ length: 14 }, (_, i) => i + 1).map((d) => (
-            <option key={d} value={d}>
-              {d} día{d > 1 ? "s" : ""}
-            </option>
-          ))}
-        </select>
-      ),
-    },
-    {
-      label: "Cuéntanos qué te gustaría hacer o aprender",
-      helper: "Elige un prompt o escribe tu propio motivo",
-      valid: !!answers.motivo,
-      element: (
-        <>
-          <input
-            value={answers.motivo ?? ""}
-            onChange={(e) =>
-              setAnswers((a) => ({ ...a, motivo: e.target.value }))
-            }
-            placeholder="Ej. Tour gastronómico costeño…"
-            className="w-full border-b-2 border-gray-300 pb-2 focus:border-red-500 outline-none text-lg"
-          />
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-6">
-            {promptCards.map((p) => (
-              <button
-                key={p}
-                onClick={() => setAnswers((a) => ({ ...a, motivo: p }))}
-                className={`p-4 rounded-2xl border transition text-left shadow-sm hover:shadow-lg ${
-                  answers.motivo === p
-                    ? "bg-red-600 text-white border-red-600"
-                    : "bg-white text-gray-700 hover:bg-red-50"
-                }`}
-              >
-                {p}
-              </button>
-            ))}
-          </div>
-        </>
-      ),
-    },
-    {
-      label: "¿Estás dispuesto a visitar otros municipios?",
-      valid: answers.otros !== undefined,
-      element: (
-        <div className="flex gap-4">
-          {["Sí", "No"].map((opt, i) => (
-            <button
-              key={opt}
-              onClick={() => setAnswers((a) => ({ ...a, otros: i === 0 }))}
-              className={`flex-1 py-3 rounded-full text-lg font-medium transition ${
-                answers.otros === (i === 0)
-                  ? "bg-red-600 text-white shadow-lg"
-                  : "bg-gray-200 text-gray-700 hover:bg-gray-300"
-              }`}
-            >
-              {opt}
-            </button>
-          ))}
-        </div>
-      ),
-    },
-    {
-      label: "Ingresa tu correo electrónico",
-      helper: "Te enviaremos el plan generado a este correo",
-      valid: /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(answers.email || ""),
-      element: (
-        <input
-          type="email"
-          value={answers.email ?? ""}
-          onChange={(e) => setAnswers((a) => ({ ...a, email: e.target.value }))}
-          placeholder="Ej. tuemail@ejemplo.com"
-          className="w-full border-b-2 border-gray-300 pb-2 focus:border-red-500 outline-none text-lg"
-        />
-      ),
-    },
-  ];
+  const steps = questions.map((q, i) => ({
+    label: q,
+    valid: !!answers[i],
+    element: (
+      <input
+        value={answers[i] ?? ""}
+        onChange={(e) => {
+          const copy = [...answers];
+          copy[i] = e.target.value;
+          setAnswers(copy);
+        }}
+        className="w-full border-b-2 border-gray-300 pb-2 focus:border-red-500 outline-none text-lg"
+      />
+    ),
+  }));
 
   const next = () => qIndex < steps.length - 1 && setQIndex((i) => i + 1);
   const prev = () => qIndex > 0 && setQIndex((i) => i - 1);
-  const progress = ((qIndex + 1) / steps.length) * 100;
+  const progress = steps.length
+    ? ((qIndex + 1) / steps.length) * 100
+    : 0;
 
   /* API & itinerario */
   const [itinerary, setItinerary] = useState<Stop[] | null>(null);
   const [view, setView] =
     useState<"questions" | "loading" | "itinerary">("questions");
   const pdfRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (navigator.onLine) return;
+    caches
+      .open('itinerary-cache')
+      .then((c) => c.match('/offline-itinerary'))
+      .then(async (res) => {
+        if (res) {
+          const data = await res.json();
+          if (data.itinerary) setItinerary(data.itinerary);
+          if (data.days) setAnswers(a => ({ ...a, days: data.days }));
+          setView('itinerary');
+        }
+      });
+  }, []);
 
  
 
@@ -263,23 +204,20 @@ export default function PremiumPlannerPage() {
   const generateItinerary = async () => {
     if (!steps.every((s) => s.valid)) return;
     setView("loading");
-    const profile = {
-      Días: String(answers.days),
-      Motivo: answers.motivo,
-      "Otros municipios": answers.otros ? "Sí" : "No",
-      Email: answers.email,
-    };
+    const payload = { questions, answers };
     
     try {
       const res = await fetch("/api/itinerary/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-          profile, 
-          location: location ? { 
-            lat: location.lat, 
-            lng: location.lng 
-          } : null
+        body: JSON.stringify({
+          qa: payload,
+          location: location
+            ? {
+                lat: location.lat,
+                lng: location.lng,
+              }
+            : null,
         }),
       });
       
@@ -346,7 +284,10 @@ export default function PremiumPlannerPage() {
   const handleShare = async () => {
     if (!itinerary?.length) return alert("Itinerario vacío");
     try {
-      const url = await generateUniqueLink(itinerary, answers.days ?? 1);
+      const url = await generateUniqueLink(
+        itinerary,
+        parseInt(answers[1] || '1', 10) || 1
+      );
       await navigator.clipboard.writeText(url);
       alert("Link copiado ✅");
     } catch (e) {
@@ -479,15 +420,6 @@ export default function PremiumPlannerPage() {
     }
   };
 
-  const handleSaveChanges = async () => {
-    if (!itinerary) return;
-    try {
-      const url = await generateUniqueLink(itinerary, answers.days ?? 1);
-      await navigator.clipboard.writeText(url);
-      alert("Cambios guardados ✅ Link copiado");
-    } catch (e) {
-      console.error(e);
-      alert("No se pudo guardar");
     }
   };
 
@@ -522,7 +454,7 @@ export default function PremiumPlannerPage() {
     const totalH = Math.round(
       itinerary.reduce((s, t) => s + t.durationMinutes, 0) / 60
     );
-    const days = answers.days ?? 1;
+    const days = parseInt(answers[1] || '1', 10) || 1;
     const perDay = Math.ceil(itinerary.length / days);
 
     return (
@@ -562,10 +494,16 @@ export default function PremiumPlannerPage() {
                 onClick={downloadPDF}
                 className="bg-green-600 text-white px-5 py-3 rounded-full inline-flex items-center shadow hover:shadow-lg transition"
               >
-                <Download className="mr-2" /> Guardar para offline
+                <Download className="mr-2" /> Guardar PDF
               </button>
               <button
-                onClick={handleShare} 
+                onClick={saveOffline}
+                className="bg-blue-600 text-white px-5 py-3 rounded-full inline-flex items-center shadow hover:shadow-lg transition"
+              >
+                <Download className="mr-2" /> Usar sin conexión
+              </button>
+              <button
+                onClick={handleShare}
                 className="bg-purple-600 text-white px-5 py-3 rounded-full inline-flex items-center shadow hover:shadow-lg transition"
               >
                 <Share2 className="mr-2" /> Compartir link

@@ -332,8 +332,6 @@ function calculateTimings(itinerary: ItineraryStop[]) {
 async function savePlanningRequest(
   db: FirebaseFirestore.Firestore,
   profile: Record<string, string>,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  location: any,
   itinerary: ItineraryStop[]
 ) {
   try {

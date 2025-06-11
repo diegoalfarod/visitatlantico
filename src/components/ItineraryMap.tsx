@@ -3,7 +3,7 @@
 
 import { useEffect, useRef } from "react";
 import mapboxgl from "mapbox-gl";
-import type { Feature, LineString, GeoJsonProperties } from "geojson";
+import MapboxDirections from "@mapbox/mapbox-gl-directions/dist/mapbox-gl-directions";
 
 mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN!;
 
@@ -26,6 +26,7 @@ interface Props {
 export default function ItineraryMap({ stops, userLocation }: Props) {
   const mapContainer = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
+  const timeMarkersRef = useRef<mapboxgl.Marker[]>([]);
 
   useEffect(() => {
     if (!mapContainer.current) return;
@@ -56,26 +57,49 @@ export default function ItineraryMap({ stops, userLocation }: Props) {
     mapRef.current = map;
 
     map.on("load", () => {
-      /* ─────────── Línea de ruta ─────────── */
+      /* ─────────── Direcciones ─────────── */
+      const directions = new MapboxDirections({
+        accessToken: mapboxgl.accessToken,
+        interactive: false,
+        profile: "mapbox/driving",
+        controls: { inputs: false, instructions: false, profileSwitcher: false },
+        flyTo: false,
+      });
+      map.addControl(directions, "top-left");
+
       if (sanitizedStops.length > 1) {
-        const coords = sanitizedStops.map<[number, number]>((s) => [
-          s.lng,
-          s.lat,
+        directions.setOrigin([sanitizedStops[0].lng, sanitizedStops[0].lat]);
+        sanitizedStops.slice(1, -1).forEach((s, idx) =>
+          directions.addWaypoint(idx, [s.lng, s.lat])
+        );
+        directions.setDestination([
+          sanitizedStops[sanitizedStops.length - 1].lng,
+          sanitizedStops[sanitizedStops.length - 1].lat,
         ]);
 
-        const routeGeoJSON: Feature<LineString, GeoJsonProperties> = {
-          type: "Feature",
-          geometry: { type: "LineString", coordinates: coords },
-          properties: {},
-        };
-
-        map.addSource("route", { type: "geojson", data: routeGeoJSON });
-        map.addLayer({
-          id: "route",
-          type: "line",
-          source: "route",
-          layout: { "line-join": "round", "line-cap": "round" },
-          paint: { "line-color": "#0065FF", "line-width": 4 },
+        directions.on("route", (e) => {
+          timeMarkersRef.current.forEach((m) => m.remove());
+          timeMarkersRef.current = [];
+          const route = e.route && e.route[0];
+          if (!route) return;
+          const legs = route.legs as Array<{ duration: number }>;
+          legs.forEach((leg, idx) => {
+            const start = sanitizedStops[idx];
+            const end = sanitizedStops[idx + 1];
+            if (!start || !end) return;
+            const mid: [number, number] = [
+              (start.lng + end.lng) / 2,
+              (start.lat + end.lat) / 2,
+            ];
+            const el = document.createElement("div");
+            el.className =
+              "bg-white text-black text-xs px-2 py-1 rounded-full shadow";
+            el.textContent = `${Math.round(leg.duration / 60)} min`;
+            const marker = new mapboxgl.Marker({ element: el })
+              .setLngLat(mid)
+              .addTo(map);
+            timeMarkersRef.current.push(marker);
+          });
         });
       }
 

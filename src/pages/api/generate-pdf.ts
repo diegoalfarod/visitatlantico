@@ -7,6 +7,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   try {
     // Para producción (Vercel)
     if (process.env.NODE_ENV === 'production') {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
       const chromium = require('chrome-aws-lambda');
       browser = await chromium.puppeteer.launch({
         args: chromium.args,
@@ -16,6 +17,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     } 
     // Para desarrollo local
     else {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
       const puppeteer = require('puppeteer');
       browser = await puppeteer.launch();
     }
