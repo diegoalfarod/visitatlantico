@@ -267,6 +267,11 @@ export default function ItineraryTimeline({ stops, globalOffset = 0, onMove }: P
                   {/* desc & acciones */}
                   <div className="p-4 space-y-3 text-sm text-gray-700">
                     {stop.description && <p>{stop.description}</p>}
+                    {stop.transport && (
+                      <p className="text-xs text-gray-600">
+                        Transporte sugerido: {stop.transport}
+                      </p>
+                    )}
 
                     <div className="grid grid-cols-2 gap-2 pt-2">
                       <a

@@ -17,6 +17,7 @@ export interface ItineraryStop {
   durationMinutes: number;
   description: string;
   type: "destination" | "experience";
+  transport?: string;
 }
 
 interface Props {

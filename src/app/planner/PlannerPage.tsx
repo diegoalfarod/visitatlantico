@@ -36,6 +36,7 @@ type ApiStop = {
   photos?: string[];
   type: "destination" | "experience";
   day?: number;
+  transport?: string;
 };
 
 type ApiResponse = { itinerary: ApiStop[]; error?: string };
@@ -356,11 +357,12 @@ export default function PremiumPlannerPage() {
         startTime: apiStop.startTime,
         category: apiStop.category || "attraction",
         imageUrl: apiStop.imageUrl || "/default-place.jpg",
-        photos: apiStop.photos, 
+        photos: apiStop.photos,
+        transport: apiStop.transport,
         distance: location ? calculateDistance(
-          location.lat, 
-          location.lng, 
-          apiStop.lat, 
+          location.lat,
+          location.lng,
+          apiStop.lat,
           apiStop.lng
         ) : 0,
         type: apiStop.type

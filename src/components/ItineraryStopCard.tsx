@@ -31,6 +31,7 @@ export interface Stop {
   type: "destination" | "experience";
   rating?: number;
   cost?: string;
+  transport?: string;
   amenities?: string[];
   photos?: string[];
 }
@@ -159,13 +160,19 @@ export default function ItineraryStopCard({ stop }: Props) {
               <span>{Math.round(stop.distance)} km</span>
             </>
           )}
-          {stop.cost && (
-            <>
-              <div className="w-1 h-1 rounded-full bg-gray-300" />
-              <span>{stop.cost}</span>
-            </>
-          )}
-        </div>
+        {stop.cost && (
+          <>
+            <div className="w-1 h-1 rounded-full bg-gray-300" />
+            <span>{stop.cost}</span>
+          </>
+        )}
+        {stop.transport && (
+          <>
+            <div className="w-1 h-1 rounded-full bg-gray-300" />
+            <span>{stop.transport}</span>
+          </>
+        )}
+      </div>
 
         <p className="text-gray-700 leading-relaxed">{stop.description}</p>
 
