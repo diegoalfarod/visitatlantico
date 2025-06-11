@@ -1,19 +1,20 @@
 // src/app/layout.tsx
 
 import "./globals.css";
-import { Poppins, Merriweather_Sans } from "next/font/google";
-import { ReactNode } from "react";
+import localFont from "next/font/local";
 import type { Metadata } from "next";
 
-const poppins = Poppins({
-  subsets: ["latin"],
-  weight: ["400", "600", "700"],
+const poppins = localFont({
+  src: "../../public/fonts/FivoSans-Regular.woff",
   variable: "--font-poppins",
+  weight: "400",
+  style: "normal",
 });
-const merriweatherSans = Merriweather_Sans({
-  subsets: ["latin"],
-  weight: ["400", "600", "700"],
+const merriweatherSans = localFont({
+  src: "../../public/fonts/Baloo2-Regular.woff",
   variable: "--font-merriweather-sans",
+  weight: "400",
+  style: "normal",
 });
 
 export const metadata: Metadata = {
@@ -59,13 +60,11 @@ export function generateViewport() {
   };
 }
 
-export default function RootLayout({
-  children,
-  locale = 'es',
-}: {
-  children: ReactNode;
-  locale?: string;
-}) {
+export default function RootLayout(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  props: any
+) {
+  const { children, locale = 'es' } = props;
   return (
     <html
       lang={locale}

@@ -157,7 +157,12 @@ export default function ItineraryTimeline({ stops, globalOffset = 0, onMove }: P
     const c = colors[stop.type];
 
     return (
-      <div ref={(node) => drag(drop(node))} className={`relative ${isDragging ? 'opacity-50' : ''}`}>
+      <div
+        ref={(node) => {
+          if (node) drag(drop(node));
+        }}
+        className={`relative ${isDragging ? 'opacity-50' : ''}`}
+      >
         {!isLast && (
           <div className={`absolute left-4 top-12 bottom-0 w-0.5 ${c.secondary}`} />
         )}
