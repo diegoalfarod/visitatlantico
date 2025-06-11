@@ -13,7 +13,7 @@ import {
   Share2,
   Download,
 } from "lucide-react";
-import { useTranslations } from "next-intl";
+import { useTranslations, useLocale } from "next-intl";
 import { generateUniqueLink } from "utils/linkGenerator";
 
 /* ─────────── tipos & helpers ─────────── */
@@ -62,6 +62,7 @@ const promptCards = [
 
 export default function PremiumPlannerPage() {
   const t = useTranslations('planner');
+  const locale = useLocale();
   /* wizard answers */
   const [answers, setAnswers] = useState<{
     days?: number;
@@ -115,10 +116,10 @@ export default function PremiumPlannerPage() {
 
           const js = await resp.json();
           const place = js.features?.[0]?.place_name;
-          setUserPlace(place ?? "Ubicación detectada");
+          setUserPlace(place ?? t('detectedPlace'));
         } catch (err) {
           console.error("Error en Mapbox:", err);
-          setGeoError("No se pudo geocodificar la ubicación.");
+          setGeoError(t('geocodeError'));
         } finally {
           setFetchingPlace(false);
         }
@@ -131,8 +132,8 @@ export default function PremiumPlannerPage() {
         setLocation(null);
         setGeoError(
           err.code === err.PERMISSION_DENIED
-            ? "Permiso de ubicación denegado."
-            : "No se pudo obtener la posición."
+            ? t('geoDenied')
+            : t('geoError')
         );
       }
     );
@@ -140,7 +141,7 @@ export default function PremiumPlannerPage() {
     return () => {
       cancelled = true;
     };
-  }, [useLocation]);
+  }, [useLocation, t]);
 
   /* pasos wizard */
   const steps = [
@@ -160,7 +161,7 @@ export default function PremiumPlannerPage() {
           </option>
           {Array.from({ length: 14 }, (_, i) => i + 1).map((d) => (
             <option key={d} value={d}>
-              {d} {d === 1 ? 'día' : 'días'}
+              {d} {d === 1 ? t('dayUnit') : t('daysUnit')}
             </option>
           ))}
         </select>
@@ -334,29 +335,27 @@ export default function PremiumPlannerPage() {
       setView("itinerary");
     } catch (error) {
       console.error("Error generando itinerario:", error);
-      alert(
-        error instanceof Error ? error.message :
-        "Error al generar el itinerario. Por favor intenta con otros parámetros."
-      );
+      console.error(error);
+      alert(t('generateError'));
       setView("questions");
     }
   };
 
   const handleShare = async () => {
-    if (!itinerary?.length) return alert("Itinerario vacío");
+    if (!itinerary?.length) return alert(t('emptyItinerary'));
     try {
       const url = await generateUniqueLink(itinerary, answers.days ?? 1);
       await navigator.clipboard.writeText(url);
-      alert("Link copiado ✅");
+      alert(t('linkCopied'));
     } catch (e) {
       console.error(e);
-      alert("No se pudo generar el link");
+      alert(t('linkError'));
     }
   };
 
   const downloadPDF = async () => {
     if (!pdfRef.current) {
-      alert("No se encontró el contenido del itinerario.");
+      alert(t('contentMissing'));
       return;
     }
   
@@ -370,8 +369,8 @@ export default function PremiumPlannerPage() {
       // Reemplazar el mapa interactivo con un placeholder estático
       const mapPlaceholder = `<div class="map-static" style="height:400px;background:#eee;display:flex;align-items:center;justify-content:center;border-radius:1rem;margin:1rem 0">
         <div style="text-align:center">
-          <h3 style="color:#333">Mapa del Itinerario</h3>
-          <p style="color:#666">${userPlace || 'Ubicación principal'}</p>
+          <h3 style="color:#333">${t('mapTitle')}</h3>
+          <p style="color:#666">${userPlace || t('defaultPlace')}</p>
         </div>
       </div>`;
       
@@ -382,11 +381,11 @@ export default function PremiumPlannerPage() {
   
       // 2. Crear HTML completo
       const html = `<!DOCTYPE html>
-  <html lang="es">
+  <html lang="${locale}">
   <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Itinerario de Viaje - ${userPlace || 'Atlántico'}</title>
+    <title>${t('pdfTitle', {place: userPlace || 'Atlántico'})}</title>
     <style>
       body {
         font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, 
@@ -458,7 +457,7 @@ export default function PremiumPlannerPage() {
       });
   
       if (!response.ok) {
-        throw new Error('Error al generar PDF');
+        throw new Error('PDF generation error');
       }
   
       // 4. Descargar el PDF
@@ -474,7 +473,7 @@ export default function PremiumPlannerPage() {
   
     } catch (error) {
       console.error("Error al generar PDF:", error);
-      alert("Error al generar el PDF. Inténtalo de nuevo.");
+      alert(t('pdfError'));
     }
   };
 
@@ -528,10 +527,10 @@ export default function PremiumPlannerPage() {
             <h2 className="text-3xl font-bold">{t('summary')}</h2>
             <div className="flex flex-wrap gap-6 text-gray-600">
               <span className="flex items-center gap-2">
-                <Calendar /> {days} día{days > 1 ? "s" : ""}
+                <Calendar /> {days} {days === 1 ? t('dayUnit') : t('daysUnit')}
               </span>
               <span className="flex items-center gap-2">
-                <MapPin /> {itinerary.length} paradas
+                <MapPin /> {t('stops', {count: itinerary.length})}
               </span>
               <span className="flex items-center gap-2">
                 <Clock /> {totalH} h
@@ -566,7 +565,7 @@ export default function PremiumPlannerPage() {
                 key={d}
                 className="bg-white p-8 rounded-3xl shadow-2xl space-y-6"
               >
-                <h3 className="text-2xl font-semibold">Día {d + 1}</h3>
+                <h3 className="text-2xl font-semibold">{t('day', {n: d + 1})}</h3>
                 <ItineraryTimeline stops={dayStops} />
               </section>
             );
