@@ -5,7 +5,6 @@ export const dynamic = 'force-dynamic';
 import React, { useState, useEffect, useRef } from "react";
 import { DndProvider } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
-import { useTranslations } from "next-intl";
 import ItineraryMap from "@/components/ItineraryMap";
 import ItineraryTimeline from "@/components/ItineraryTimeline";
 import type { Stop } from "@/components/ItineraryStopCard";
@@ -66,7 +65,6 @@ const promptCards = [
 /* ═════════════════ COMPONENTE ═════════════════ */
 
 export default function PremiumPlannerPage() {
-  const t = useTranslations('planner');
   /* wizard answers */
   const [answers, setAnswers] = useState<{
     days?: number;
@@ -579,13 +577,13 @@ export default function PremiumPlannerPage() {
                 onClick={downloadPDF}
                 className="bg-green-600 text-white px-5 py-3 rounded-full inline-flex items-center shadow hover:shadow-lg transition"
               >
-                <Download className="mr-2" /> {t('save')}
+                <Download className="mr-2" /> Guardar
               </button>
               <button
                 onClick={handleShare}
                 className="bg-purple-600 text-white px-5 py-3 rounded-full inline-flex items-center shadow hover:shadow-lg transition"
               >
-                <Share2 className="mr-2" /> {t('share')}
+                <Share2 className="mr-2" /> Compartir
               </button>
             </div>
           </section>
@@ -638,7 +636,7 @@ export default function PremiumPlannerPage() {
       {/* hero */}
       <div className="bg-gradient-to-r from-red-600 to-red-800 text-white py-16">
         <div className="max-w-4xl mx-auto text-center">
-          <h1 className="text-6xl font-extrabold">{t('title')}</h1>
+          <h1 className="text-6xl font-extrabold">Descubre el Atlántico</h1>
         </div>
       </div>
 
@@ -692,7 +690,7 @@ export default function PremiumPlannerPage() {
                   }`}
                 />
               </div>
-              <span className="text-lg">{t('start_location')}</span>
+              <span className="text-lg">Generar plan turístico basado en mi ubicación actual</span>
             </label>
 
             {fetchingPlace && (
@@ -751,7 +749,7 @@ export default function PremiumPlannerPage() {
               disabled={qIndex === 0}
               className="text-gray-500 hover:text-gray-700"
             >
-              {t('previous')}
+              Anterior
             </button>
 
             {qIndex < steps.length - 1 ? (
@@ -760,7 +758,7 @@ export default function PremiumPlannerPage() {
                 disabled={!step.valid}
                 className="bg-red-600 text-white px-6 py-3 rounded-full shadow hover:shadow-lg transition disabled:opacity-50"
               >
-                {t('next')}
+                Siguiente
               </button>
             ) : (
               <button
@@ -768,7 +766,7 @@ export default function PremiumPlannerPage() {
                 disabled={!step.valid}
                 className="bg-red-600 text-white px-6 py-3 rounded-full shadow hover:shadow-lg transition disabled:opacity-50"
               >
-                {t('generate')}
+                Generar itinerario
               </button>
             )}
           </div>
