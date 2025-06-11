@@ -247,6 +247,21 @@ export default function PremiumPlannerPage() {
     useState<"questions" | "loading" | "itinerary">("questions");
   const pdfRef = useRef<HTMLDivElement>(null);
 
+  useEffect(() => {
+    if (navigator.onLine) return;
+    caches
+      .open('itinerary-cache')
+      .then((c) => c.match('/offline-itinerary'))
+      .then(async (res) => {
+        if (res) {
+          const data = await res.json();
+          if (data.itinerary) setItinerary(data.itinerary);
+          if (data.days) setAnswers(a => ({ ...a, days: data.days }));
+          setView('itinerary');
+        }
+      });
+  }, []);
+
  
 
   function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
@@ -480,6 +495,21 @@ export default function PremiumPlannerPage() {
     }
   };
 
+  const saveOffline = async () => {
+    if (!('serviceWorker' in navigator) || !itinerary?.length) return;
+    try {
+      const reg = await navigator.serviceWorker.ready;
+      reg.active?.postMessage({
+        type: 'CACHE_ITINERARY',
+        payload: { itinerary, days: answers.days ?? 1 },
+      });
+      alert('Itinerario guardado para usar sin conexión');
+    } catch (e) {
+      console.error(e);
+      alert('No se pudo guardar offline');
+    }
+  };
+
   /* ═════ vista loading ════ */
   if (view === "loading") {
     const frases = [
@@ -544,10 +574,16 @@ export default function PremiumPlannerPage() {
                 onClick={downloadPDF}
                 className="bg-green-600 text-white px-5 py-3 rounded-full inline-flex items-center shadow hover:shadow-lg transition"
               >
-                <Download className="mr-2" /> Guardar para offline
+                <Download className="mr-2" /> Guardar PDF
               </button>
               <button
-                onClick={handleShare} 
+                onClick={saveOffline}
+                className="bg-blue-600 text-white px-5 py-3 rounded-full inline-flex items-center shadow hover:shadow-lg transition"
+              >
+                <Download className="mr-2" /> Usar sin conexión
+              </button>
+              <button
+                onClick={handleShare}
                 className="bg-purple-600 text-white px-5 py-3 rounded-full inline-flex items-center shadow hover:shadow-lg transition"
               >
                 <Share2 className="mr-2" /> Compartir link
