@@ -3,6 +3,7 @@
 import "./globals.css";
 import { Poppins, Merriweather_Sans } from "next/font/google";
 import { ReactNode } from "react";
+import ServiceWorkerRegister from "@/components/ServiceWorkerRegister";
 import type { Metadata } from "next";
 
 const poppins = Poppins({
@@ -93,7 +94,10 @@ export default function RootLayout({ children }: { children: ReactNode }) {
           }}
         />
       </head>
-      <body className="font-sans">{children}</body>
+      <body className="font-sans">
+        <ServiceWorkerRegister />
+        {children}
+      </body>
     </html>
   );
 }
