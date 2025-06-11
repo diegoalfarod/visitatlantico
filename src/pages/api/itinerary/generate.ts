@@ -332,7 +332,6 @@ function calculateTimings(itinerary: ItineraryStop[]) {
 async function savePlanningRequest(
   db: FirebaseFirestore.Firestore,
   profile: Record<string, string>,
-  location: { lat: number; lng: number } | null,
   itinerary: ItineraryStop[]
 ) {
   try {

@@ -1,6 +1,8 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
+import { DndProvider } from "react-dnd";
+import { HTML5Backend } from "react-dnd-html5-backend";
 import ItineraryMap from "@/components/ItineraryMap";
 import ItineraryTimeline from "@/components/ItineraryTimeline";
 import type { Stop } from "@/components/ItineraryStopCard";
@@ -418,18 +420,6 @@ export default function PremiumPlannerPage() {
     }
   };
 
-  const saveOffline = async () => {
-    if (!('serviceWorker' in navigator) || !itinerary?.length) return;
-    try {
-      const reg = await navigator.serviceWorker.ready;
-      reg.active?.postMessage({
-        type: 'CACHE_ITINERARY',
-        payload: { itinerary, days: answers.days ?? 1 },
-      });
-      alert('Itinerario guardado para usar sin conexión');
-    } catch (e) {
-      console.error(e);
-      alert('No se pudo guardar offline');
     }
   };
 
@@ -468,6 +458,7 @@ export default function PremiumPlannerPage() {
     const perDay = Math.ceil(itinerary.length / days);
 
     return (
+      <DndProvider backend={HTML5Backend}>
       <main ref={pdfRef} className="min-h-screen bg-blue-50 pb-16">
         {/* HERO */}
         <div className="bg-gradient-to-r from-red-600 to-red-800 text-white py-16">
@@ -493,6 +484,12 @@ export default function PremiumPlannerPage() {
               </span>
             </div>
             <div className="flex gap-4 flex-wrap">
+              <button
+                onClick={() => handleSaveChanges()}
+                className="bg-blue-600 text-white px-5 py-3 rounded-full inline-flex items-center shadow hover:shadow-lg transition"
+              >
+                <FileText className="mr-2" /> Guardar cambios
+              </button>
               <button
                 onClick={downloadPDF}
                 className="bg-green-600 text-white px-5 py-3 rounded-full inline-flex items-center shadow hover:shadow-lg transition"
@@ -528,12 +525,21 @@ export default function PremiumPlannerPage() {
                 className="bg-white p-8 rounded-3xl shadow-2xl space-y-6"
               >
                 <h3 className="text-2xl font-semibold">Día {d + 1}</h3>
-                <ItineraryTimeline stops={dayStops} />
+                <ItineraryTimeline
+                  stops={dayStops}
+                  editable
+                  onChange={(newStops) => {
+                    const updated = [...itinerary];
+                    updated.splice(d * perDay, newStops.length, ...newStops);
+                    setItinerary(updated);
+                  }}
+                />
               </section>
             );
           })}
         </div>
       </main>
+      </DndProvider>
     );
   }
 

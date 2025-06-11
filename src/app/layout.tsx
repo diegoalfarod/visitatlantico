@@ -1,23 +1,21 @@
 // src/app/layout.tsx
+/* eslint-disable @next/next/no-page-custom-font */
 
 import "./globals.css";
-import { Poppins, Merriweather_Sans } from "next/font/google";
 import { ReactNode } from "react";
-import ServiceWorkerRegister from "@/components/ServiceWorkerRegister";
-import type { Metadata } from "next";
+    <html lang="es">
+        {/* Google Fonts */}
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link
+          rel="preconnect"
+          href="https://fonts.gstatic.com"
+          crossOrigin="anonymous"
+        />
+        <link
+          href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&family=Merriweather+Sans:wght@400;600;700&display=swap"
+          rel="stylesheet"
+        />
 
-const poppins = Poppins({
-  subsets: ["latin"],
-  weight: ["400", "600", "700"],
-  variable: "--font-poppins",
-});
-const merriweatherSans = Merriweather_Sans({
-  subsets: ["latin"],
-  weight: ["400", "600", "700"],
-  variable: "--font-merriweather-sans",
-});
-
-export const metadata: Metadata = {
   title: "VisitAtlántico · Explora el paraíso costero",
   description: "Descubre playas, cultura y aventuras en Atlántico, Colombia.",
   robots: "index, follow",

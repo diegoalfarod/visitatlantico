@@ -1,4 +1,5 @@
 // pages/api/generate-pdf.ts
+/* eslint-disable @typescript-eslint/no-require-imports */
 import type { NextApiRequest, NextApiResponse } from 'next';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {

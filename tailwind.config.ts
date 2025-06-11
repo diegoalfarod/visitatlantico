@@ -10,8 +10,8 @@ const config = {
   theme: {
     extend: {
       fontFamily: {
-        sans: ['var(--font-poppins)', 'sans-serif'],
-        heading: ['var(--font-merriweather-sans)', 'sans-serif'],
+        sans: ['Poppins', 'sans-serif'],
+        heading: ['"Merriweather Sans"', 'sans-serif'],
         fivo: ['"Fivo Sans"', 'sans-serif'],
         baloo: ['"Baloo 2"', 'cursive'],
       },
