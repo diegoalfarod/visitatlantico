@@ -20,7 +20,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     const page = await browser.newPage();
-    await page.goto(req.body.url, { waitUntil: 'networkidle2' });
+
+    if (req.body?.html) {
+      await page.setContent(req.body.html, { waitUntil: 'networkidle0' });
+    } else if (req.body?.url) {
+      await page.goto(req.body.url, { waitUntil: 'networkidle2' });
+    } else {
+      throw new Error('No HTML or URL provided');
+    }
     
     const pdf = await page.pdf({
       format: 'a4',
