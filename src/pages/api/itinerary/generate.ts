@@ -277,7 +277,13 @@ function validateAIResponse(aiJSON: string, allStops: ItineraryStop[]) {
     const invalid: string[] = [];
     const seen = new Set<string>();
 
-    aiItinerary.forEach((item: any) => {
+    interface AIItem {
+      id: string;
+      startTime?: string;
+      durationMinutes?: number;
+    }
+
+    aiItinerary.forEach((item: AIItem) => {
       if (!item?.id || seen.has(item.id)) return;
       seen.add(item.id);
       const found = allStops.find((s) => s.id === item.id);
@@ -331,7 +337,7 @@ function calculateTimings(itinerary: ItineraryStop[]) {
 async function savePlanningRequest(
   db: FirebaseFirestore.Firestore,
   profile: Record<string, string>,
-  location: any,
+  location: { lat: number; lng: number } | null,
   itinerary: ItineraryStop[]
 ) {
   try {
