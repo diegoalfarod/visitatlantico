@@ -18,8 +18,6 @@ import {
   Landmark,
   Navigation,
   ExternalLink,
-  Info,
-  Star,
 } from "lucide-react";
 
 interface Props {
@@ -64,7 +62,7 @@ export default function ItineraryTimeline({ stops }: Props) {
   /* ▸ 1. COMPLETAR HORARIOS FALTANTES */
   const filledStops = useMemo(() => {
     let current = 9 * 60; // 09:00 default
-    return stops.map((s, idx) => {
+    return stops.map((s) => {
       let start = s.startTime && /^\d{1,2}:\d{2}$/.test(s.startTime) ? s.startTime : "";
       if (start) current = toMin(start); // usa la hora provista
       else start = toHHMM(current); // calcula
