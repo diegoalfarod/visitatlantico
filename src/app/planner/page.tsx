@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
 import ItineraryMap from "@/components/ItineraryMap";
 import ItineraryTimeline from "@/components/ItineraryTimeline";
 import type { Stop } from "@/components/ItineraryStopCard";
@@ -27,6 +28,7 @@ import {
   MoreVertical,
   Sparkles,
   Check,
+  Coffee,
 } from "lucide-react";
 import { generateUniqueLink } from "utils/linkGenerator";
 import Image from "next/image";
@@ -88,6 +90,8 @@ const useUserPreferences = () => {
 /* ═════════════════ COMPONENTE PRINCIPAL ═════════════════ */
 
 export default function PremiumPlannerPage() {
+  const router = useRouter();
+  
   /* wizard answers */
   const [answers, setAnswers] = useState<{
     days?: number;
@@ -836,6 +840,19 @@ export default function PremiumPlannerPage() {
 
 /* ═════════════════ COMPONENTES AUXILIARES ═════════════════ */
 
+// Función helper para recalcular timings
+const recalculateTimings = (stops: Stop[]): Stop[] => {
+  let current = 9 * 60; // 09:00 en minutos
+  return stops.map((stop, idx) => {
+    if (idx > 0) {
+      current += 30; // 30 min de viaje entre paradas
+    }
+    const startTime = `${Math.floor(current / 60).toString().padStart(2, "0")}:${(current % 60).toString().padStart(2, "0")}`;
+    current += stop.durationMinutes || 60;
+    return { ...stop, startTime };
+  });
+};
+
 // Componente de paso del wizard
 const WizardStep = ({ step, qIndex, answers }: any) => {
   return (
@@ -1012,52 +1029,76 @@ const DaySummaryCard = ({ day, stops }: { day: number; stops: Stop[] }) => {
 // Panel de ajustes rápidos
 const QuickCustomize = ({ itinerary, onUpdate }: { itinerary: Stop[]; onUpdate: (stops: Stop[]) => void }) => {
   const [showPanel, setShowPanel] = useState(false);
+  const [showBreakModal, setShowBreakModal] = useState(false);
+  const [breakForm, setBreakForm] = useState({
+    name: "",
+    description: "",
+    duration: 30
+  });
+  const router = useRouter();
+
+  const handleAddBreak = () => {
+    if (!breakForm.name.trim()) {
+      alert("Por favor ingresa un nombre para el descanso");
+      return;
+    }
+
+    // Crear nueva parada de descanso
+    const breakStop: Stop = {
+      id: `break-${Date.now()}`,
+      name: breakForm.name,
+      description: breakForm.description || "Tiempo para descansar",
+      lat: itinerary[Math.floor(itinerary.length / 2)]?.lat || 10.9, // Usar coordenadas del medio del itinerario
+      lng: itinerary[Math.floor(itinerary.length / 2)]?.lng || -74.9,
+      startTime: "12:00", // Se recalculará con el resto
+      durationMinutes: breakForm.duration,
+      category: "Descanso",
+      municipality: "Tu ubicación",
+      distance: 0,
+      type: "experience",
+      imageUrl: "/images/rest-placeholder.jpg",
+      tip: "Aprovecha para hidratarte y recargar energías"
+    };
+
+    // Insertar el descanso en el medio del itinerario
+    const midPoint = Math.floor(itinerary.length / 2);
+    const updatedItinerary = [
+      ...itinerary.slice(0, midPoint),
+      breakStop,
+      ...itinerary.slice(midPoint)
+    ];
+
+    // Recalcular tiempos
+    const recalculated = recalculateTimings(updatedItinerary);
+    
+    onUpdate(recalculated);
+    setShowBreakModal(false);
+    setBreakForm({ name: "", description: "", duration: 30 });
+    setShowPanel(false);
+  };
+
+  const handleRegenerate = () => {
+    if (confirm("¿Estás seguro de que quieres generar un nuevo itinerario? Se perderán los cambios actuales.")) {
+      router.refresh();
+      window.location.reload();
+    }
+  };
 
   const quickActions = [
     {
-      id: "add-lunch",
-      icon: <Utensils className="w-5 h-5" />,
-      label: "Añadir almuerzo",
+      id: "add-break",
+      icon: <Coffee className="w-5 h-5" />,
+      label: "Agregar Descanso",
       action: () => {
-        // Lógica para añadir paradas de almuerzo
-        console.log("Añadiendo almuerzo...");
-        return itinerary;
+        setShowBreakModal(true);
+        setShowPanel(false);
       }
     },
     {
-      id: "more-beach",
-      icon: <Umbrella className="w-5 h-5" />,
-      label: "Más tiempo en playa",
-      action: () => {
-        // Lógica para extender tiempo en playas
-        const updated = itinerary.map(stop => {
-          if (stop.category?.toLowerCase().includes('playa')) {
-            return { ...stop, durationMinutes: stop.durationMinutes + 30 };
-          }
-          return stop;
-        });
-        return updated;
-      }
-    },
-    {
-      id: "optimize",
-      icon: <Route className="w-5 h-5" />,
-      label: "Optimizar ruta",
-      action: () => {
-        // Aquí podrías integrar la función de optimización de ruta
-        console.log("Optimizando ruta...");
-        return itinerary;
-      }
-    },
-    {
-      id: "kid-friendly",
-      icon: <Baby className="w-5 h-5" />,
-      label: "Modo familiar",
-      action: () => {
-        // Lógica para hacer el itinerario más familiar
-        console.log("Aplicando modo familiar...");
-        return itinerary;
-      }
+      id: "regenerate",
+      icon: <Sparkles className="w-5 h-5" />,
+      label: "Re-Generar Ruta",
+      action: handleRegenerate
     }
   ];
 
@@ -1086,11 +1127,7 @@ const QuickCustomize = ({ itinerary, onUpdate }: { itinerary: Stop[]; onUpdate: 
                 <motion.button
                   key={action.id}
                   whileHover={{ x: 5 }}
-                  onClick={() => {
-                    const updated = action.action();
-                    onUpdate(updated);
-                    setShowPanel(false);
-                  }}
+                  onClick={action.action}
                   className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 text-left transition-all"
                 >
                   <div className="text-red-600">{action.icon}</div>
@@ -1098,6 +1135,91 @@ const QuickCustomize = ({ itinerary, onUpdate }: { itinerary: Stop[]; onUpdate: 
                 </motion.button>
               ))}
             </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Modal para agregar descanso */}
+      <AnimatePresence>
+        {showBreakModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50"
+            onClick={() => setShowBreakModal(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-white rounded-2xl p-6 max-w-md w-full"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h3 className="text-xl font-bold mb-4">Agregar Descanso</h3>
+              
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Nombre del descanso *
+                  </label>
+                  <input
+                    type="text"
+                    value={breakForm.name}
+                    onChange={(e) => setBreakForm({ ...breakForm, name: e.target.value })}
+                    placeholder="Ej: Almuerzo, Café, Siesta..."
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
+                    autoFocus
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Descripción (opcional)
+                  </label>
+                  <textarea
+                    value={breakForm.description}
+                    onChange={(e) => setBreakForm({ ...breakForm, description: e.target.value })}
+                    placeholder="Ej: Parada para almorzar en un restaurante local"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
+                    rows={3}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Duración (minutos)
+                  </label>
+                  <select
+                    value={breakForm.duration}
+                    onChange={(e) => setBreakForm({ ...breakForm, duration: Number(e.target.value) })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
+                  >
+                    <option value={15}>15 minutos</option>
+                    <option value={30}>30 minutos</option>
+                    <option value={45}>45 minutos</option>
+                    <option value={60}>1 hora</option>
+                    <option value={90}>1 hora 30 min</option>
+                    <option value={120}>2 horas</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="flex gap-3 mt-6">
+                <button
+                  onClick={() => setShowBreakModal(false)}
+                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleAddBreak}
+                  className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition"
+                >
+                  Agregar
+                </button>
+              </div>
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>

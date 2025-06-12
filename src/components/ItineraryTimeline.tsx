@@ -25,6 +25,10 @@ import {
   List,
   MoreVertical,
   Maximize2,
+  Edit3,
+  AlertCircle,
+  Check,
+  X,
 } from "lucide-react";
 import Image from "next/image";
 
@@ -86,16 +90,180 @@ const formatTime = (t: string) => {
   return `${hh}:${m.toString().padStart(2, "0")} ${period}`;
 };
 
-const recalculateTimings = (stops: Stop[]): Stop[] => {
-  let current = 9 * 60;
+const recalculateTimings = (stops: Stop[], startIndex: number = 0, baseTime?: string): Stop[] => {
+  if (stops.length === 0) return stops;
+  
+  // Si estamos editando el primer stop, usar el baseTime directamente
+  let current = baseTime ? toMin(baseTime) : toMin(stops[startIndex].startTime);
+  
   return stops.map((stop, idx) => {
-    if (idx > 0) {
-      current += 30;
+    if (idx < startIndex) return stop;
+    
+    if (idx === startIndex) {
+      // Para el stop actual, usar el tiempo base
+      return { ...stop, startTime: toHHMM(current) };
     }
+    
+    // Para stops siguientes, agregar tiempo de viaje
+    current += stops[idx - 1].durationMinutes + 30; // duración anterior + viaje
     const startTime = toHHMM(current);
-    current += stop.durationMinutes || 60;
+    
     return { ...stop, startTime };
   });
+};
+
+// Función para detectar conflictos de horario
+const detectTimeConflicts = (stops: Stop[]): { stopId: string; message: string }[] => {
+  const conflicts: { stopId: string; message: string }[] = [];
+  
+  for (let i = 0; i < stops.length; i++) {
+    const currentStop = stops[i];
+    const currentStart = toMin(currentStop.startTime);
+    const currentEnd = currentStart + currentStop.durationMinutes;
+    
+    // Verificar horario muy temprano o muy tarde
+    if (currentStart < 6 * 60) {
+      conflicts.push({
+        stopId: currentStop.id,
+        message: "Comienza muy temprano (antes de 6:00 AM)"
+      });
+    }
+    
+    if (currentEnd > 23 * 60) {
+      conflicts.push({
+        stopId: currentStop.id,
+        message: "Termina muy tarde (después de 11:00 PM)"
+      });
+    }
+    
+    // Verificar conflictos con actividad anterior
+    if (i > 0) {
+      const prevStop = stops[i - 1];
+      const prevEnd = toMin(prevStop.startTime) + prevStop.durationMinutes;
+      const travelTime = 30; // minutos de viaje
+      
+      if (currentStart < prevEnd + travelTime) {
+        const neededTime = prevEnd + travelTime;
+        conflicts.push({
+          stopId: currentStop.id,
+          message: `Conflicto: necesitas llegar a las ${toHHMM(neededTime)} (incluye 30 min de viaje)`
+        });
+      }
+    }
+  }
+  
+  return conflicts;
+};
+
+// Componente de edición de horario inline mejorado
+const TimeEditor = ({ 
+  time, 
+  onSave, 
+  onCancel,
+  minTime,
+  maxTime,
+  stopName,
+  isFirstStop
+}: { 
+  time: string; 
+  onSave: (newTime: string) => void; 
+  onCancel: () => void;
+  minTime?: string;
+  maxTime?: string;
+  stopName: string;
+  isFirstStop: boolean;
+}) => {
+  const [value, setValue] = useState(time);
+  const [error, setError] = useState("");
+
+  const validate = (newTime: string) => {
+    const mins = toMin(newTime);
+    
+    // Validaciones básicas
+    if (mins < 6 * 60) {
+      setError("Muy temprano (mínimo 6:00 AM)");
+      return false;
+    }
+    if (mins > 23 * 60) {
+      setError("Muy tarde (máximo 11:00 PM)");
+      return false;
+    }
+    
+    // Para el primer stop, no hay restricción de tiempo anterior
+    if (!isFirstStop && minTime && toMin(newTime) < toMin(minTime)) {
+      setError(`Conflicto: mínimo ${formatTime(minTime)}`);
+      return false;
+    }
+    
+    if (maxTime && toMin(newTime) > toMin(maxTime)) {
+      setError(`Conflicto: máximo ${formatTime(maxTime)}`);
+      return false;
+    }
+    
+    setError("");
+    return true;
+  };
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newTime = e.target.value;
+    setValue(newTime);
+    if (newTime) validate(newTime);
+  };
+
+  const handleSave = () => {
+    if (validate(value)) {
+      onSave(value);
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      handleSave();
+    } else if (e.key === 'Escape') {
+      onCancel();
+    }
+  };
+
+  return (
+    <div className="inline-flex items-center gap-2 bg-white rounded-lg shadow-lg border border-gray-200 p-1 relative">
+      <input
+        type="time"
+        value={value}
+        onChange={handleChange}
+        onKeyDown={handleKeyDown}
+        className="px-2 py-1 text-sm font-medium focus:outline-none"
+        autoFocus
+      />
+      <button
+        onClick={handleSave}
+        disabled={!!error}
+        className="p-1 hover:bg-green-50 rounded disabled:opacity-50 disabled:cursor-not-allowed"
+        title="Guardar cambio"
+      >
+        <Check className="w-4 h-4 text-green-600" />
+      </button>
+      <button
+        onClick={onCancel}
+        className="p-1 hover:bg-red-50 rounded"
+        title="Cancelar"
+      >
+        <X className="w-4 h-4 text-red-600" />
+      </button>
+      {error && (
+        <motion.div 
+          initial={{ opacity: 0, y: -5 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="absolute top-full left-0 mt-1 bg-red-100 text-red-700 text-xs px-3 py-2 rounded-lg shadow-md whitespace-nowrap z-50 border border-red-200"
+        >
+          <div className="flex items-center gap-1">
+            <AlertCircle className="w-3 h-3 flex-shrink-0" />
+            <span>{error}</span>
+          </div>
+          <div className="absolute -top-1 left-4 w-2 h-2 bg-red-100 border-l border-t border-red-200 transform rotate-45"></div>
+        </motion.div>
+      )}
+    </div>
+  );
 };
 
 /* ───────── Componente Card View ───────── */
@@ -278,12 +446,35 @@ const CardsView = ({ stops, onReorder, userLocation }: {
   );
 };
 
-/* ───────── Componente Sortable mejorado ───────── */
-function SortableStop({ stop, expanded, toggleExpand, isLast }: {
+/* ───────── Componente Sortable mejorado con edición de horarios ───────── */
+function SortableStop({ 
+  stop, 
+  index,
+  expanded, 
+  toggleExpand, 
+  isLast,
+  editingTime,
+  onTimeEdit,
+  onTimeSave,
+  stops,
+  onStopsUpdate,
+  autoAdjust,
+  hasConflict,
+  conflictMessage
+}: {
   stop: Stop;
+  index: number;
   expanded: boolean;
   toggleExpand: () => void;
   isLast: boolean;
+  editingTime: boolean;
+  onTimeEdit: () => void;
+  onTimeSave: (newTime: string) => void;
+  stops: Stop[];
+  onStopsUpdate: (stops: Stop[]) => void;
+  autoAdjust: boolean;
+  hasConflict?: boolean;
+  conflictMessage?: string;
 }) {
   const {
     attributes,
@@ -323,6 +514,19 @@ function SortableStop({ stop, expanded, toggleExpand, isLast }: {
 
   const c = colors[stop.type];
 
+  // Calcular min y max time para validación
+  const prevStop = index > 0 ? stops[index - 1] : null;
+  const nextStop = index < stops.length - 1 ? stops[index + 1] : null;
+  
+  // Para el primer stop, no hay restricción mínima por actividad anterior
+  const minTime = prevStop && index > 0
+    ? toHHMM(toMin(prevStop.startTime) + prevStop.durationMinutes + 30) // +30 min de viaje
+    : undefined;
+    
+  const maxTime = nextStop && !autoAdjust
+    ? toHHMM(toMin(nextStop.startTime) - 30) // -30 min de viaje
+    : undefined;
+
   return (
     <motion.div 
       ref={setNodeRef} 
@@ -337,7 +541,7 @@ function SortableStop({ stop, expanded, toggleExpand, isLast }: {
       )}
 
       <div className="relative z-10 mb-6">
-        {/* hora + duración */}
+        {/* hora + duración con edición */}
         <div className="flex items-center mb-2">
           <motion.div 
             className={`w-8 h-8 ${c.primary} rounded-full flex items-center justify-center shadow-md`}
@@ -345,9 +549,30 @@ function SortableStop({ stop, expanded, toggleExpand, isLast }: {
           >
             <Clock className="w-4 h-4 text-white" />
           </motion.div>
-          <div className={`${c.text} font-semibold ml-3`}>
-            {formatTime(stop.startTime)}
-          </div>
+          
+          {editingTime ? (
+            <div className="ml-3 relative">
+              <TimeEditor
+                time={stop.startTime}
+                onSave={onTimeSave}
+                onCancel={onTimeEdit}
+                minTime={minTime}
+                maxTime={maxTime}
+                stopName={stop.name}
+                isFirstStop={index === 0}
+              />
+            </div>
+          ) : (
+            <motion.button
+              onClick={onTimeEdit}
+              whileHover={{ scale: 1.05 }}
+              className={`${c.text} font-semibold ml-3 flex items-center gap-1 hover:bg-gray-100 px-2 py-1 rounded-lg transition-all group`}
+            >
+              {formatTime(stop.startTime)}
+              <Edit3 className="w-3 h-3 opacity-0 group-hover:opacity-50 transition-opacity" />
+            </motion.button>
+          )}
+          
           <div className="ml-2 px-2 py-0.5 bg-gray-100 rounded-full text-xs text-gray-600">
             {stop.durationMinutes} min
           </div>
@@ -364,13 +589,21 @@ function SortableStop({ stop, expanded, toggleExpand, isLast }: {
           </motion.div>
         </div>
 
-        {/* tarjeta mejorada */}
+        {/* tarjeta mejorada con indicador de conflicto */}
         <motion.div 
-          className={`ml-10 rounded-2xl shadow-lg border ${c.border} bg-white ${isDragging ? 'shadow-2xl' : ''} overflow-hidden`}
+          className={`ml-10 rounded-2xl shadow-lg border ${hasConflict ? 'border-yellow-400' : c.border} bg-white ${isDragging ? 'shadow-2xl' : ''} overflow-hidden relative`}
           whileHover={{ scale: 1.02 }}
           transition={{ type: "spring", stiffness: 300 }}
         >
-          <div className="cursor-pointer" onClick={toggleExpand}>
+          {/* Indicador de conflicto */}
+          {hasConflict && (
+            <div className="absolute top-0 left-0 right-0 bg-yellow-100 border-b border-yellow-400 px-3 py-1.5 flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 text-yellow-600 flex-shrink-0" />
+              <span className="text-xs text-yellow-800 font-medium">{conflictMessage}</span>
+            </div>
+          )}
+          
+          <div className="cursor-pointer" onClick={toggleExpand} style={{ marginTop: hasConflict ? '2rem' : '0' }}>
             {!expanded && (
               <div className="flex">
                 {stop.imageUrl && (
@@ -532,15 +765,24 @@ function SortableStop({ stop, expanded, toggleExpand, isLast }: {
   );
 }
 
-/* ───────── componente principal mejorado ───────── */
+/* ───────── componente principal mejorado con edición de horarios ───────── */
 export default function ItineraryTimeline({ stops, onStopsReorder, userLocation }: Props) {
   const [localStops, setLocalStops] = useState(stops);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [editingTimeId, setEditingTimeId] = useState<string | null>(null);
   const [view, setView] = useState<"timeline" | "cards">("timeline");
+  const [autoAdjust, setAutoAdjust] = useState(true); // ajuste automático de horarios subsecuentes
+  const [conflicts, setConflicts] = useState<{ stopId: string; message: string }[]>([]);
 
   React.useEffect(() => {
     setLocalStops(stops);
   }, [stops]);
+
+  // Detectar conflictos cuando cambian los stops
+  React.useEffect(() => {
+    const newConflicts = detectTimeConflicts(localStops);
+    setConflicts(newConflicts);
+  }, [localStops]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -568,6 +810,30 @@ export default function ItineraryTimeline({ stops, onStopsReorder, userLocation 
     }
   }
 
+  // Manejar edición de tiempo
+  const handleTimeEdit = (stopId: string) => {
+    setEditingTimeId(editingTimeId === stopId ? null : stopId);
+  };
+
+  const handleTimeSave = (stopId: string, newTime: string) => {
+    const index = localStops.findIndex(s => s.id === stopId);
+    if (index === -1) return;
+
+    let updatedStops = [...localStops];
+    
+    // Si el ajuste automático está activado, recalcular horarios subsecuentes
+    if (autoAdjust) {
+      updatedStops = recalculateTimings(updatedStops, index, newTime);
+    } else {
+      // Solo actualizar el horario del stop actual
+      updatedStops[index] = { ...updatedStops[index], startTime: newTime };
+    }
+
+    setLocalStops(updatedStops);
+    onStopsReorder?.(updatedStops);
+    setEditingTimeId(null);
+  };
+
   /* filtros */
   const categories = Array.from(new Set(localStops.map((s) => s.category).filter(Boolean)));
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
@@ -593,7 +859,7 @@ export default function ItineraryTimeline({ stops, onStopsReorder, userLocation 
 
   return (
     <div className="relative">
-      {/* encabezado mejorado */}
+      {/* encabezado mejorado con toggle de ajuste automático y alertas */}
       <div className="bg-gradient-to-r from-red-600 to-red-800 rounded-xl shadow-lg p-5 mb-6">
         <div className="flex justify-between items-center">
           <div className="text-white">
@@ -610,10 +876,54 @@ export default function ItineraryTimeline({ stops, onStopsReorder, userLocation 
           </div>
         </div>
         
-        <div className="mt-3 text-red-100 text-xs flex items-center gap-1">
-          <GripVertical className="w-3 h-3" />
-          Arrastra las actividades para reordenar tu itinerario
+        <div className="mt-3 flex items-center justify-between">
+          <p className="text-red-100 text-xs flex items-center gap-1">
+            <GripVertical className="w-3 h-3" />
+            Arrastra para reordenar • Click en horarios para editar
+          </p>
+          
+          {/* Toggle de ajuste automático */}
+          <label className="flex items-center gap-2 text-xs text-white cursor-pointer">
+            <input
+              type="checkbox"
+              checked={autoAdjust}
+              onChange={(e) => setAutoAdjust(e.target.checked)}
+              className="sr-only"
+            />
+            <div className={`w-10 h-5 rounded-full transition-colors ${
+              autoAdjust ? "bg-white/40" : "bg-white/20"
+            }`}>
+              <div className={`w-4 h-4 bg-white rounded-full shadow-md transition-transform ${
+                autoAdjust ? "translate-x-5" : "translate-x-0.5"
+              } mt-0.5`} />
+            </div>
+            <span>Ajuste automático</span>
+            <span title="Cuando está activado, cambiar un horario ajustará automáticamente los siguientes">
+              <Info className="w-3 h-3 opacity-60" />
+            </span>
+          </label>
         </div>
+        
+        {/* Mostrar alertas de conflictos */}
+        {conflicts.length > 0 && (
+          <motion.div 
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            className="mt-3 bg-white/10 backdrop-blur-sm rounded-lg p-3"
+          >
+            <div className="flex items-start gap-2">
+              <AlertCircle className="w-4 h-4 text-yellow-300 flex-shrink-0 mt-0.5" />
+              <div className="text-xs space-y-1">
+                <p className="text-yellow-100 font-medium">Conflictos detectados:</p>
+                {conflicts.map((conflict, idx) => (
+                  <p key={idx} className="text-yellow-100/90">
+                    • {localStops.find(s => s.id === conflict.stopId)?.name}: {conflict.message}
+                  </p>
+                ))}
+              </div>
+            </div>
+          </motion.div>
+        )}
       </div>
 
       {/* Toggle de vista */}
@@ -688,15 +998,27 @@ export default function ItineraryTimeline({ stops, onStopsReorder, userLocation 
               items={filteredStops.map(s => s.id)} 
               strategy={verticalListSortingStrategy}
             >
-              {filteredStops.map((s, i) => (
-                <SortableStop
-                  key={s.id}
-                  stop={s}
-                  expanded={expandedId === s.id}
-                  toggleExpand={() => setExpandedId(expandedId === s.id ? null : s.id)}
-                  isLast={i === filteredStops.length - 1}
-                />
-              ))}
+              {filteredStops.map((s, i) => {
+                const conflict = conflicts.find(c => c.stopId === s.id);
+                return (
+                  <SortableStop
+                    key={s.id}
+                    stop={s}
+                    index={i}
+                    expanded={expandedId === s.id}
+                    toggleExpand={() => setExpandedId(expandedId === s.id ? null : s.id)}
+                    isLast={i === filteredStops.length - 1}
+                    editingTime={editingTimeId === s.id}
+                    onTimeEdit={() => handleTimeEdit(s.id)}
+                    onTimeSave={(newTime) => handleTimeSave(s.id, newTime)}
+                    stops={filteredStops}
+                    onStopsUpdate={setLocalStops}
+                    autoAdjust={autoAdjust}
+                    hasConflict={!!conflict}
+                    conflictMessage={conflict?.message}
+                  />
+                );
+              })}
             </SortableContext>
           </DndContext>
 
