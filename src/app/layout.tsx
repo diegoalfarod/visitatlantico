@@ -1,21 +1,22 @@
 // src/app/layout.tsx
-/* eslint-disable @next/next/no-page-custom-font */
-
 import "./globals.css";
 import { ReactNode } from "react";
-    <html lang="es">
-        {/* Google Fonts */}
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link
-          rel="preconnect"
-          href="https://fonts.gstatic.com"
-          crossOrigin="anonymous"
-        />
-        <link
-          href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&family=Merriweather+Sans:wght@400;600;700&display=swap"
-          rel="stylesheet"
-        />
+import ServiceWorkerRegister from "@/components/ServiceWorkerRegister";
+import { Poppins, Merriweather_Sans } from "next/font/google";
 
+const poppins = Poppins({
+  subsets: ["latin"],
+  weight: ["400", "600", "700"],
+  variable: "--font-poppins",
+});
+
+const merriweatherSans = Merriweather_Sans({
+  subsets: ["latin"],
+  weight: ["400", "600", "700"],
+  variable: "--font-merriweather-sans",
+});
+
+export const metadata = {
   title: "VisitAtlántico · Explora el paraíso costero",
   description: "Descubre playas, cultura y aventuras en Atlántico, Colombia.",
   robots: "index, follow",
@@ -50,7 +51,6 @@ import { ReactNode } from "react";
   },
 };
 
-// Mover viewport y themeColor a generateViewport
 export function generateViewport() {
   return {
     viewport: "width=device-width, initial-scale=1",
@@ -60,17 +60,10 @@ export function generateViewport() {
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html
-      lang="es"
-      className={`${poppins.variable} ${merriweatherSans.variable}`}
-    >
+    <html lang="es" className={`${poppins.variable} ${merriweatherSans.variable}`}>
       <head>
-        {/* Next.js inyecta aquí todos los meta tags definidos en `metadata` */}
-
-        {/* Canonical URL */}
+        {/* Next.js injects the meta tags defined in `metadata` */}
         <link rel="canonical" href="https://visitatlantico.com" />
-
-        {/* JSON-LD Structured Data */}
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
