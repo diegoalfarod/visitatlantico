@@ -6,6 +6,9 @@ import ItineraryMap from "@/components/ItineraryMap";
 import ItineraryTimeline from "@/components/ItineraryTimeline";
 import type { Stop } from "@/components/ItineraryStopCard";
 import { motion, AnimatePresence } from "framer-motion";
+import AddDestinationModal from "@/components/AddDestinationModal";
+import { toMin, toHHMM } from "@/utils/itinerary-helpers";
+
 import {
   Loader2,
   MapPin,
@@ -33,8 +36,9 @@ import {
   X,
   Menu,
   ArrowLeft,
+  Plus,
 } from "lucide-react";
-import { generateUniqueLink } from "utils/linkGenerator";
+import { generateUniqueLink } from "@/utils/linkGenerator";
 import Image from "next/image";
 
 /* ─────────── tipos & helpers ─────────── */
@@ -744,7 +748,12 @@ if (view === "itinerary" && itinerary) {
       </div>
 
       {/* Panel de ajustes rápidos flotante */}
-      <QuickCustomize itinerary={itinerary} onUpdate={setItinerary} isMobile={isMobile} />
+      <QuickCustomize 
+  itinerary={itinerary} 
+  onUpdate={setItinerary} 
+  isMobile={isMobile} 
+  location={location}
+/>
     </main>
   );
 }
@@ -1088,9 +1097,14 @@ const DaySummaryCard = ({ day, stops, isMobile }: { day: number; stops: Stop[]; 
 };
 
 // Panel de ajustes rápidos móvil
-const QuickCustomize = ({ itinerary, onUpdate, isMobile }: { itinerary: Stop[]; onUpdate: (stops: Stop[]) => void; isMobile: boolean }) => {
-  const [showPanel, setShowPanel] = useState(false);
+const QuickCustomize = ({ itinerary, onUpdate, isMobile, location }: { 
+  itinerary: Stop[]; 
+  onUpdate: (stops: Stop[]) => void; 
+  isMobile: boolean;
+  location: { lat: number; lng: number } | null;
+}) => {  const [showPanel, setShowPanel] = useState(false);
   const [showBreakModal, setShowBreakModal] = useState(false);
+  const [showAddModal, setShowAddModal] = useState(false);
   const [breakForm, setBreakForm] = useState({
     name: "",
     description: "",
@@ -1159,9 +1173,18 @@ const QuickCustomize = ({ itinerary, onUpdate, isMobile }: { itinerary: Stop[]; 
 
   const quickActions = [
     {
+      id: "add-destination",
+      icon: <Plus className="w-4 h-4 sm:w-5 sm:h-5" />,
+      label: isMobile ? "Destino" : "Agregar Destino",
+      action: () => {
+        setShowAddModal(true);
+        setShowPanel(false);
+      }
+    },
+    {
       id: "add-break",
       icon: <Coffee className="w-4 h-4 sm:w-5 sm:h-5" />,
-      label: isMobile ? "Descanso" : "Agregar Descanso o Actividad",
+      label: isMobile ? "Descanso" : "Agregar Descanso",
       action: () => {
         setShowBreakModal(true);
         setShowPanel(false);
@@ -1294,6 +1317,34 @@ const QuickCustomize = ({ itinerary, onUpdate, isMobile }: { itinerary: Stop[]; 
               </div>
             </motion.div>
           </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Modal para agregar destinos */}
+      <AnimatePresence>
+        {showAddModal && (
+          <AddDestinationModal
+            onClose={() => setShowAddModal(false)}
+            onAdd={(newStop: Stop) => {
+              // Calcular el tiempo de inicio basado en la última parada
+              const lastStop = itinerary[itinerary.length - 1];
+              const startMin = lastStop 
+                ? toMin(lastStop.startTime) + lastStop.durationMinutes + 30
+                : 9 * 60; // 9:00 AM si no hay paradas
+
+              const stopWithTime = {
+                ...newStop,
+                startTime: toHHMM(startMin),
+                durationMinutes: newStop.durationMinutes || 60
+              };
+
+              const updatedStops = [...itinerary, stopWithTime];
+              onUpdate(updatedStops);
+              setShowAddModal(false);
+            }}
+            currentStops={itinerary}
+            userLocation={location}
+          />
         )}
       </AnimatePresence>
     </>

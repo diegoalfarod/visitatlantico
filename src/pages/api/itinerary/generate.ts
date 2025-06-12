@@ -224,10 +224,11 @@ ${stops
 
 Reglas:
 1. Usa únicamente IDs listados.
-2. Entre 2 y 3 paradas por día (idealmente 3).
+2. MÁXIMO 4 paradas por día (idealmente 3-4).
 3. Formato JSON final: {"itinerary":[{"id":"xxx","startTime":"HH:MM","durationMinutes":NN},…]}
 4. Horario entre 08:00 y 20:00 y respeta cercanía geográfica.
 5. Balancea destinos y experiencias.
+6. Nunca excedas 4 paradas por día bajo ninguna circunstancia.
 
 ${
   location
