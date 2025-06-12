@@ -13,6 +13,7 @@ import {
   Share2,
   FileText,
   Download,
+  Shuffle,
 } from "lucide-react";
 import { generateUniqueLink } from "utils/linkGenerator";
 
@@ -247,8 +248,6 @@ export default function PremiumPlannerPage() {
     useState<"questions" | "loading" | "itinerary">("questions");
   const pdfRef = useRef<HTMLDivElement>(null);
 
- 
-
   function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
     const R = 6371; // Radio de la Tierra en km
     const dLat = (lat2 - lat1) * Math.PI / 180;
@@ -260,6 +259,11 @@ export default function PremiumPlannerPage() {
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
     return R * c; // Distancia en km
   }
+
+  // ✨ NUEVA FUNCIÓN: Manejar reordenamiento del itinerario
+  const handleStopsReorder = (newStops: Stop[]) => {
+    setItinerary(newStops);
+  };
 
   const generateItinerary = async () => {
     if (!steps.every((s) => s.valid)) return;
@@ -521,6 +525,10 @@ export default function PremiumPlannerPage() {
           <div className="max-w-4xl mx-auto text-center">
             <h1 className="text-5xl font-extrabold">Tu Aventura Generada</h1>
             {userPlace && <p className="mt-2 text-lg">📍 {userPlace}</p>}
+            <div className="mt-4 flex items-center justify-center gap-2 text-sm bg-white/20 rounded-full px-4 py-2 backdrop-blur-sm">
+              <Shuffle className="w-4 h-4" />
+              Arrastra las actividades para personalizar tu itinerario
+            </div>
           </div>
         </div>
 
@@ -569,7 +577,21 @@ export default function PremiumPlannerPage() {
                 className="bg-white p-8 rounded-3xl shadow-2xl space-y-6"
               >
                 <h3 className="text-2xl font-semibold">Día {d + 1}</h3>
-                <ItineraryTimeline stops={dayStops} />
+                <ItineraryTimeline 
+                  stops={dayStops} 
+                  userLocation={location}
+                  onStopsReorder={(newStops) => {
+                    // Actualizar solo las paradas de este día específico
+                    const newItinerary = [...itinerary];
+                    newStops.forEach((stop, idx) => {
+                      const globalIdx = d * perDay + idx;
+                      if (globalIdx < newItinerary.length) {
+                        newItinerary[globalIdx] = stop;
+                      }
+                    });
+                    setItinerary(newItinerary);
+                  }}
+                />
               </section>
             );
           })}
