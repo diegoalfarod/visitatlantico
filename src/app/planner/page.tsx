@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { DndProvider } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
 import ItineraryMap from "@/components/ItineraryMap";
@@ -12,6 +12,7 @@ import {
   MapPin,
   Clock,
   Calendar,
+  FileText,
   Share2,
   Download,
 } from "lucide-react";
@@ -171,6 +172,16 @@ export default function PremiumPlannerPage() {
   const [view, setView] =
     useState<"questions" | "loading" | "itinerary">("questions");
   const pdfRef = useRef<HTMLDivElement>(null);
+
+  const handleReorder = useCallback((from: number, to: number) => {
+    setItinerary((curr) => {
+      if (!curr) return curr;
+      const updated = [...curr];
+      const [item] = updated.splice(from, 1);
+      updated.splice(to, 0, item);
+      return updated;
+    });
+  }, []);
 
   useEffect(() => {
     if (navigator.onLine) return;
@@ -420,9 +431,6 @@ export default function PremiumPlannerPage() {
     }
   };
 
-    }
-  };
-
   /* ═════ vista loading ════ */
   if (view === "loading") {
     const frases = [
@@ -528,6 +536,8 @@ export default function PremiumPlannerPage() {
                 <ItineraryTimeline
                   stops={dayStops}
                   editable
+                  offset={d * perDay}
+                  onMove={handleReorder}
                   onChange={(newStops) => {
                     const updated = [...itinerary];
                     updated.splice(d * perDay, newStops.length, ...newStops);

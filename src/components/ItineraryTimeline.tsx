@@ -25,6 +25,16 @@ interface Props {
   stops: Stop[];
   editable?: boolean;
   onChange?: (stops: Stop[]) => void;
+  /**
+   * Callback para mover una parada entre índices globales cuando se usa drag & drop
+   * en múltiples listas.
+   */
+  onMove?: (from: number, to: number) => void;
+  /**
+   * Índice inicial de las paradas dentro del arreglo global.
+   * Permite que el componente conozca la posición real de sus elementos.
+   */
+  offset?: number;
 }
 
 /* ───────── helpers ───────── */
@@ -63,7 +73,13 @@ const formatTime = (t: string) => {
 const ItemType = "STOP";
 
 /* ───────── componente ───────── */
-export default function ItineraryTimeline({ stops, editable, onChange }: Props) {
+export default function ItineraryTimeline({
+  stops,
+  editable,
+  onChange,
+  onMove,
+  offset = 0,
+}: Props) {
   /* ▸ 1. COMPLETAR HORARIOS FALTANTES */
   const filledStops = useMemo(() => {
     let current = 9 * 60; // 09:00 default
@@ -145,14 +161,20 @@ export default function ItineraryTimeline({ stops, editable, onChange }: Props) 
     const [, drop] = useDrop({
       accept: ItemType,
       hover(item: { index: number }) {
-        if (!ref.current || item.index === index) return;
-        moveStop(item.index, index);
-        item.index = index;
+        if (!ref.current) return;
+        const target = onMove ? offset + index : index;
+        if (item.index === target) return;
+        if (onMove) {
+          onMove(item.index, target);
+        } else {
+          moveStop(item.index, index);
+        }
+        item.index = target;
       },
     });
     const [{ isDragging }, drag] = useDrag({
       type: ItemType,
-      item: { index },
+      item: { index: onMove ? offset + index : index },
       collect: (m) => ({ isDragging: m.isDragging() }),
     });
     if (editable) {
@@ -382,6 +404,7 @@ export default function ItineraryTimeline({ stops, editable, onChange }: Props) 
       <div className="relative pt-4 pb-8">
         {filteredStops.map((s, i) => {
           const realIndex = stops.findIndex((st) => st.id === s.id);
+          const idx = onMove ? offset + realIndex : realIndex;
           return (
             <StopCard
               key={s.id}
@@ -389,7 +412,7 @@ export default function ItineraryTimeline({ stops, editable, onChange }: Props) 
               expanded={expandedId === s.id}
               toggleExpand={() => setExpandedId(expandedId === s.id ? null : s.id)}
               isLast={i === filteredStops.length - 1}
-              index={realIndex}
+              index={idx}
             />
           );
         })}
