@@ -1,3 +1,4 @@
+// utils/linkGenerator.ts
 import { collection, addDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import type { Stop } from "@/components/ItineraryStopCard";

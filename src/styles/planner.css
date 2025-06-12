@@ -1,0 +1,282 @@
+/* src/styles/planner.css */
+
+/* Animaciones suaves */
+@keyframes slideIn {
+    from {
+      opacity: 0;
+      transform: translateX(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+  
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  @keyframes pulse {
+    0%, 100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.7;
+    }
+  }
+  
+  /* Mejoras visuales para el wizard */
+  .wizard-step {
+    animation: slideIn 0.3s ease-out;
+  }
+  
+  .wizard-option {
+    transition: all 0.2s ease;
+    position: relative;
+    overflow: hidden;
+  }
+  
+  .wizard-option::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: radial-gradient(circle at center, rgba(239, 68, 68, 0.1), transparent);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+  
+  .wizard-option:hover::before {
+    opacity: 1;
+  }
+  
+  /* Timeline mejorado */
+  .timeline-item {
+    position: relative;
+    transition: all 0.3s ease;
+  }
+  
+  .timeline-item::before {
+    content: "";
+    position: absolute;
+    left: -20px;
+    top: 50%;
+    width: 4px;
+    height: 4px;
+    background: #EF4444;
+    border-radius: 50%;
+    transform: translateY(-50%);
+    opacity: 0;
+    transition: all 0.3s ease;
+  }
+  
+  .timeline-item:hover::before {
+    opacity: 1;
+    left: -10px;
+  }
+  
+  /* Drag and drop visual feedback */
+  .dragging {
+    opacity: 0.5;
+    cursor: grabbing !important;
+  }
+  
+  .drag-handle {
+    cursor: grab;
+    transition: all 0.2s ease;
+  }
+  
+  .drag-handle:hover {
+    background: rgba(0, 0, 0, 0.05);
+    border-radius: 4px;
+  }
+  
+  .drag-handle:active {
+    cursor: grabbing;
+  }
+  
+  /* Cards view enhancements */
+  .destination-card {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+  }
+  
+  .destination-card::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: 1rem;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+  
+  .destination-card:hover::after {
+    opacity: 1;
+  }
+  
+  /* Loading animation improvements */
+  .loading-message {
+    animation: fadeIn 0.5s ease-out;
+  }
+  
+  .loading-icon {
+    animation: pulse 2s ease-in-out infinite;
+  }
+  
+  /* Quick customize panel */
+  .customize-panel {
+    backdrop-filter: blur(10px);
+    background: rgba(255, 255, 255, 0.95);
+  }
+  
+  /* Progress bar enhancement */
+  .progress-step {
+    position: relative;
+    transition: all 0.3s ease;
+  }
+  
+  .progress-step.active {
+    animation: pulse 2s ease-in-out infinite;
+  }
+  
+  .progress-step.completed::after {
+    content: "✓";
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: bold;
+    animation: fadeIn 0.3s ease-out;
+  }
+  
+  /* Map container improvements */
+  .map-container {
+    position: relative;
+    overflow: hidden;
+  }
+  
+  .map-container::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to bottom, transparent 90%, white);
+    pointer-events: none;
+    z-index: 10;
+  }
+  
+  /* Summary card enhancements */
+  .summary-stat {
+    position: relative;
+    transition: all 0.3s ease;
+  }
+  
+  .summary-stat:hover {
+    transform: translateY(-2px);
+  }
+  
+  .summary-stat::after {
+    content: "";
+    position: absolute;
+    bottom: -4px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 30px;
+    height: 2px;
+    background: currentColor;
+    opacity: 0;
+    transition: all 0.3s ease;
+  }
+  
+  .summary-stat:hover::after {
+    opacity: 0.3;
+    width: 50px;
+  }
+  
+  /* Photo gallery transitions */
+  .photo-gallery {
+    position: relative;
+    overflow: hidden;
+  }
+  
+  .photo-gallery img {
+    transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  
+  .photo-gallery:hover img {
+    transform: scale(1.05);
+  }
+  
+  /* Button enhancements */
+  .action-button {
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s ease;
+  }
+  
+  .action-button::before {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.3);
+    transform: translate(-50%, -50%);
+    transition: width 0.6s ease, height 0.6s ease;
+  }
+  
+  .action-button:hover::before {
+    width: 300px;
+    height: 300px;
+  }
+  
+  /* Mobile optimizations */
+  @media (max-width: 768px) {
+    .wizard-option {
+      padding: 1rem;
+    }
+    
+    .timeline-item {
+      margin-left: 1rem;
+    }
+    
+    .destination-card {
+      margin-bottom: 1rem;
+    }
+    
+    .customize-panel {
+      left: 1rem;
+      right: 1rem;
+      bottom: 5rem;
+    }
+  }
+  
+  /* Dark mode support */
+  @media (prefers-color-scheme: dark) {
+    .wizard-option {
+      background: rgba(255, 255, 255, 0.05);
+      border-color: rgba(255, 255, 255, 0.1);
+    }
+    
+    .timeline-item {
+      background: rgba(255, 255, 255, 0.05);
+    }
+    
+    .customize-panel {
+      background: rgba(0, 0, 0, 0.9);
+      color: white;
+    }
+  }

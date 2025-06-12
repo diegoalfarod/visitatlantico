@@ -1,6 +1,7 @@
 // src/app/layout.tsx
 
 import "./globals.css";
+import "../styles/planner.css";
 import { Poppins, Merriweather_Sans } from "next/font/google";
 import { ReactNode } from "react";
 import type { Metadata } from "next";
