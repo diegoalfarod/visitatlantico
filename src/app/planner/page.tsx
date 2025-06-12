@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { DndProvider } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
 import ItineraryMap from "@/components/ItineraryMap";
@@ -14,6 +14,7 @@ import {
   Calendar,
   Share2,
   Download,
+  FileText,
 } from "lucide-react";
 import { generateUniqueLink } from "utils/linkGenerator";
 
@@ -171,6 +172,16 @@ export default function PremiumPlannerPage() {
   const [view, setView] =
     useState<"questions" | "loading" | "itinerary">("questions");
   const pdfRef = useRef<HTMLDivElement>(null);
+
+  const moveStopGlobal = useCallback((from: number, to: number) => {
+    setItinerary((prev) => {
+      if (!prev) return prev;
+      const updated = [...prev];
+      const [item] = updated.splice(from, 1);
+      updated.splice(to, 0, item);
+      return updated;
+    });
+  }, []);
 
   useEffect(() => {
     if (navigator.onLine) return;
@@ -420,6 +431,33 @@ export default function PremiumPlannerPage() {
     }
   };
 
+  const saveOffline = async () => {
+    if (!('serviceWorker' in navigator) || !itinerary?.length) return;
+    try {
+      const reg = await navigator.serviceWorker.ready;
+      reg.active?.postMessage({
+        type: 'CACHE_ITINERARY',
+        payload: { itinerary, days: parseInt(answers[1] || '1', 10) || 1 },
+      });
+      alert('Itinerario guardado para usar sin conexión');
+    } catch (e) {
+      console.error(e);
+      alert('No se pudo guardar offline');
+    }
+  };
+
+  const handleSaveChanges = async () => {
+    if (!itinerary) return;
+    try {
+      const url = await generateUniqueLink(
+        itinerary,
+        parseInt(answers[1] || '1', 10) || 1
+      );
+      await navigator.clipboard.writeText(url);
+      alert('Cambios guardados \u2705 Link copiado');
+    } catch (e) {
+      console.error(e);
+      alert('No se pudo guardar');
     }
   };
 
@@ -528,6 +566,8 @@ export default function PremiumPlannerPage() {
                 <ItineraryTimeline
                   stops={dayStops}
                   editable
+                  offset={d * perDay}
+                  onMove={moveStopGlobal}
                   onChange={(newStops) => {
                     const updated = [...itinerary];
                     updated.splice(d * perDay, newStops.length, ...newStops);

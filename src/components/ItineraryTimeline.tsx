@@ -25,6 +25,10 @@ interface Props {
   stops: Stop[];
   editable?: boolean;
   onChange?: (stops: Stop[]) => void;
+  /** index inicial en el itinerario global */
+  offset?: number;
+  /** reordenamiento global */
+  onMove?: (from: number, to: number) => void;
 }
 
 /* ───────── helpers ───────── */
@@ -63,7 +67,13 @@ const formatTime = (t: string) => {
 const ItemType = "STOP";
 
 /* ───────── componente ───────── */
-export default function ItineraryTimeline({ stops, editable, onChange }: Props) {
+export default function ItineraryTimeline({
+  stops,
+  editable,
+  onChange,
+  offset = 0,
+  onMove,
+}: Props) {
   /* ▸ 1. COMPLETAR HORARIOS FALTANTES */
   const filledStops = useMemo(() => {
     let current = 9 * 60; // 09:00 default
@@ -89,13 +99,27 @@ export default function ItineraryTimeline({ stops, editable, onChange }: Props) 
 
   const moveStop = useCallback(
     (from: number, to: number) => {
+      if (from === to) return;
+      onMove?.(from, to);
+
       if (!onChange) return;
+
+      const localFrom = from - (offset ?? 0);
+      const localTo = to - (offset ?? 0);
+      if (
+        localFrom < 0 ||
+        localFrom >= stops.length ||
+        localTo < 0 ||
+        localTo >= stops.length
+      ) {
+        return;
+      }
       const updated = [...stops];
-      const [item] = updated.splice(from, 1);
-      updated.splice(to, 0, item);
+      const [item] = updated.splice(localFrom, 1);
+      updated.splice(localTo, 0, item);
       onChange(updated);
     },
-    [stops, onChange]
+    [stops, onChange, onMove, offset]
   );
 
   const updateStop = useCallback(
@@ -130,12 +154,14 @@ export default function ItineraryTimeline({ stops, editable, onChange }: Props) 
     toggleExpand,
     isLast,
     index,
+    offset = 0,
   }: {
     stop: Stop;
     expanded: boolean;
     toggleExpand: () => void;
     isLast: boolean;
     index: number;
+    offset?: number;
   }) => {
     const [photoIndex, setPhotoIndex] = useState(0);
     const photos = stop.photos || (stop.imageUrl ? [stop.imageUrl] : []);
@@ -145,14 +171,15 @@ export default function ItineraryTimeline({ stops, editable, onChange }: Props) 
     const [, drop] = useDrop({
       accept: ItemType,
       hover(item: { index: number }) {
-        if (!ref.current || item.index === index) return;
-        moveStop(item.index, index);
-        item.index = index;
+        const hoverIndex = (offset ?? 0) + index;
+        if (!ref.current || item.index === hoverIndex) return;
+        moveStop(item.index, hoverIndex);
+        item.index = hoverIndex;
       },
     });
     const [{ isDragging }, drag] = useDrag({
       type: ItemType,
-      item: { index },
+      item: { index: (offset ?? 0) + index },
       collect: (m) => ({ isDragging: m.isDragging() }),
     });
     if (editable) {
@@ -390,6 +417,7 @@ export default function ItineraryTimeline({ stops, editable, onChange }: Props) 
               toggleExpand={() => setExpandedId(expandedId === s.id ? null : s.id)}
               isLast={i === filteredStops.length - 1}
               index={realIndex}
+              offset={offset}
             />
           );
         })}
