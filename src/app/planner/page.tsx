@@ -8,6 +8,7 @@ import type { Stop } from "@/components/ItineraryStopCard";
 import { motion, AnimatePresence } from "framer-motion";
 import AddDestinationModal from "@/components/AddDestinationModal";
 import { toMin, toHHMM } from "@/utils/itinerary-helpers";
+import LocationSelector from "@/components/LocationSelector";
 
 import {
   Loader2,
@@ -60,15 +61,6 @@ type ApiStop = {
 };
 
 type ApiResponse = { itinerary: ApiStop[]; error?: string };
-
-declare global {
-  interface Window {
-    setPlannerLocation: (loc: { lat: number; lng: number } | null) => void;
-    setGeoError: (msg: string | null) => void;
-    setFetchingPlace: (flag: boolean) => void;
-    setUserPlaceGlobal: (place: string | null) => void;
-  }
-}
 
 // Custom hook para preferencias de usuario
 const useUserPreferences = () => {
@@ -124,78 +116,14 @@ export default function PremiumPlannerPage() {
   const [qIndex, setQIndex] = useState(0);
 
   /* ubicación */
-  const [useLocation, setUseLocation] = useState(false);
-  const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
-  const [userPlace, setUserPlace] = useState<string | null>(null);
-  const [fetchingPlace, setFetchingPlace] = useState(false);
-  const [geoError, setGeoError] = useState<string | null>(null);
+  const [locationData, setLocationData] = useState<{
+    lat: number;
+    lng: number;
+    address: string;
+  } | null>(null);
 
   /* preferencias de usuario */
   const { preferences, updatePreferences } = useUserPreferences();
-
-  /* exponer setters para GPS */
-  if (typeof window !== "undefined") {
-    window.setPlannerLocation = setLocation;
-    window.setGeoError = setGeoError;
-    window.setFetchingPlace = setFetchingPlace;
-    window.setUserPlaceGlobal = setUserPlace;
-  }
-
-  /* efecto ubicación */
-  useEffect(() => {
-    if (!useLocation) {
-      setLocation(null);
-      setUserPlace(null);
-      setGeoError(null);
-      return;
-    }
-
-    let cancelled = false;
-    setFetchingPlace(true);
-
-    navigator.geolocation.getCurrentPosition(
-      async (pos) => {
-        if (cancelled) return;
-
-        setGeoError(null);
-        const coords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-        setLocation(coords);
-
-        try {
-          const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN!;
-          const resp = await fetch(
-            `https://api.mapbox.com/geocoding/v5/mapbox.places/${coords.lng},${coords.lat}.json?types=place&access_token=${token}`
-          );
-          if (!resp.ok) throw new Error(`Mapbox status ${resp.status}`);
-
-          const js = await resp.json();
-          const place = js.features?.[0]?.place_name;
-          setUserPlace(place ?? "Ubicación detectada");
-        } catch (err) {
-          console.error("Error en Mapbox:", err);
-          setGeoError("No se pudo geocodificar la ubicación.");
-        } finally {
-          setFetchingPlace(false);
-        }
-      },
-      (err) => {
-        if (cancelled) return;
-
-        setFetchingPlace(false);
-        setUseLocation(false);
-        setLocation(null);
-        setGeoError(
-          err.code === err.PERMISSION_DENIED
-            ? "Permiso de ubicación denegado."
-            : "No se pudo obtener la posición."
-        );
-      }
-    );
-
-    return () => {
-      cancelled = true;
-    };
-  }, [useLocation]);
 
   /* pasos wizard mejorados para móvil */
   const steps = [
@@ -436,9 +364,9 @@ export default function PremiumPlannerPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ 
           profile, 
-          location: location ? { 
-            lat: location.lat, 
-            lng: location.lng 
+          location: locationData ? { 
+            lat: locationData.lat, 
+            lng: locationData.lng 
           } : null
         }),
       });
@@ -479,9 +407,9 @@ export default function PremiumPlannerPage() {
         category: apiStop.category || "attraction",
         imageUrl: apiStop.imageUrl || "/default-place.jpg",
         photos: apiStop.photos, 
-        distance: location ? calculateDistance(
-          location.lat, 
-          location.lng, 
+        distance: locationData ? calculateDistance(
+          locationData.lat, 
+          locationData.lng, 
           apiStop.lat, 
           apiStop.lng
         ) : 0,
@@ -535,7 +463,7 @@ export default function PremiumPlannerPage() {
       const mapPlaceholder = `<div class="map-static" style="height:400px;background:#eee;display:flex;align-items:center;justify-content:center;border-radius:1rem;margin:1rem 0">
         <div style="text-align:center">
           <h3 style="color:#333">Mapa del Itinerario</h3>
-          <p style="color:#666">${userPlace || 'Ubicación principal'}</p>
+          <p style="color:#666">${locationData?.address || 'Ubicación principal'}</p>
         </div>
       </div>`;
       
@@ -549,7 +477,7 @@ export default function PremiumPlannerPage() {
   <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Itinerario de Viaje - ${userPlace || 'Atlántico'}</title>
+    <title>Itinerario de Viaje - ${locationData?.address || 'Atlántico'}</title>
     <style>
       body {
         font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, 
@@ -601,7 +529,7 @@ export default function PremiumPlannerPage() {
     <div class="container">
       <div class="header">
         <h1 style="font-size: 2.5rem; font-weight: 800; margin: 0;">Tu Aventura Generada</h1>
-        ${userPlace ? `<p style="margin-top: 0.5rem; font-size: 1rem;">📍 ${userPlace}</p>` : ''}
+        ${locationData?.address ? `<p style="margin-top: 0.5rem; font-size: 1rem;">📍 ${locationData.address}</p>` : ''}
       </div>
       
       ${clone.innerHTML}
@@ -676,14 +604,14 @@ export default function PremiumPlannerPage() {
             >
               Tu Aventura Generada
             </motion.h1>
-            {userPlace && (
+            {locationData?.address && (
               <motion.p 
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.2 }}
                 className="mt-2 text-base sm:text-lg"
               >
-                📍 {userPlace}
+                📍 {locationData.address}
               </motion.p>
             )}
             <motion.div 
@@ -751,7 +679,7 @@ export default function PremiumPlannerPage() {
             transition={{ delay: 0.2 }}
             className="bg-white rounded-3xl shadow-2xl overflow-hidden h-64 sm:h-96 map-container"
           >
-            <ItineraryMap stops={itinerary} userLocation={location} />
+            <ItineraryMap stops={itinerary} userLocation={locationData ? { lat: locationData.lat, lng: locationData.lng } : null} />
           </motion.div>
 
           {/* SECCIÓN CORREGIDA: timeline por día */}
@@ -766,7 +694,7 @@ export default function PremiumPlannerPage() {
               <DaySummaryCard day={1} stops={itinerary} isMobile={isMobile} />
               <ItineraryTimeline 
                 stops={itinerary} 
-                userLocation={location}
+                userLocation={locationData ? { lat: locationData.lat, lng: locationData.lng } : null}
                 onStopsReorder={(newStops) => {
                   setItinerary(newStops);
                 }}
@@ -790,7 +718,7 @@ export default function PremiumPlannerPage() {
                   <DaySummaryCard day={d + 1} stops={dayStops} isMobile={isMobile} />
                   <ItineraryTimeline 
                     stops={dayStops} 
-                    userLocation={location}
+                    userLocation={locationData ? { lat: locationData.lat, lng: locationData.lng } : null}
                     onStopsReorder={(newStops) => {
                       // Reconstruir el itinerario completo correctamente
                       const beforeDayStops = itinerary.slice(0, startIdx);
@@ -817,7 +745,7 @@ export default function PremiumPlannerPage() {
           itinerary={itinerary} 
           onUpdate={setItinerary} 
           isMobile={isMobile} 
-          location={location}
+          location={locationData ? { lat: locationData.lat, lng: locationData.lng } : null}
         />
       </main>
     );
@@ -896,48 +824,15 @@ export default function PremiumPlannerPage() {
 
             <WizardStep step={step} qIndex={qIndex} answers={answers} />
 
-            {/* ubicación toggle móvil mejorado */}
-            <motion.div 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.3 }}
-              className="bg-gray-50 rounded-xl p-3 sm:p-4"
-            >
-              <label className="inline-flex items-center cursor-pointer space-x-2 sm:space-x-3 w-full">
-                <div className="relative">
-                  <input
-                    type="checkbox"
-                    className="sr-only"
-                    checked={useLocation}
-                    onChange={(e) => setUseLocation(e.target.checked)}
-                  />
-                  <div
-                    className={`w-12 h-6 sm:w-14 sm:h-8 rounded-full transition ${
-                      useLocation ? "bg-red-600" : "bg-gray-300"
-                    }`}
-                  />
-                  <div
-                    className={`dot absolute left-1 top-1 w-4 h-4 sm:w-6 sm:h-6 bg-white rounded-full transition shadow-md ${
-                      useLocation ? "translate-x-6" : ""
-                    }`}
-                  />
-                </div>
-                <span className="text-sm sm:text-lg flex-1">
-                  Personalizar según mi ubicación actual 📍
-                </span>
-              </label>
-
-              {fetchingPlace && (
-                <p className="text-gray-600 flex items-center gap-2 text-xs sm:text-sm mt-2 ml-14 sm:ml-16">
-                  <Loader2 className="w-3 h-3 sm:w-4 sm:h-4 animate-spin" />
-                  Detectando ubicación…
-                </p>
-              )}
-              {geoError && <p className="text-red-600 text-xs sm:text-sm mt-2 ml-14 sm:ml-16">{geoError}</p>}
-              {userPlace && !fetchingPlace && !geoError && (
-                <p className="text-xs sm:text-sm text-gray-700 mt-2 ml-14 sm:ml-16">📍 {userPlace}</p>
-              )}
-            </motion.div>
+            {/* Selector de ubicación - solo mostrar en el primer paso */}
+            {qIndex === 0 && (
+              <LocationSelector
+                onLocationSelect={(location) => {
+                  setLocationData(location);
+                }}
+                initialLocation={locationData}
+              />
+            )}
 
             {/* navegación móvil mejorada */}
             <div className="flex justify-between items-center">
@@ -1418,7 +1313,6 @@ const QuickCustomize = ({ itinerary, onUpdate, isMobile, location }: {
                 startTime: toHHMM(startMin),
                 durationMinutes: newStop.durationMinutes || 60
               };
-
               const updatedStops = [...itinerary, stopWithTime];
               onUpdate(updatedStops);
               setShowAddModal(false);
@@ -1430,4 +1324,4 @@ const QuickCustomize = ({ itinerary, onUpdate, isMobile, location }: {
       </AnimatePresence>
     </>
   );
-};
+ };
