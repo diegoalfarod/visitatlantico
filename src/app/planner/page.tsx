@@ -161,6 +161,7 @@ export default function PremiumPlannerPage() {
     ),
   }));
 
+
   const next = () => qIndex < steps.length - 1 && setQIndex((i) => i + 1);
   const prev = () => qIndex > 0 && setQIndex((i) => i - 1);
   const progress = steps.length
@@ -584,6 +585,9 @@ export default function PremiumPlannerPage() {
   }
 
   /* ═════ wizard ════ */
+  if (steps.length === 0) {
+    return null;
+  }
   const step = steps[qIndex];
   return (
     <main className="min-h-screen bg-gradient-to-b from-blue-50 to-red-50 pb-16">
@@ -617,9 +621,6 @@ export default function PremiumPlannerPage() {
           {/* pregunta */}
           <div className="space-y-4">
             <h2 className="text-2xl font-semibold">{step.label}</h2>
-            {step.helper && (
-              <p className="text-sm text-gray-500">{step.helper}</p>
-            )}
             {step.element}
           </div>
 
