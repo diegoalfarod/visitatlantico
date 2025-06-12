@@ -30,6 +30,8 @@ import {
   X,
   Plus,
   PlusCircle,
+  Trash2,
+  Search,
 } from "lucide-react";
 import Image from "next/image";
 
@@ -53,6 +55,11 @@ import {
   useSortable,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+
+// Importar Firebase
+import { collection, getDocs } from "firebase/firestore";
+import { ref, getDownloadURL } from "firebase/storage";
+import { db, storage } from "@/lib/firebase";
 
 interface Props {
   stops: Stop[];
@@ -456,6 +463,298 @@ const BreakSuggestion = ({
   );
 };
 
+// NUEVO: Modal para agregar destinos
+const AddDestinationModal = ({ 
+  onClose, 
+  onAdd,
+  currentStops,
+  userLocation
+}: {
+  onClose: () => void;
+  onAdd: (stop: Stop) => void;
+  currentStops: Stop[];
+  userLocation?: { lat: number; lng: number } | null;
+}) => {
+  const [search, setSearch] = useState("");
+  const [category, setCategory] = useState("Todos");
+  const [loading, setLoading] = useState(true);
+  const [destinations, setDestinations] = useState<Stop[]>([]);
+  const [filteredDestinations, setFilteredDestinations] = useState<Stop[]>([]);
+  const [imageCache, setImageCache] = useState<{[key: string]: string}>({});
+
+  // Cargar destinos desde Firebase
+  useEffect(() => {
+    const loadDestinations = async () => {
+      try {
+        const [destSnap, expSnap] = await Promise.all([
+          getDocs(collection(db, "destinations")),
+          getDocs(collection(db, "experiences"))
+        ]);
+
+        const allItems: Stop[] = [];
+        const currentStopIds = new Set(currentStops.map(s => s.id));
+
+        // Procesar destinos rápidamente con placeholders
+        destSnap.docs.forEach(doc => {
+          const data = doc.data();
+          if (!data.coordinates?.lat || !data.coordinates?.lng) return;
+          if (currentStopIds.has(doc.id)) return;
+
+          allItems.push({
+            id: doc.id,
+            name: data.name || "Destino sin nombre",
+            description: data.description || "",
+            lat: data.coordinates.lat,
+            lng: data.coordinates.lng,
+            startTime: "",
+            durationMinutes: 60,
+            category: data.category || "General",
+            municipality: data.municipality || data.address?.split(",")[0] || "Ubicación",
+            distance: 0,
+            type: "destination",
+            imageUrl: "/placeholder-destination.jpg",
+            tip: data.tip,
+            imagePath: data.imagePath // Guardar para cargar después
+          });
+        });
+
+        // Procesar experiencias rápidamente
+        expSnap.docs.forEach(doc => {
+          const data = doc.data();
+          if (!data.coordinates?.lat || !data.coordinates?.lng) return;
+          if (currentStopIds.has(doc.id)) return;
+
+          allItems.push({
+            id: doc.id,
+            name: data.title || "Experiencia sin nombre",
+            description: data.description || "",
+            lat: data.coordinates.lat,
+            lng: data.coordinates.lng,
+            startTime: "",
+            durationMinutes: 90,
+            category: data.category || "General",
+            municipality: data.municipality || data.address?.split(",")[0] || "Ubicación",
+            distance: 0,
+            type: "experience",
+            imageUrl: "/placeholder-experience.jpg",
+            tip: data.tip,
+            imagePath: data.imagePath
+          });
+        });
+
+        // Calcular distancias si hay ubicación
+        if (userLocation) {
+          allItems.forEach(item => {
+            const R = 6371;
+            const dLat = (item.lat - userLocation.lat) * Math.PI / 180;
+            const dLng = (item.lng - userLocation.lng) * Math.PI / 180;
+            const a = 
+              Math.sin(dLat/2) * Math.sin(dLat/2) +
+              Math.cos(userLocation.lat * Math.PI / 180) * Math.cos(item.lat * Math.PI / 180) * 
+              Math.sin(dLng/2) * Math.sin(dLng/2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            item.distance = R * c;
+          });
+          allItems.sort((a, b) => a.distance - b.distance);
+        }
+
+        setDestinations(allItems);
+        setFilteredDestinations(allItems);
+        setLoading(false);
+
+        // Cargar imágenes de forma asíncrona
+        loadImagesAsync(allItems);
+      } catch (error) {
+        console.error("Error loading destinations:", error);
+        setLoading(false);
+      }
+    };
+
+    const loadImagesAsync = async (items: Stop[]) => {
+      const cache: {[key: string]: string} = {};
+      
+      // Cargar solo las primeras 10 imágenes inicialmente
+      const itemsToLoad = items.slice(0, 10);
+      
+      for (const item of itemsToLoad) {
+        if (item.imagePath) {
+          try {
+            const url = await getDownloadURL(ref(storage, item.imagePath));
+            cache[item.id] = url;
+            setImageCache(prev => ({ ...prev, [item.id]: url }));
+          } catch (e) {
+            console.error("Error loading image for", item.id);
+          }
+        }
+      }
+
+      // Cargar el resto en segundo plano
+      const remainingItems = items.slice(10);
+      for (const item of remainingItems) {
+        if (item.imagePath) {
+          getDownloadURL(ref(storage, item.imagePath))
+            .then(url => {
+              setImageCache(prev => ({ ...prev, [item.id]: url }));
+            })
+            .catch(() => {});
+        }
+      }
+    };
+
+    loadDestinations();
+  }, [currentStops, userLocation]);
+
+  // Filtrar destinos
+  useEffect(() => {
+    let filtered = destinations;
+
+    // Filtro por búsqueda
+    if (search) {
+      filtered = filtered.filter(d => 
+        d.name.toLowerCase().includes(search.toLowerCase()) ||
+        d.description.toLowerCase().includes(search.toLowerCase()) ||
+        d.municipality.toLowerCase().includes(search.toLowerCase())
+      );
+    }
+
+    // Filtro por categoría
+    if (category !== "Todos") {
+      filtered = filtered.filter(d => d.category === category);
+    }
+
+    setFilteredDestinations(filtered);
+  }, [search, category, destinations]);
+
+  // Obtener categorías únicas
+  const categories = ["Todos", ...Array.from(new Set(destinations.map(d => d.category)))];
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50"
+      onClick={onClose}
+    >
+      <motion.div
+        initial={{ scale: 0.9, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        exit={{ scale: 0.9, opacity: 0 }}
+        className="bg-white rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="p-4 sm:p-6 border-b">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl sm:text-2xl font-bold">Agregar al itinerario</h2>
+            <button
+              onClick={onClose}
+              className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+
+          {/* Búsqueda y filtros */}
+          <div className="flex flex-col sm:flex-row gap-3">
+            <div className="flex-1 relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <input
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Buscar destinos o experiencias..."
+                className="w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
+              />
+            </div>
+            <select
+              value={category}
+              onChange={(e) => setCategory(e.target.value)}
+              className="px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
+            >
+              {categories.map(cat => (
+                <option key={cat} value={cat}>{cat}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        {/* Lista de destinos */}
+        <div className="flex-1 overflow-y-auto p-4 sm:p-6">
+          {loading ? (
+            <div className="flex justify-center py-20">
+              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-red-600"></div>
+            </div>
+          ) : filteredDestinations.length === 0 ? (
+            <div className="text-center py-20">
+              <p className="text-gray-500">No se encontraron destinos</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {filteredDestinations.map((dest) => (
+                <motion.div
+                  key={dest.id}
+                  whileHover={{ scale: 1.02 }}
+                  className="bg-white border rounded-xl overflow-hidden hover:shadow-lg transition-all cursor-pointer"
+                  onClick={() => {
+                    // Actualizar la imagen antes de agregar si está en caché
+                    const destWithImage = imageCache[dest.id] 
+                      ? { ...dest, imageUrl: imageCache[dest.id] }
+                      : dest;
+                    onAdd(destWithImage);
+                    onClose();
+                  }}
+                >
+                  <div className="relative h-32 sm:h-40">
+                    <Image
+                      src={imageCache[dest.id] || dest.imageUrl || "/placeholder.jpg"}
+                      alt={dest.name}
+                      fill
+                      className="object-cover"
+                      unoptimized
+                    />
+                    <div className={`absolute top-2 right-2 px-2 py-1 rounded-full text-xs font-semibold text-white ${
+                      dest.type === "destination" ? "bg-blue-600" : "bg-green-600"
+                    }`}>
+                      {dest.type === "destination" ? "Destino" : "Experiencia"}
+                    </div>
+                  </div>
+                  <div className="p-4">
+                    <h3 className="font-semibold text-lg mb-1 line-clamp-1">{dest.name}</h3>
+                    <p className="text-sm text-gray-500 mb-2 flex items-center gap-1">
+                      <MapPin className="w-3 h-3" />
+                      {dest.municipality}
+                      {dest.distance > 0 && (
+                        <span className="ml-auto text-xs">
+                          {Math.round(dest.distance)} km
+                        </span>
+                      )}
+                    </p>
+                    <p className="text-sm text-gray-600 line-clamp-2">{dest.description}</p>
+                    <div className="mt-3 flex items-center justify-between">
+                      <span className="inline-flex items-center gap-1 px-2 py-1 bg-gray-100 rounded-full text-xs">
+                        {getCategoryIcon(dest.category)}
+                        {dest.category}
+                      </span>
+                      <motion.button
+                        whileHover={{ scale: 1.1 }}
+                        whileTap={{ scale: 0.95 }}
+                        className="text-red-600 font-semibold text-sm"
+                      >
+                        Agregar +
+                      </motion.button>
+                    </div>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          )}
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+};
+
 /* ───────── Componente Card View (Mobile-first) ───────── */
 const CardsView = ({ stops, onReorder, userLocation }: { 
   stops: Stop[]; 
@@ -463,6 +762,13 @@ const CardsView = ({ stops, onReorder, userLocation }: {
   userLocation?: { lat: number; lng: number } | null;
 }) => {
   const [selectedStop, setSelectedStop] = useState<Stop | null>(null);
+
+  const handleRemove = (stopId: string) => {
+    if (confirm("¿Estás seguro de eliminar esta parada del itinerario?")) {
+      const newStops = stops.filter(s => s.id !== stopId);
+      onReorder?.(recalculateTimings(newStops));
+    }
+  };
 
   return (
     <>
@@ -515,9 +821,20 @@ const CardsView = ({ stops, onReorder, userLocation }: {
                       {stop.municipality}
                     </p>
                   </div>
-                  <span className="text-sm bg-gray-100 px-3 py-1 rounded-full font-medium ml-2">
-                    {stop.durationMinutes} min
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm bg-gray-100 px-3 py-1 rounded-full font-medium">
+                      {stop.durationMinutes} min
+                    </span>
+                    <motion.button
+                      whileHover={{ scale: 1.1 }}
+                      whileTap={{ scale: 0.9 }}
+                      onClick={() => handleRemove(stop.id)}
+                      className="p-2 text-red-600 hover:bg-red-50 rounded-full transition-colors"
+                      title="Eliminar del itinerario"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </motion.button>
+                  </div>
                 </div>
                 
                 <p className="text-gray-600 mb-4 line-clamp-2 text-sm md:text-base">
@@ -649,6 +966,7 @@ function SortableStop({
   onDurationEdit,
   onTimeSave,
   onDurationSave,
+  onRemove,
   stops,
   onStopsUpdate,
   autoAdjust
@@ -664,6 +982,7 @@ function SortableStop({
   onDurationEdit: () => void;
   onTimeSave: (newTime: string) => void;
   onDurationSave: (newDuration: number) => void;
+  onRemove: () => void;
   stops: Stop[];
   onStopsUpdate: (stops: Stop[]) => void;
   autoAdjust: boolean;
@@ -784,16 +1103,30 @@ function SortableStop({
             </motion.button>
           )}
           
-          {/* Drag Handle mejorado */}
-          <motion.div 
-            {...attributes} 
-            {...listeners}
-            className="ml-auto mr-2 p-2 rounded-lg cursor-grab active:cursor-grabbing hover:bg-gray-100 transition-all touch-manipulation"
-            whileHover={{ scale: 1.1 }}
-            title="Arrastra para reordenar"
-          >
-            <GripVertical className="w-4 h-4 text-gray-400" />
-          </motion.div>
+          {/* Acciones */}
+          <div className="ml-auto flex items-center gap-2">
+            {/* Botón eliminar */}
+            <motion.button
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
+              onClick={onRemove}
+              className="p-2 rounded-lg text-red-600 hover:bg-red-50 transition-all"
+              title="Eliminar del itinerario"
+            >
+              <Trash2 className="w-4 h-4" />
+            </motion.button>
+            
+            {/* Drag Handle mejorado */}
+            <motion.div 
+              {...attributes} 
+              {...listeners}
+              className="p-2 rounded-lg cursor-grab active:cursor-grabbing hover:bg-gray-100 transition-all touch-manipulation"
+              whileHover={{ scale: 1.1 }}
+              title="Arrastra para reordenar"
+            >
+              <GripVertical className="w-4 h-4 text-gray-400" />
+            </motion.div>
+          </div>
         </div>
 
         {/* tarjeta mejorada */}
@@ -966,7 +1299,7 @@ function SortableStop({
 
 /* ───────── componente principal mejorado con edición de duraciones ───────── */
 export default function ItineraryTimeline({ stops, onStopsReorder, userLocation }: Props) {
-  const [localStops, setLocalStops] = useState(stops);
+  // Eliminamos el estado localStops y trabajamos directamente con los props
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [editingTimeId, setEditingTimeId] = useState<string | null>(null);
   const [editingDurationId, setEditingDurationId] = useState<string | null>(null);
@@ -974,16 +1307,13 @@ export default function ItineraryTimeline({ stops, onStopsReorder, userLocation 
   const [autoAdjust, setAutoAdjust] = useState(true);
   const [breakOpportunities, setBreakOpportunities] = useState<{ afterIndex: number; duration: number; suggestedTime: string }[]>([]);
   const [dismissedBreaks, setDismissedBreaks] = useState<Set<number>>(new Set());
-
-  React.useEffect(() => {
-    setLocalStops(stops);
-  }, [stops]);
+  const [showAddModal, setShowAddModal] = useState(false);
 
   // Detectar oportunidades de descanso cuando cambian los stops
   React.useEffect(() => {
-    const opportunities = detectBreakOpportunities(localStops);
+    const opportunities = detectBreakOpportunities(stops);
     setBreakOpportunities(opportunities.filter(o => !dismissedBreaks.has(o.afterIndex)));
-  }, [localStops, dismissedBreaks]);
+  }, [stops, dismissedBreaks]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -1000,13 +1330,12 @@ export default function ItineraryTimeline({ stops, onStopsReorder, userLocation 
     const { active, over } = event;
 
     if (active.id !== over?.id) {
-      const oldIndex = localStops.findIndex((stop) => stop.id === active.id);
-      const newIndex = localStops.findIndex((stop) => stop.id === over?.id);
+      const oldIndex = stops.findIndex((stop) => stop.id === active.id);
+      const newIndex = stops.findIndex((stop) => stop.id === over?.id);
       
-      const reorderedStops = arrayMove(localStops, oldIndex, newIndex);
+      const reorderedStops = arrayMove(stops, oldIndex, newIndex);
       const recalculatedStops = recalculateTimings(reorderedStops);
       
-      setLocalStops(recalculatedStops);
       onStopsReorder?.(recalculatedStops);
     }
   }
@@ -1018,10 +1347,10 @@ export default function ItineraryTimeline({ stops, onStopsReorder, userLocation 
   };
 
   const handleTimeSave = (stopId: string, newTime: string) => {
-    const index = localStops.findIndex(s => s.id === stopId);
+    const index = stops.findIndex(s => s.id === stopId);
     if (index === -1) return;
 
-    let updatedStops = [...localStops];
+    let updatedStops = [...stops];
     
     if (autoAdjust) {
       updatedStops = recalculateTimings(updatedStops, index, newTime);
@@ -1029,7 +1358,6 @@ export default function ItineraryTimeline({ stops, onStopsReorder, userLocation 
       updatedStops[index] = { ...updatedStops[index], startTime: newTime };
     }
 
-    setLocalStops(updatedStops);
     onStopsReorder?.(updatedStops);
     setEditingTimeId(null);
   };
@@ -1041,10 +1369,10 @@ export default function ItineraryTimeline({ stops, onStopsReorder, userLocation 
   };
 
   const handleDurationSave = (stopId: string, newDuration: number) => {
-    const index = localStops.findIndex(s => s.id === stopId);
+    const index = stops.findIndex(s => s.id === stopId);
     if (index === -1) return;
 
-    let updatedStops = [...localStops];
+    let updatedStops = [...stops];
     updatedStops[index] = { ...updatedStops[index], durationMinutes: newDuration };
     
     // Recalcular tiempos subsecuentes si el ajuste automático está activado
@@ -1052,7 +1380,6 @@ export default function ItineraryTimeline({ stops, onStopsReorder, userLocation 
       updatedStops = recalculateTimings(updatedStops, index + 1);
     }
 
-    setLocalStops(updatedStops);
     onStopsReorder?.(updatedStops);
     setEditingDurationId(null);
   };
@@ -1063,12 +1390,12 @@ export default function ItineraryTimeline({ stops, onStopsReorder, userLocation 
       id: `break-${Date.now()}`,
       name: "Descanso y refrigerio",
       description: "Tiempo para descansar, tomar un café o un snack",
-      lat: localStops[afterIndex].lat,
-      lng: localStops[afterIndex].lng,
+      lat: stops[afterIndex].lat,
+      lng: stops[afterIndex].lng,
       startTime: suggestedTime,
       durationMinutes: duration,
       category: "Descanso",
-      municipality: localStops[afterIndex].municipality,
+      municipality: stops[afterIndex].municipality,
       distance: 0,
       type: "experience",
       imageUrl: "/images/rest-placeholder.jpg",
@@ -1076,23 +1403,49 @@ export default function ItineraryTimeline({ stops, onStopsReorder, userLocation 
     };
 
     const updatedStops = [
-      ...localStops.slice(0, afterIndex + 1),
+      ...stops.slice(0, afterIndex + 1),
       breakStop,
-      ...localStops.slice(afterIndex + 1)
+      ...stops.slice(afterIndex + 1)
     ];
 
     const recalculated = recalculateTimings(updatedStops);
-    setLocalStops(recalculated);
     onStopsReorder?.(recalculated);
   };
 
+  // Eliminar parada
+  const handleRemoveStop = (stopId: string) => {
+    if (confirm("¿Estás seguro de eliminar esta parada del itinerario?")) {
+      const newStops = stops.filter(s => s.id !== stopId);
+      const recalculated = recalculateTimings(newStops);
+      onStopsReorder?.(recalculated);
+    }
+  };
+
+  // Agregar nuevo destino
+  const handleAddDestination = (newStop: Stop) => {
+    // Calcular el tiempo de inicio basado en la última parada
+    const lastStop = stops[stops.length - 1];
+    const startMin = lastStop 
+      ? toMin(lastStop.startTime) + lastStop.durationMinutes + 30
+      : 9 * 60; // 9:00 AM si no hay paradas
+
+    const stopWithTime = {
+      ...newStop,
+      startTime: toHHMM(startMin),
+      durationMinutes: newStop.durationMinutes || 60
+    };
+
+    const updatedStops = [...stops, stopWithTime];
+    onStopsReorder?.(updatedStops);
+  };
+
   /* filtros */
-  const categories = Array.from(new Set(localStops.map((s) => s.category).filter(Boolean)));
+  const categories = Array.from(new Set(stops.map((s) => s.category).filter(Boolean)));
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
 
   const filteredStops = activeCategory
-    ? localStops.filter((s) => s.category === activeCategory)
-    : localStops;
+    ? stops.filter((s) => s.category === activeCategory)
+    : stops;
 
   /* resumen */
   const totalMin = filteredStops.reduce((sum, s) => sum + s.durationMinutes, 0);
@@ -1128,175 +1481,201 @@ export default function ItineraryTimeline({ stops, onStopsReorder, userLocation 
               <Calendar className="w-5 h-5 mr-2" />
               Aventura del día
             </h3>
+
             <p className="text-red-100 text-sm mt-1">
-              {filteredStops.length} actividades • {h} h {min > 0 ? `${min} min` : ""}
-            </p>
-          </div>
-          <div className="bg-white/20 backdrop-blur-sm px-3 py-1.5 rounded-lg text-white text-xs md:text-sm font-medium">
-            {startTime} - {endTime}
-          </div>
-        </div>
-        
-        <div className="mt-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
-          <p className="text-red-100 text-xs flex items-center gap-1">
-            <GripVertical className="w-3 h-3" />
-            {isMobile ? "Toca y arrastra" : "Arrastra para reordenar"} • Click en horarios/duraciones para editar
-          </p>
-          
-          {/* Toggle de ajuste automático */}
-          <label className="flex items-center gap-2 text-xs text-white cursor-pointer">
-            <input
-              type="checkbox"
-              checked={autoAdjust}
-              onChange={(e) => setAutoAdjust(e.target.checked)}
-              className="sr-only"
-            />
-            <div className={`w-10 h-5 rounded-full transition-colors ${
-              autoAdjust ? "bg-white/40" : "bg-white/20"
-            }`}>
-              <div className={`w-4 h-4 bg-white rounded-full shadow-md transition-transform ${
-                autoAdjust ? "translate-x-5" : "translate-x-0.5"
-              } mt-0.5`} />
-            </div>
-            <span className="hidden sm:inline">Ajuste automático</span>
-            <span className="sm:hidden">Auto</span>
-            <span title="Cuando está activado, cambiar un horario ajustará automáticamente los siguientes">
-              <Info className="w-3 h-3 opacity-60" />
-            </span>
-          </label>
-        </div>
-      </div>
+             {filteredStops.length} actividades • {h} h {min > 0 ? `${min} min` : ""}
+           </p>
+         </div>
+         <div className="bg-white/20 backdrop-blur-sm px-3 py-1.5 rounded-lg text-white text-xs md:text-sm font-medium">
+           {startTime} - {endTime}
+         </div>
+       </div>
+       
+       <div className="mt-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+         <p className="text-red-100 text-xs flex items-center gap-1">
+           <GripVertical className="w-3 h-3" />
+           {isMobile ? "Toca y arrastra" : "Arrastra para reordenar"} • Click en horarios/duraciones para editar
+         </p>
+         
+         {/* Toggle de ajuste automático */}
+         <label className="flex items-center gap-2 text-xs text-white cursor-pointer">
+           <input
+             type="checkbox"
+             checked={autoAdjust}
+             onChange={(e) => setAutoAdjust(e.target.checked)}
+             className="sr-only"
+           />
+           <div className={`w-10 h-5 rounded-full transition-colors ${
+             autoAdjust ? "bg-white/40" : "bg-white/20"
+           }`}>
+             <div className={`w-4 h-4 bg-white rounded-full shadow-md transition-transform ${
+               autoAdjust ? "translate-x-5" : "translate-x-0.5"
+             } mt-0.5`} />
+           </div>
+           <span className="hidden sm:inline">Ajuste automático</span>
+           <span className="sm:hidden">Auto</span>
+           <span title="Cuando está activado, cambiar un horario ajustará automáticamente los siguientes">
+             <Info className="w-3 h-3 opacity-60" />
+           </span>
+         </label>
+       </div>
+     </div>
 
-      {/* Toggle de vista */}
-      <div className="flex flex-col sm:flex-row justify-between items-center gap-3 mb-4">
-        <div className="flex gap-2 w-full sm:w-auto">
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={() => setView("timeline")}
-            className={`flex-1 sm:flex-initial px-4 py-2 rounded-lg flex items-center justify-center gap-2 transition-all ${
-              view === "timeline" 
-                ? "bg-red-600 text-white shadow-md" 
-                : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-            }`}
-          >
-            <List className="w-4 h-4" /> 
-            <span className="hidden sm:inline">Línea de tiempo</span>
-            <span className="sm:hidden">Timeline</span>
-          </motion.button>
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={() => setView("cards")}
-            className={`flex-1 sm:flex-initial px-4 py-2 rounded-lg flex items-center justify-center gap-2 transition-all ${
-              view === "cards" 
-                ? "bg-red-600 text-white shadow-md" 
-                : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-            }`}
-          >
-            <Grid className="w-4 h-4" /> 
-            <span className="hidden sm:inline">Tarjetas</span>
-            <span className="sm:hidden">Cards</span>
-          </motion.button>
-        </div>
+     {/* Toggle de vista */}
+     <div className="flex flex-col sm:flex-row justify-between items-center gap-3 mb-4">
+       <div className="flex gap-2 w-full sm:w-auto">
+         <motion.button
+           whileHover={{ scale: 1.05 }}
+           whileTap={{ scale: 0.95 }}
+           onClick={() => setView("timeline")}
+           className={`flex-1 sm:flex-initial px-4 py-2 rounded-lg flex items-center justify-center gap-2 transition-all ${
+             view === "timeline" 
+               ? "bg-red-600 text-white shadow-md" 
+               : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+           }`}
+         >
+           <List className="w-4 h-4" /> 
+           <span className="hidden sm:inline">Línea de tiempo</span>
+           <span className="sm:hidden">Timeline</span>
+         </motion.button>
+         <motion.button
+           whileHover={{ scale: 1.05 }}
+           whileTap={{ scale: 0.95 }}
+           onClick={() => setView("cards")}
+           className={`flex-1 sm:flex-initial px-4 py-2 rounded-lg flex items-center justify-center gap-2 transition-all ${
+             view === "cards" 
+               ? "bg-red-600 text-white shadow-md" 
+               : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+           }`}
+         >
+           <Grid className="w-4 h-4" /> 
+           <span className="hidden sm:inline">Tarjetas</span>
+           <span className="sm:hidden">Cards</span>
+         </motion.button>
+       </div>
 
-        {/* Filtros de categoría - Scroll horizontal en móvil */}
-        {categories.length > 1 && (
-          <div className="flex gap-1.5 overflow-x-auto pb-2 w-full sm:w-auto">
-            <button
-              onClick={() => setActiveCategory(null)}
-              className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all whitespace-nowrap ${
-                !activeCategory
-                  ? "bg-red-600 text-white"
-                  : "bg-white border border-gray-200 text-gray-700 hover:bg-gray-50"
-              }`}
-            >
-              Todas
-            </button>
-            {categories.map((cat) => (
-              <button
-                key={cat}
-                onClick={() => setActiveCategory(cat)}
-                className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all flex items-center gap-1 whitespace-nowrap ${
-                  activeCategory === cat
-                    ? "bg-red-600 text-white"
-                    : "bg-white border border-gray-200 text-gray-700 hover:bg-gray-50"
-                }`}
-              >
-                {getCategoryIcon(cat)}
-                {cat}
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
+       {/* Filtros de categoría - Scroll horizontal en móvil */}
+       {categories.length > 1 && (
+         <div className="flex gap-1.5 overflow-x-auto pb-2 w-full sm:w-auto">
+           <button
+             onClick={() => setActiveCategory(null)}
+             className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all whitespace-nowrap ${
+               !activeCategory
+                 ? "bg-red-600 text-white"
+                 : "bg-white border border-gray-200 text-gray-700 hover:bg-gray-50"
+             }`}
+           >
+             Todas
+           </button>
+           {categories.map((cat) => (
+             <button
+               key={cat}
+               onClick={() => setActiveCategory(cat)}
+               className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all flex items-center gap-1 whitespace-nowrap ${
+                 activeCategory === cat
+                   ? "bg-red-600 text-white"
+                   : "bg-white border border-gray-200 text-gray-700 hover:bg-gray-50"
+               }`}
+             >
+               {getCategoryIcon(cat)}
+               {cat}
+             </button>
+           ))}
+         </div>
+       )}
+     </div>
 
-      {/* Vista condicional */}
-      {view === "timeline" ? (
-        <div className="relative pt-4 pb-8">
-          <DndContext 
-            sensors={sensors}
-            collisionDetection={closestCenter}
-            onDragEnd={handleDragEnd}
-          >
-            <SortableContext 
-              items={filteredStops.map(s => s.id)} 
-              strategy={verticalListSortingStrategy}
-            >
-              {filteredStops.map((s, i) => {
-                // Encontrar oportunidad de descanso después de esta parada
-                const breakOpp = breakOpportunities.find(o => o.afterIndex === i);
-                
-                return (
-                  <React.Fragment key={s.id}>
-                    <SortableStop
-                      stop={s}
-                      index={i}
-                      expanded={expandedId === s.id}
-                      toggleExpand={() => setExpandedId(expandedId === s.id ? null : s.id)}
-                      isLast={i === filteredStops.length - 1}
-                      editingTime={editingTimeId === s.id}
-                      editingDuration={editingDurationId === s.id}
-                      onTimeEdit={() => handleTimeEdit(s.id)}
-                      onDurationEdit={() => handleDurationEdit(s.id)}
-                      onTimeSave={(newTime) => handleTimeSave(s.id, newTime)}
-                      onDurationSave={(newDuration) => handleDurationSave(s.id, newDuration)}
-                      stops={filteredStops}
-                      onStopsUpdate={setLocalStops}
-                      autoAdjust={autoAdjust}
-                    />
-                    
-                    {/* Sugerencia de descanso */}
-                    {breakOpp && !dismissedBreaks.has(i) && (
-                      <BreakSuggestion
-                        opportunity={breakOpp}
-                        onAdd={() => handleAddBreak(i, breakOpp.duration, breakOpp.suggestedTime)}
-                        onDismiss={() => {
-                          setDismissedBreaks(new Set([...dismissedBreaks, i]));
-                        }}
-                      />
-                    )}
-                  </React.Fragment>
-                );
-              })}
-            </SortableContext>
-          </DndContext>
+     {/* Vista condicional */}
+     {view === "timeline" ? (
+       <div className="relative pt-4 pb-8">
+         <DndContext 
+           sensors={sensors}
+           collisionDetection={closestCenter}
+           onDragEnd={handleDragEnd}
+         >
+           <SortableContext 
+             items={filteredStops.map(s => s.id)} 
+             strategy={verticalListSortingStrategy}
+           >
+             {filteredStops.map((s, i) => {
+               // Encontrar oportunidad de descanso después de esta parada
+               const breakOpp = breakOpportunities.find(o => o.afterIndex === i);
+               
+               return (
+                 <React.Fragment key={s.id}>
+                   <SortableStop
+                     stop={s}
+                     index={i}
+                     expanded={expandedId === s.id}
+                     toggleExpand={() => setExpandedId(expandedId === s.id ? null : s.id)}
+                     isLast={i === filteredStops.length - 1}
+                     editingTime={editingTimeId === s.id}
+                     editingDuration={editingDurationId === s.id}
+                     onTimeEdit={() => handleTimeEdit(s.id)}
+                     onDurationEdit={() => handleDurationEdit(s.id)}
+                     onTimeSave={(newTime) => handleTimeSave(s.id, newTime)}
+                     onDurationSave={(newDuration) => handleDurationSave(s.id, newDuration)}
+                     onRemove={() => handleRemoveStop(s.id)}
+                     stops={filteredStops}
+                     onStopsUpdate={onStopsReorder || (() => {})}
+                     autoAdjust={autoAdjust}
+                   />
+                   
+                   {/* Sugerencia de descanso */}
+                   {breakOpp && !dismissedBreaks.has(i) && (
+                     <BreakSuggestion
+                       opportunity={breakOpp}
+                       onAdd={() => handleAddBreak(i, breakOpp.duration, breakOpp.suggestedTime)}
+                       onDismiss={() => {
+                         setDismissedBreaks(new Set([...dismissedBreaks, i]));
+                       }}
+                     />
+                   )}
+                 </React.Fragment>
+               );
+             })}
+           </SortableContext>
+         </DndContext>
 
-          {/* fin del día */}
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.5 }}
-            className="flex items-center justify-center mt-8"
-          >
-            <div className="px-4 py-2 bg-gradient-to-r from-gray-100 to-gray-200 text-gray-600 rounded-full text-sm font-medium shadow-sm">
-              ✨ Fin del día
-            </div>
-          </motion.div>
-        </div>
-      ) : (
-        <CardsView stops={filteredStops} onReorder={onStopsReorder} userLocation={userLocation} />
-      )}
-    </div>
-  );
+         {/* fin del día */}
+         <motion.div 
+           initial={{ opacity: 0 }}
+           animate={{ opacity: 1 }}
+           transition={{ delay: 0.5 }}
+           className="flex items-center justify-center mt-8"
+         >
+           <div className="px-4 py-2 bg-gradient-to-r from-gray-100 to-gray-200 text-gray-600 rounded-full text-sm font-medium shadow-sm">
+             ✨ Fin del día
+           </div>
+         </motion.div>
+       </div>
+     ) : (
+       <CardsView stops={filteredStops} onReorder={onStopsReorder} userLocation={userLocation} />
+     )}
+
+     {/* Botón flotante para agregar destinos */}
+     <motion.button
+       whileHover={{ scale: 1.1 }}
+       whileTap={{ scale: 0.95 }}
+       onClick={() => setShowAddModal(true)}
+       className="fixed bottom-20 right-4 bg-green-600 text-white p-4 rounded-full shadow-lg z-40 flex items-center gap-2"
+       title="Agregar destino"
+     >
+       <Plus className="w-6 h-6" />
+       {!isMobile && <span className="pr-2">Agregar</span>}
+     </motion.button>
+
+     {/* Modal para agregar destinos */}
+     <AnimatePresence>
+       {showAddModal && (
+         <AddDestinationModal
+           onClose={() => setShowAddModal(false)}
+           onAdd={handleAddDestination}
+           currentStops={stops}
+           userLocation={userLocation}
+         />
+       )}
+     </AnimatePresence>
+   </div>
+ );
 }

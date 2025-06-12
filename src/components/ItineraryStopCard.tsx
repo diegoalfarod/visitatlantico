@@ -32,6 +32,7 @@ export interface Stop {
   cost?: string;
   amenities?: string[];
   photos?: string[];
+  imagePath?: string;
 }
 
 interface Props {
