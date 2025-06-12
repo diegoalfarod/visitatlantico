@@ -1,8 +1,18 @@
 // File: src/components/ItineraryTimeline.tsx
 "use client";
 
-import React, { useState, useMemo, useCallback, useRef } from "react";
-import { useDrag, useDrop } from "react-dnd";
+import React, { useState, useMemo, useCallback } from "react";
+import {
+  DndContext,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  useSortable,
+  SortableContext,
+  verticalListSortingStrategy,
+  arrayMove,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import { motion, AnimatePresence } from "framer-motion";
 import { Stop } from "./ItineraryStopCard";
 import {
@@ -60,7 +70,6 @@ const formatTime = (t: string) => {
   return `${hh}:${m.toString().padStart(2, "0")} ${period}`;
 };
 
-const ItemType = "STOP";
 
 /* ───────── componente ───────── */
 export default function ItineraryTimeline({ stops, editable, onChange }: Props) {
@@ -87,16 +96,6 @@ export default function ItineraryTimeline({ stops, editable, onChange }: Props) 
     ? filledStops.filter((s) => s.category === activeCategory)
     : filledStops;
 
-  const moveStop = useCallback(
-    (from: number, to: number) => {
-      if (!onChange) return;
-      const updated = [...stops];
-      const [item] = updated.splice(from, 1);
-      updated.splice(to, 0, item);
-      onChange(updated);
-    },
-    [stops, onChange]
-  );
 
   const updateStop = useCallback(
     (index: number, changes: Partial<Stop>) => {
@@ -104,6 +103,27 @@ export default function ItineraryTimeline({ stops, editable, onChange }: Props) 
       const updated = [...stops];
       updated[index] = { ...updated[index], ...changes };
       onChange(updated);
+    },
+    [stops, onChange]
+  );
+
+  const handleDragEnd = useCallback(
+    (event: DragEndEvent) => {
+      if (!onChange) return;
+      const { active, over } = event;
+      if (!over || active.id === over.id) return;
+      const oldIndex = stops.findIndex((s) => s.id === active.id);
+      const newIndex = stops.findIndex((s) => s.id === over.id);
+      if (oldIndex === -1 || newIndex === -1) return;
+      const reordered = arrayMove(stops, oldIndex, newIndex);
+
+      let current = toMin(reordered[0].startTime || "09:00");
+      for (let i = 0; i < reordered.length; i++) {
+        reordered[i].startTime = toHHMM(current);
+        current += reordered[i].durationMinutes || 60;
+      }
+
+      onChange(reordered);
     },
     [stops, onChange]
   );
@@ -141,23 +161,19 @@ export default function ItineraryTimeline({ stops, editable, onChange }: Props) 
     const photos = stop.photos || (stop.imageUrl ? [stop.imageUrl] : []);
     const mapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${stop.lat},${stop.lng}`;
 
-    const ref = useRef<HTMLDivElement | null>(null);
-    const [, drop] = useDrop({
-      accept: ItemType,
-      hover(item: { index: number }) {
-        if (!ref.current || item.index === index) return;
-        moveStop(item.index, index);
-        item.index = index;
-      },
-    });
-    const [{ isDragging }, drag] = useDrag({
-      type: ItemType,
-      item: { index },
-      collect: (m) => ({ isDragging: m.isDragging() }),
-    });
-    if (editable) {
-      drag(drop(ref));
-    }
+    const {
+      attributes,
+      listeners,
+      setNodeRef,
+      transform,
+      transition,
+      isDragging,
+    } = useSortable({ id: stop.id, disabled: !editable });
+    const style = {
+      transform: CSS.Transform.toString(transform),
+      transition,
+      opacity: isDragging ? 0.5 : 1,
+    };
 
     const colors = {
       destination: {
@@ -184,7 +200,13 @@ export default function ItineraryTimeline({ stops, editable, onChange }: Props) 
           <div className={`absolute left-4 top-12 bottom-0 w-0.5 ${c.secondary}`} />
         )}
 
-        <div className="relative z-10 mb-6" ref={editable ? ref : undefined} style={{ opacity: isDragging ? 0.5 : 1 }}>
+        <div
+          className="relative z-10 mb-6"
+          ref={editable ? setNodeRef : undefined}
+          style={style}
+          {...attributes}
+          {...listeners}
+        >
           {/* hora + duración */}
           <div className="flex items-center mb-2">
             <div className={`w-8 h-8 ${c.primary} rounded-full flex items-center justify-center shadow-md`}>
@@ -380,19 +402,39 @@ export default function ItineraryTimeline({ stops, editable, onChange }: Props) 
 
       {/* timeline */}
       <div className="relative pt-4 pb-8">
-        {filteredStops.map((s, i) => {
-          const realIndex = stops.findIndex((st) => st.id === s.id);
-          return (
-            <StopCard
-              key={s.id}
-              stop={s}
-              expanded={expandedId === s.id}
-              toggleExpand={() => setExpandedId(expandedId === s.id ? null : s.id)}
-              isLast={i === filteredStops.length - 1}
-              index={realIndex}
-            />
-          );
-        })}
+        {editable ? (
+          <DndContext onDragEnd={handleDragEnd}>
+            <SortableContext items={stops.map((s) => s.id)} strategy={verticalListSortingStrategy}>
+              {filteredStops.map((s, i) => {
+                const realIndex = stops.findIndex((st) => st.id === s.id);
+                return (
+                  <StopCard
+                    key={s.id}
+                    stop={s}
+                    expanded={expandedId === s.id}
+                    toggleExpand={() => setExpandedId(expandedId === s.id ? null : s.id)}
+                    isLast={i === filteredStops.length - 1}
+                    index={realIndex}
+                  />
+                );
+              })}
+            </SortableContext>
+          </DndContext>
+        ) : (
+          filteredStops.map((s, i) => {
+            const realIndex = stops.findIndex((st) => st.id === s.id);
+            return (
+              <StopCard
+                key={s.id}
+                stop={s}
+                expanded={expandedId === s.id}
+                toggleExpand={() => setExpandedId(expandedId === s.id ? null : s.id)}
+                isLast={i === filteredStops.length - 1}
+                index={realIndex}
+              />
+            );
+          })
+        )}
 
         {/* fin */}
         <div className="flex items-center justify-center mt-8">
