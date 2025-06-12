@@ -28,7 +28,7 @@ export interface ItineraryStop {
   type: "destination" | "experience";
   category?: string;
   imageUrl?: string;
-  photos?: string[];              // 👈 se añade galería
+  photos?: string[];
 }
 
 /* ─────────── Helpers ─────────── */
@@ -76,10 +76,11 @@ export default async function handler(
     };
 
     const totalDays = Number(profile?.Días);
-    if (!totalDays || totalDays < 1 || !profile?.Motivo)
+    // ACTUALIZADO: Cambiar validación para Motivos (plural)
+    if (!totalDays || totalDays < 1 || !profile?.Motivos)
       return res
         .status(400)
-        .json({ error: "Perfil incompleto: faltan días (>0) o motivo" });
+        .json({ error: "Perfil incompleto: faltan días (>0) o motivos" });
 
     /* ── Firebase ── */
     if (!admin.apps.length) {
@@ -200,6 +201,7 @@ async function loadCollection(
   }
 }
 
+// ACTUALIZADO: Sistema mejorado para manejar múltiples intereses
 function buildSystemPrompt(
   days: number,
   stops: Array<{
@@ -212,37 +214,74 @@ function buildSystemPrompt(
   location: { lat: number; lng: number } | null
 ) {
   return `
-Eres un guía turístico experto del Atlántico, Colombia.
+Eres un guía turístico experto del Atlántico, Colombia especializado en crear itinerarios personalizados.
 Crea un itinerario de ${days} día(s) usando **solo** los siguientes lugares (ID exacto):
 
 ${stops
   .map(
     (s) =>
-      `• ${s.id} | ${s.type.toUpperCase()} | ${s.name} (${s.municipality})`
+      `• ${s.id} | ${s.type.toUpperCase()} | ${s.name} (${s.municipality}) ${s.category ? `- ${s.category}` : ''}`
   )
   .join("\n")}
 
-Reglas:
-1. Usa únicamente IDs listados.
+Reglas ESTRICTAS:
+1. Usa únicamente IDs listados arriba.
 2. MÁXIMO 4 paradas por día (idealmente 3-4).
-3. Formato JSON final: {"itinerary":[{"id":"xxx","startTime":"HH:MM","durationMinutes":NN},…]}
-4. Horario entre 08:00 y 20:00 y respeta cercanía geográfica.
-5. Balancea destinos y experiencias.
-6. Nunca excedas 4 paradas por día bajo ninguna circunstancia.
+3. El viajero ha seleccionado múltiples intereses, así que DEBES incluir variedad que refleje todos sus gustos.
+4. Prioriza experiencias que combinen múltiples intereses cuando sea posible.
+5. Formato JSON final: {"itinerary":[{"id":"xxx","startTime":"HH:MM","durationMinutes":NN},…]}
+6. Horario entre 08:00 y 20:00 y respeta cercanía geográfica.
+7. Balancea destinos y experiencias según los intereses del viajero.
+8. Si el viajero eligió "De todo un poco", incluye la mayor variedad posible.
 
 ${
   location
-    ? `Punto inicial del usuario: ${location.lat}, ${location.lng}`
+    ? `Punto inicial del usuario: ${location.lat}, ${location.lng} - Comienza con lugares cercanos.`
     : ""
 }`.trim();
 }
 
+// ACTUALIZADO: User prompt mejorado para múltiples intereses
 function buildUserPrompt(profile: Record<string, string>) {
+  // Parsear los motivos y crear descripciones detalladas
+  const motivos = profile.Motivos || "";
+  const motivosList = motivos.split(",").map(m => m.trim());
+  
+  const interestsDescription = motivosList.map(motivo => {
+    const mappings: Record<string, string> = {
+      "Relax total": "playas tranquilas, spas, lugares de descanso",
+      "Inmersión cultural": "museos, sitios históricos, eventos culturales",
+      "Aventura activa": "deportes acuáticos, senderismo, actividades al aire libre",
+      "Sabores locales": "restaurantes típicos, mercados gastronómicos, experiencias culinarias",
+      "Artesanías locales": "talleres de artesanías, mercados del Carnaval, tiendas tradicionales",
+      "Ritmos y baile": "lugares de salsa y cumbia, peñas, experiencias musicales",
+      "Festivales y eventos": "eventos del Carnaval, ferias, festividades locales",
+      "Deportes acuáticos": "kitesurf, paddle board, snorkel, actividades marinas",
+      "Avistamiento de aves": "Ciénaga de Mallorquín, reservas naturales, tours ecológicos",
+      "Ecoturismo & manglares": "paseos por manglares, bosque seco tropical, naturaleza",
+      "Ruta del Malecón": "actividades en el Malecón, ciclismo, patinaje",
+      "Playas urbanas & relax": "Puerto Mocho, playas sostenibles cercanas",
+      "Historia portuaria": "Muelle 1888, historia marítima, patrimonio",
+      "Arte urbano & museos": "street art, museos, galerías",
+      "Ruta de sabores marinos": "mariscos frescos, restaurantes costeros",
+      "Vida nocturna chic": "bares elegantes, rooftops, coctelerías",
+      "Bienestar & spa": "yoga, retiros de bienestar, relajación",
+      "De todo un poco": "máxima variedad de experiencias"
+    };
+    
+    return mappings[motivo] || motivo.toLowerCase();
+  }).join(", ");
+
   return `
-Viajero:
-• Días: ${profile.Días}
-• Intereses: ${profile.Motivo}
-• ¿Visitar otros municipios?: ${profile["Otros municipios"] ?? "No"}
+Viajero con MÚLTIPLES INTERESES:
+- Días: ${profile.Días}
+- Intereses seleccionados (TODOS son importantes): ${motivos}
+- Específicamente busca: ${interestsDescription}
+- ¿Visitar otros municipios?: ${profile["Otros municipios"] ?? "No"}
+
+IMPORTANTE: El viajero ha seleccionado ${motivosList.length} tipos de experiencias diferentes.
+Asegúrate de incluir actividades que representen TODOS estos intereses a lo largo del itinerario.
+Si eligió intereses contrastantes (ej: relax + aventura), alterna entre ambos tipos durante el día.
 `.trim();
 }
 
@@ -258,7 +297,7 @@ async function generateAIItinerary(
       { role: "user", content: userPrompt },
     ],
     response_format: { type: "json_object" },
-    temperature: 0.2,
+    temperature: 0.3, // Aumentado ligeramente para más creatividad con múltiples intereses
     max_tokens: 1500,
   });
   return resp.choices[0]?.message?.content ?? "{}";

@@ -114,10 +114,10 @@ export default function PremiumPlannerPage() {
   const router = useRouter();
   const isMobile = useIsMobile();
   
-  /* wizard answers */
+  /* wizard answers - ACTUALIZADO para manejar motivos como array */
   const [answers, setAnswers] = useState<{
     days?: number;
-    motivo?: string;
+    motivos?: string[]; // CAMBIADO de motivo a motivos (array)
     otros?: boolean;
     email?: string;
   }>({});
@@ -230,43 +230,109 @@ export default function PremiumPlannerPage() {
       ),
     },
     {
-      label: "¿Qué tipo de experiencia buscas?",
-      helper: "Elige la que más te atraiga",
-      valid: !!answers.motivo,
+      label: "¿Qué tipo de experiencias buscas?",
+      helper: "Elige hasta 3 opciones que más te atraigan",
+      valid: answers.motivos && answers.motivos.length > 0 && answers.motivos.length <= 3,
       element: (
-        <div className="space-y-2 sm:space-y-3">
-          {[
-            { id: "relax", emoji: "🏖️", title: "Relax total", desc: "Playas, spa y descanso" },
-            { id: "cultura", emoji: "🎭", title: "Inmersión cultural", desc: "Museos, historia y tradiciones" },
-            { id: "aventura", emoji: "🚣", title: "Aventura activa", desc: "Deportes y naturaleza" },
-            { id: "gastronomia", emoji: "🍤", title: "Sabores locales", desc: "Comida típica y mercados" },
-            { id: "mixto", emoji: "✨", title: "De todo un poco", desc: "Experiencia variada" },
-          ].map((exp) => (
-            <motion.button
-              key={exp.id}
-              whileHover={!isMobile ? { x: 10 } : {}}
-              whileTap={{ scale: 0.98 }}
-              onClick={() => setAnswers({ ...answers, motivo: exp.title })}
-              className={`w-full p-3 sm:p-4 rounded-xl flex items-center gap-3 sm:gap-4 transition-all ${
-                answers.motivo === exp.title
-                  ? "bg-gradient-to-r from-red-600 to-red-700 text-white shadow-lg"
-                  : "bg-white border border-gray-200 hover:shadow-md"
-              }`}
-            >
-              <span className="text-2xl sm:text-3xl">{exp.emoji}</span>
-              <div className="text-left flex-1">
-                <div className="font-semibold text-sm sm:text-base">{exp.title}</div>
-                <div className={`text-xs sm:text-sm ${
-                  answers.motivo === exp.title ? "text-red-100" : "text-gray-500"
-                }`}>
-                  {exp.desc}
-                </div>
-              </div>
-              {answers.motivo === exp.title && (
-                <Check className="w-4 h-4 sm:w-5 sm:h-5" />
-              )}
-            </motion.button>
-          ))}
+        <div className="space-y-2 sm:space-y-2.5">
+          {/* Indicador de selección */}
+          <div className="flex justify-between items-center mb-2 px-1">
+            <span className="text-sm text-gray-600">
+              {answers.motivos?.length || 0} de 3 seleccionadas
+            </span>
+            {answers.motivos && answers.motivos.length > 0 && (
+              <button
+                onClick={() => setAnswers({ ...answers, motivos: [] })}
+                className="text-sm text-red-600 hover:text-red-700"
+              >
+                Limpiar selección
+              </button>
+            )}
+          </div>
+          
+          {/* Grid de opciones */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            {[
+              // Opciones originales
+              { id: "relax", emoji: "🏖️", title: "Relax total", desc: "Playas, spa y descanso" },
+              { id: "cultura", emoji: "🎭", title: "Inmersión cultural", desc: "Museos, historia y tradiciones" },
+              { id: "aventura", emoji: "🚣", title: "Aventura activa", desc: "Deportes y naturaleza" },
+              { id: "gastronomia", emoji: "🍤", title: "Sabores locales", desc: "Comida típica y mercados" },
+              
+              // Nuevas opciones
+              { id: "artesanias", emoji: "🎨", title: "Artesanías locales", desc: "Talleres y mercados del Carnaval" },
+              { id: "ritmos", emoji: "💃", title: "Ritmos y baile", desc: "Salsa, cumbia y rumba barranquillera" },
+              { id: "festivales", emoji: "🎪", title: "Festivales y eventos", desc: "Carnaval y ferias gastronómicas" },
+              { id: "deportes-acuaticos", emoji: "🏄", title: "Deportes acuáticos", desc: "Kitesurf, paddle board y snorkel" },
+              { id: "avistamiento", emoji: "🦜", title: "Avistamiento de aves", desc: "Recorridos por Ciénaga de Mallorquín" },
+              { id: "ecoturismo", emoji: "🌿", title: "Ecoturismo & manglares", desc: "Paseos por bosque tropical" },
+              { id: "malecon", emoji: "🚴", title: "Ruta del Malecón", desc: "Bicis y trote junto al río Magdalena" },
+              { id: "playas-urbanas", emoji: "🏖️", title: "Playas urbanas & relax", desc: "Puerto Mocho y playas sostenibles" },
+              { id: "historia-portuaria", emoji: "🏗️", title: "Historia portuaria", desc: "Muelle 1888 y boulevard gastronómico" },
+              { id: "arte-urbano", emoji: "🖼️", title: "Arte urbano & museos", desc: "Street art y Museo del Caribe" },
+              { id: "sabores-marinos", emoji: "🦐", title: "Ruta de sabores marinos", desc: "Mariscos frescos y mercados gourmet" },
+              { id: "vida-nocturna", emoji: "🍹", title: "Vida nocturna chic", desc: "Coctelerías y rooftops de moda" },
+              { id: "bienestar", emoji: "🧘", title: "Bienestar & spa", desc: "Yoga y retiros junto al mar" },
+              { id: "mixto", emoji: "✨", title: "De todo un poco", desc: "Experiencia variada" },
+            ].map((exp) => {
+              const isSelected = answers.motivos?.includes(exp.id) || false;
+              const canSelect = !isSelected && (answers.motivos?.length || 0) < 3;
+              
+              return (
+                <motion.button
+                  key={exp.id}
+                  whileHover={!isMobile && (isSelected || canSelect) ? { scale: 1.02 } : {}}
+                  whileTap={isSelected || canSelect ? { scale: 0.98 } : {}}
+                  onClick={() => {
+                    if (isSelected) {
+                      // Deseleccionar
+                      setAnswers({
+                        ...answers,
+                        motivos: answers.motivos?.filter(m => m !== exp.id) || []
+                      });
+                    } else if (canSelect) {
+                      // Seleccionar (solo si hay menos de 3)
+                      setAnswers({
+                        ...answers,
+                        motivos: [...(answers.motivos || []), exp.id]
+                      });
+                    }
+                  }}
+                  disabled={!isSelected && !canSelect}
+                  className={`w-full p-3 sm:p-4 rounded-xl flex items-center gap-3 sm:gap-4 transition-all ${
+                    isSelected
+                      ? "bg-gradient-to-r from-red-600 to-red-700 text-white shadow-lg ring-2 ring-red-600 ring-offset-2"
+                      : canSelect
+                      ? "bg-white border border-gray-200 hover:shadow-md hover:border-red-300"
+                      : "bg-gray-50 border border-gray-100 opacity-50 cursor-not-allowed"
+                  }`}
+                >
+                  <span className="text-2xl sm:text-3xl flex-shrink-0">{exp.emoji}</span>
+                  <div className="text-left flex-1 min-w-0">
+                    <div className="font-semibold text-sm sm:text-base truncate">{exp.title}</div>
+                    <div className={`text-xs sm:text-sm ${
+                      isSelected ? "text-red-100" : "text-gray-500"
+                    } line-clamp-1`}>
+                      {exp.desc}
+                    </div>
+                  </div>
+                  {isSelected && (
+                    <div className="flex-shrink-0 flex items-center">
+                      <Check className="w-4 h-4 sm:w-5 sm:h-5" />
+                      <span className="text-xs ml-1">{answers.motivos?.indexOf(exp.id)! + 1}</span>
+                    </div>
+                  )}
+                </motion.button>
+              );
+            })}
+          </div>
+          
+          {/* Mensaje de ayuda */}
+          {answers.motivos && answers.motivos.length === 3 && (
+            <p className="text-sm text-amber-600 text-center mt-2">
+              Has alcanzado el máximo de 3 opciones. Deselecciona alguna para cambiar tu selección.
+            </p>
+          )}
         </div>
       ),
     },
@@ -347,19 +413,19 @@ export default function PremiumPlannerPage() {
     if (!steps.every((s) => s.valid)) return;
     setView("loading");
     
-    // Guardar preferencias del usuario
+    // Guardar preferencias del usuario - ACTUALIZADO para múltiples motivos
     updatePreferences({
-      travelStyle: answers.motivo,
+      travelStyles: answers.motivos, // Cambiado a plural
       lastItineraries: [...(preferences.lastItineraries || []), {
         date: new Date().toISOString(),
         days: answers.days,
-        style: answers.motivo
+        styles: answers.motivos // Cambiado a plural
       }].slice(-5) // Mantener solo los últimos 5
     });
     
     const profile = {
       Días: String(answers.days),
-      Motivo: answers.motivo,
+      Motivos: answers.motivos?.join(", "), // ACTUALIZADO: unir los motivos con comas
       "Otros municipios": answers.otros ? "Sí" : "No",
       Email: answers.email,
     };
@@ -577,186 +643,185 @@ export default function PremiumPlannerPage() {
   }
 
   /* ═════ vista itinerario mejorada para móvil ════ */
-  /* ═════ vista itinerario mejorada para móvil ════ */
-if (view === "itinerary" && itinerary) {
-  const totalH = Math.round(
-    itinerary.reduce((s, t) => s + t.durationMinutes, 0) / 60
-  );
-  const days = answers.days ?? 1;
-  const perDay = Math.ceil(itinerary.length / days);
+  if (view === "itinerary" && itinerary) {
+    const totalH = Math.round(
+      itinerary.reduce((s, t) => s + t.durationMinutes, 0) / 60
+    );
+    const days = answers.days ?? 1;
+    const perDay = Math.ceil(itinerary.length / days);
 
-  return (
-    <main ref={pdfRef} className="min-h-screen bg-gradient-to-br from-blue-50 to-red-50 pb-16">
-      {/* HERO móvil-first */}
-      <div className="bg-gradient-to-r from-red-600 to-red-800 text-white py-12 sm:py-16">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 text-center">
-          {/* Botón de regreso */}
-          <button
-            onClick={() => {
-              if (confirm("¿Regresar al inicio? Se perderá el itinerario actual.")) {
-                setView("questions");
-                setQIndex(0);
-                setItinerary(null);
-              }
-            }}
-            className="absolute top-4 left-4 p-2 rounded-full bg-white/20 backdrop-blur-sm hover:bg-white/30 transition-colors"
-          >
-            <ArrowLeft className="w-5 h-5" />
-          </button>
-          
-          <motion.h1 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="text-3xl sm:text-5xl font-extrabold"
-          >
-            Tu Aventura Generada
-          </motion.h1>
-          {userPlace && (
-            <motion.p 
+    return (
+      <main ref={pdfRef} className="min-h-screen bg-gradient-to-br from-blue-50 to-red-50 pb-16">
+        {/* HERO móvil-first */}
+        <div className="bg-gradient-to-r from-red-600 to-red-800 text-white py-12 sm:py-16">
+          <div className="max-w-4xl mx-auto px-4 sm:px-6 text-center">
+            {/* Botón de regreso */}
+            <button
+              onClick={() => {
+                if (confirm("¿Regresar al inicio? Se perderá el itinerario actual.")) {
+                  setView("questions");
+                  setQIndex(0);
+                  setItinerary(null);
+                }
+              }}
+              className="absolute top-4 left-4 p-2 rounded-full bg-white/20 backdrop-blur-sm hover:bg-white/30 transition-colors"
+            >
+              <ArrowLeft className="w-5 h-5" />
+            </button>
+            
+            <motion.h1 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="text-3xl sm:text-5xl font-extrabold"
+            >
+              Tu Aventura Generada
+            </motion.h1>
+            {userPlace && (
+              <motion.p 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.2 }}
+                className="mt-2 text-base sm:text-lg"
+              >
+                📍 {userPlace}
+              </motion.p>
+            )}
+            <motion.div 
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              transition={{ delay: 0.2 }}
-              className="mt-2 text-base sm:text-lg"
+              transition={{ delay: 0.4 }}
+              className="mt-4 flex items-center justify-center gap-2 text-xs sm:text-sm bg-white/20 rounded-full px-3 sm:px-4 py-2 backdrop-blur-sm mx-auto max-w-fit"
             >
-              📍 {userPlace}
-            </motion.p>
-          )}
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.4 }}
-            className="mt-4 flex items-center justify-center gap-2 text-xs sm:text-sm bg-white/20 rounded-full px-3 sm:px-4 py-2 backdrop-blur-sm mx-auto max-w-fit"
-          >
-            <Shuffle className="w-3 h-3 sm:w-4 sm:h-4" />
-            <span className="hidden sm:inline">Arrastra las actividades para personalizar tu itinerario</span>
-            <span className="sm:hidden">Personaliza arrastrando</span>
-          </motion.div>
+              <Shuffle className="w-3 h-3 sm:w-4 sm:h-4" />
+              <span className="hidden sm:inline">Arrastra las actividades para personalizar tu itinerario</span>
+              <span className="sm:hidden">Personaliza arrastrando</span>
+            </motion.div>
+          </div>
         </div>
-      </div>
 
-      <div className="max-w-4xl mx-auto px-4 -mt-8 sm:-mt-12 space-y-6 sm:space-y-10">
-        {/* resumen mejorado móvil */}
-        <motion.section 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="bg-white p-6 sm:p-8 rounded-3xl shadow-2xl space-y-4 sm:space-y-6"
-        >
-          <h2 className="text-2xl sm:text-3xl font-bold">Resumen de tu aventura</h2>
-          <div className="grid grid-cols-3 gap-4 sm:gap-6 text-center">
-            <div className="space-y-1 sm:space-y-2">
-              <Calendar className="w-6 h-6 sm:w-8 sm:h-8 mx-auto text-red-600" />
-              <p className="text-xl sm:text-2xl font-bold">{days}</p>
-              <p className="text-xs sm:text-sm text-gray-500">día{days > 1 ? "s" : ""}</p>
-            </div>
-            <div className="space-y-1 sm:space-y-2">
-              <MapPin className="w-6 h-6 sm:w-8 sm:h-8 mx-auto text-red-600" />
-              <p className="text-xl sm:text-2xl font-bold">{itinerary.length}</p>
-              <p className="text-xs sm:text-sm text-gray-500">paradas</p>
-            </div>
-            <div className="space-y-1 sm:space-y-2">
-              <Clock className="w-6 h-6 sm:w-8 sm:h-8 mx-auto text-red-600" />
-              <p className="text-xl sm:text-2xl font-bold">{totalH}</p>
-              <p className="text-xs sm:text-sm text-gray-500">horas</p>
-            </div>
-          </div>
-          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 pt-2 sm:pt-4">
-            <motion.button
-              whileHover={!isMobile ? { scale: 1.02 } : {}}
-              whileTap={{ scale: 0.98 }}
-              onClick={downloadPDF}
-              className="flex-1 bg-green-600 text-white px-4 sm:px-5 py-2.5 sm:py-3 rounded-full inline-flex items-center justify-center shadow hover:shadow-lg transition text-sm sm:text-base"
-            >
-              <Download className="mr-2 w-4 h-4 sm:w-5 sm:h-5" /> Guardar PDF
-            </motion.button>
-            <motion.button
-              whileHover={!isMobile ? { scale: 1.02 } : {}}
-              whileTap={{ scale: 0.98 }}
-              onClick={handleShare} 
-              className="flex-1 bg-purple-600 text-white px-4 sm:px-5 py-2.5 sm:py-3 rounded-full inline-flex items-center justify-center shadow hover:shadow-lg transition text-sm sm:text-base"
-            >
-              <Share2 className="mr-2 w-4 h-4 sm:w-5 sm:h-5" /> Compartir
-            </motion.button>
-          </div>
-        </motion.section>
-
-        {/* mapa - altura reducida en móvil */}
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className="bg-white rounded-3xl shadow-2xl overflow-hidden h-64 sm:h-96 map-container"
-        >
-          <ItineraryMap stops={itinerary} userLocation={location} />
-        </motion.div>
-
-        {/* SECCIÓN CORREGIDA: timeline por día */}
-        {days === 1 ? (
-          // Si es un solo día, renderizar directamente sin división
-          <motion.section
+        <div className="max-w-4xl mx-auto px-4 -mt-8 sm:-mt-12 space-y-6 sm:space-y-10">
+          {/* resumen mejorado móvil */}
+          <motion.section 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
             className="bg-white p-6 sm:p-8 rounded-3xl shadow-2xl space-y-4 sm:space-y-6"
           >
-            <DaySummaryCard day={1} stops={itinerary} isMobile={isMobile} />
-            <ItineraryTimeline 
-              stops={itinerary} 
-              userLocation={location}
-              onStopsReorder={(newStops) => {
-                setItinerary(newStops);
-              }}
-            />
-          </motion.section>
-        ) : (
-          // Si son múltiples días, dividir correctamente
-          Array.from({ length: days }).map((_, d) => {
-            const startIdx = d * perDay;
-            const endIdx = Math.min((d + 1) * perDay, itinerary.length);
-            const dayStops = itinerary.slice(startIdx, endIdx);
-            
-            return (
-              <motion.section
-                key={d}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.3 + d * 0.1 }}
-                className="bg-white p-6 sm:p-8 rounded-3xl shadow-2xl space-y-4 sm:space-y-6"
+            <h2 className="text-2xl sm:text-3xl font-bold">Resumen de tu aventura</h2>
+            <div className="grid grid-cols-3 gap-4 sm:gap-6 text-center">
+              <div className="space-y-1 sm:space-y-2">
+                <Calendar className="w-6 h-6 sm:w-8 sm:h-8 mx-auto text-red-600" />
+                <p className="text-xl sm:text-2xl font-bold">{days}</p>
+                <p className="text-xs sm:text-sm text-gray-500">día{days > 1 ? "s" : ""}</p>
+              </div>
+              <div className="space-y-1 sm:space-y-2">
+                <MapPin className="w-6 h-6 sm:w-8 sm:h-8 mx-auto text-red-600" />
+                <p className="text-xl sm:text-2xl font-bold">{itinerary.length}</p>
+                <p className="text-xs sm:text-sm text-gray-500">paradas</p>
+              </div>
+              <div className="space-y-1 sm:space-y-2">
+                <Clock className="w-6 h-6 sm:w-8 sm:h-8 mx-auto text-red-600" />
+                <p className="text-xl sm:text-2xl font-bold">{totalH}</p>
+                <p className="text-xs sm:text-sm text-gray-500">horas</p>
+              </div>
+            </div>
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 pt-2 sm:pt-4">
+              <motion.button
+                whileHover={!isMobile ? { scale: 1.02 } : {}}
+                whileTap={{ scale: 0.98 }}
+                onClick={downloadPDF}
+                className="flex-1 bg-green-600 text-white px-4 sm:px-5 py-2.5 sm:py-3 rounded-full inline-flex items-center justify-center shadow hover:shadow-lg transition text-sm sm:text-base"
               >
-                <DaySummaryCard day={d + 1} stops={dayStops} isMobile={isMobile} />
-                <ItineraryTimeline 
-                  stops={dayStops} 
-                  userLocation={location}
-                  onStopsReorder={(newStops) => {
-                    // Reconstruir el itinerario completo correctamente
-                    const beforeDayStops = itinerary.slice(0, startIdx);
-                    const afterDayStops = itinerary.slice(endIdx);
-                    
-                    // Crear el nuevo itinerario con los stops actualizados del día
-                    const newItinerary = [
-                      ...beforeDayStops,
-                      ...newStops,
-                      ...afterDayStops
-                    ];
-                    
-                    setItinerary(newItinerary);
-                  }}
-                />
-              </motion.section>
-            );
-          })
-        )}
-      </div>
+                <Download className="mr-2 w-4 h-4 sm:w-5 sm:h-5" /> Guardar PDF
+              </motion.button>
+              <motion.button
+                whileHover={!isMobile ? { scale: 1.02 } : {}}
+                whileTap={{ scale: 0.98 }}
+                onClick={handleShare} 
+                className="flex-1 bg-purple-600 text-white px-4 sm:px-5 py-2.5 sm:py-3 rounded-full inline-flex items-center justify-center shadow hover:shadow-lg transition text-sm sm:text-base"
+              >
+                <Share2 className="mr-2 w-4 h-4 sm:w-5 sm:h-5" /> Compartir
+              </motion.button>
+            </div>
+          </motion.section>
 
-      {/* Panel de ajustes rápidos flotante */}
-      <QuickCustomize 
-  itinerary={itinerary} 
-  onUpdate={setItinerary} 
-  isMobile={isMobile} 
-  location={location}
-/>
-    </main>
-  );
-}
+          {/* mapa - altura reducida en móvil */}
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="bg-white rounded-3xl shadow-2xl overflow-hidden h-64 sm:h-96 map-container"
+          >
+            <ItineraryMap stops={itinerary} userLocation={location} />
+          </motion.div>
+
+          {/* SECCIÓN CORREGIDA: timeline por día */}
+          {days === 1 ? (
+            // Si es un solo día, renderizar directamente sin división
+            <motion.section
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
+              className="bg-white p-6 sm:p-8 rounded-3xl shadow-2xl space-y-4 sm:space-y-6"
+            >
+              <DaySummaryCard day={1} stops={itinerary} isMobile={isMobile} />
+              <ItineraryTimeline 
+                stops={itinerary} 
+                userLocation={location}
+                onStopsReorder={(newStops) => {
+                  setItinerary(newStops);
+                }}
+              />
+            </motion.section>
+          ) : (
+            // Si son múltiples días, dividir correctamente
+            Array.from({ length: days }).map((_, d) => {
+              const startIdx = d * perDay;
+              const endIdx = Math.min((d + 1) * perDay, itinerary.length);
+              const dayStops = itinerary.slice(startIdx, endIdx);
+              
+              return (
+                <motion.section
+                  key={d}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.3 + d * 0.1 }}
+                  className="bg-white p-6 sm:p-8 rounded-3xl shadow-2xl space-y-4 sm:space-y-6"
+                >
+                  <DaySummaryCard day={d + 1} stops={dayStops} isMobile={isMobile} />
+                  <ItineraryTimeline 
+                    stops={dayStops} 
+                    userLocation={location}
+                    onStopsReorder={(newStops) => {
+                      // Reconstruir el itinerario completo correctamente
+                      const beforeDayStops = itinerary.slice(0, startIdx);
+                      const afterDayStops = itinerary.slice(endIdx);
+                      
+                      // Crear el nuevo itinerario con los stops actualizados del día
+                      const newItinerary = [
+                        ...beforeDayStops,
+                        ...newStops,
+                        ...afterDayStops
+                      ];
+                      
+                      setItinerary(newItinerary);
+                    }}
+                  />
+                </motion.section>
+              );
+            })
+          )}
+        </div>
+
+        {/* Panel de ajustes rápidos flotante */}
+        <QuickCustomize 
+          itinerary={itinerary} 
+          onUpdate={setItinerary} 
+          isMobile={isMobile} 
+          location={location}
+        />
+      </main>
+    );
+  }
 
   /* ═════ wizard mejorado móvil ════ */
   const step = steps[qIndex];
@@ -955,9 +1020,24 @@ const WizardStep = ({ step, qIndex, answers }: any) => {
   );
 };
 
-// Sugerencias inteligentes
+// Sugerencias inteligentes - ACTUALIZADO para múltiples estilos
 const SmartSuggestions = ({ preferences }: any) => {
   if (!preferences.lastItineraries?.length) return null;
+
+  // Obtener los estilos más frecuentes de viajes anteriores
+  const allStyles = preferences.lastItineraries
+    .flatMap((it: any) => it.styles || [])
+    .filter(Boolean);
+  
+  const styleFrequency = allStyles.reduce((acc: any, style: string) => {
+    acc[style] = (acc[style] || 0) + 1;
+    return acc;
+  }, {});
+  
+  const topStyles = Object.entries(styleFrequency)
+    .sort(([, a]: any, [, b]: any) => b - a)
+    .slice(0, 3)
+    .map(([style]) => style);
 
   return (
     <motion.div 
@@ -969,12 +1049,12 @@ const SmartSuggestions = ({ preferences }: any) => {
         💡 Basado en tus viajes anteriores
       </p>
       <div className="flex gap-2 flex-wrap">
-        {preferences.favoriteCategories?.map((cat: string) => (
+        {topStyles.map((style: string) => (
           <span
-            key={cat}
+            key={style}
             className="px-2 sm:px-3 py-1 bg-white rounded-full text-xs sm:text-sm shadow-sm"
           >
-            {cat}
+            {style}
           </span>
         ))}
       </div>
@@ -982,7 +1062,7 @@ const SmartSuggestions = ({ preferences }: any) => {
   );
 };
 
-// Vista de loading mejorada móvil
+// Vista de loading mejorada móvil - ACTUALIZADA para mostrar múltiples estilos
 const LoadingItinerary = ({ profile, isMobile }: any) => {
   const [currentMessage, setCurrentMessage] = useState(0);
   const messages = [
@@ -1032,7 +1112,7 @@ const LoadingItinerary = ({ profile, isMobile }: any) => {
 
           <div className="bg-gray-50 rounded-xl p-3 sm:p-4 text-xs sm:text-sm text-gray-600">
             <p>Creando itinerario de <strong>{profile.Días || 1} días</strong></p>
-            <p>Enfocado en: <strong>{profile.Motivo || "Experiencia variada"}</strong></p>
+            <p>Enfocado en: <strong>{profile.Motivos || "Experiencia variada"}</strong></p>
           </div>
         </div>
       </div>
@@ -1102,7 +1182,8 @@ const QuickCustomize = ({ itinerary, onUpdate, isMobile, location }: {
   onUpdate: (stops: Stop[]) => void; 
   isMobile: boolean;
   location: { lat: number; lng: number } | null;
-}) => {  const [showPanel, setShowPanel] = useState(false);
+}) => {  
+  const [showPanel, setShowPanel] = useState(false);
   const [showBreakModal, setShowBreakModal] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
   const [breakForm, setBreakForm] = useState({
