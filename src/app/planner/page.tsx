@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { DndProvider } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
 import ItineraryMap from "@/components/ItineraryMap";
@@ -14,6 +14,7 @@ import {
   Calendar,
   Share2,
   Download,
+  FileText,
 } from "lucide-react";
 import { generateUniqueLink } from "utils/linkGenerator";
 
@@ -160,6 +161,7 @@ export default function PremiumPlannerPage() {
     ),
   }));
 
+
   const next = () => qIndex < steps.length - 1 && setQIndex((i) => i + 1);
   const prev = () => qIndex > 0 && setQIndex((i) => i - 1);
   const progress = steps.length
@@ -171,6 +173,16 @@ export default function PremiumPlannerPage() {
   const [view, setView] =
     useState<"questions" | "loading" | "itinerary">("questions");
   const pdfRef = useRef<HTMLDivElement>(null);
+
+  const moveStopGlobal = useCallback((from: number, to: number) => {
+    setItinerary((prev) => {
+      if (!prev) return prev;
+      const updated = [...prev];
+      const [item] = updated.splice(from, 1);
+      updated.splice(to, 0, item);
+      return updated;
+    });
+  }, []);
 
   useEffect(() => {
     if (navigator.onLine) return;
@@ -420,6 +432,33 @@ export default function PremiumPlannerPage() {
     }
   };
 
+  const saveOffline = async () => {
+    if (!('serviceWorker' in navigator) || !itinerary?.length) return;
+    try {
+      const reg = await navigator.serviceWorker.ready;
+      reg.active?.postMessage({
+        type: 'CACHE_ITINERARY',
+        payload: { itinerary, days: parseInt(answers[1] || '1', 10) || 1 },
+      });
+      alert('Itinerario guardado para usar sin conexión');
+    } catch (e) {
+      console.error(e);
+      alert('No se pudo guardar offline');
+    }
+  };
+
+  const handleSaveChanges = async () => {
+    if (!itinerary) return;
+    try {
+      const url = await generateUniqueLink(
+        itinerary,
+        parseInt(answers[1] || '1', 10) || 1
+      );
+      await navigator.clipboard.writeText(url);
+      alert('Cambios guardados \u2705 Link copiado');
+    } catch (e) {
+      console.error(e);
+      alert('No se pudo guardar');
     }
   };
 
@@ -528,6 +567,8 @@ export default function PremiumPlannerPage() {
                 <ItineraryTimeline
                   stops={dayStops}
                   editable
+                  offset={d * perDay}
+                  onMove={moveStopGlobal}
                   onChange={(newStops) => {
                     const updated = [...itinerary];
                     updated.splice(d * perDay, newStops.length, ...newStops);
@@ -544,6 +585,9 @@ export default function PremiumPlannerPage() {
   }
 
   /* ═════ wizard ════ */
+  if (steps.length === 0) {
+    return null;
+  }
   const step = steps[qIndex];
   return (
     <main className="min-h-screen bg-gradient-to-b from-blue-50 to-red-50 pb-16">
@@ -577,9 +621,6 @@ export default function PremiumPlannerPage() {
           {/* pregunta */}
           <div className="space-y-4">
             <h2 className="text-2xl font-semibold">{step.label}</h2>
-            {step.helper && (
-              <p className="text-sm text-gray-500">{step.helper}</p>
-            )}
             {step.element}
           </div>
 

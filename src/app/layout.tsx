@@ -1,21 +1,12 @@
 // src/app/layout.tsx
-/* eslint-disable @next/next/no-page-custom-font */
 
 import "./globals.css";
+/* eslint-disable @next/next/no-page-custom-font */
 import { ReactNode } from "react";
-    <html lang="es">
-        {/* Google Fonts */}
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link
-          rel="preconnect"
-          href="https://fonts.gstatic.com"
-          crossOrigin="anonymous"
-        />
-        <link
-          href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&family=Merriweather+Sans:wght@400;600;700&display=swap"
-          rel="stylesheet"
-        />
+import ServiceWorkerRegister from "@/components/ServiceWorkerRegister";
+import type { Metadata } from "next";
 
+export const metadata: Metadata = {
   title: "VisitAtlántico · Explora el paraíso costero",
   description: "Descubre playas, cultura y aventuras en Atlántico, Colombia.",
   robots: "index, follow",
@@ -60,11 +51,15 @@ export function generateViewport() {
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html
-      lang="es"
-      className={`${poppins.variable} ${merriweatherSans.variable}`}
-    >
+    <html lang="es">
       <head>
+        {/* Google Fonts */}
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link
+          href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&family=Merriweather+Sans:wght@400;600;700&display=swap"
+          rel="stylesheet"
+        />
         {/* Next.js inyecta aquí todos los meta tags definidos en `metadata` */}
 
         {/* Canonical URL */}

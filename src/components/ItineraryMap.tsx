@@ -77,10 +77,11 @@ export default function ItineraryMap({ stops, userLocation }: Props) {
           sanitizedStops[sanitizedStops.length - 1].lat,
         ]);
 
-        directions.on("route", (e) => {
+        directions.on("route", (e: unknown) => {
+          const evt = e as { route?: Array<{ legs: Array<{ duration: number }> }> };
           timeMarkersRef.current.forEach((m) => m.remove());
           timeMarkersRef.current = [];
-          const route = e.route && e.route[0];
+          const route = evt.route && evt.route[0];
           if (!route) return;
           const legs = route.legs as Array<{ duration: number }>;
           legs.forEach((leg, idx) => {

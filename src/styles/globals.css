@@ -60,33 +60,39 @@
 
 /* React-Calendar adaptación Tailwind */
 .react-calendar {
-  @apply bg-white rounded-2xl shadow-md p-4 text-gray-800;
+  background-color: #ffffff;
+  border-radius: 1rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  padding: 1rem;
+  color: #1f2937;
 }
 .react-calendar__navigation button:disabled {
-  @apply text-gray-400;
+  color: #9ca3af;
 }
 .react-calendar__tile--active,
 .react-calendar__tile--now:not(.gastro-day) {
-  @apply bg-[#E40E20] text-white rounded-lg;
+  background-color: #E40E20;
+  color: #ffffff;
+  border-radius: 0.5rem;
 }
 
 /* Días con evento gastronómico */
 .gastro-day {
-  @apply relative font-semibold text-[#E40E20];
+  position: relative;
+  font-weight: 600;
+  color: #E40E20;
 }
 .gastro-day::after {
   content: "🍽️";
-  @apply absolute -top-1 right-1 text-xs;
+  position: absolute;
+  top: -0.25rem;
+  right: 0.25rem;
+  font-size: 0.75rem;
 }
 
 /* Utilidad para imágenes de tarjetas */
 .img-card {
-  @apply object-cover w-full h-full;
+  object-fit: cover;
+  width: 100%;
+  height: 100%;
 }
-.gastro-day {
-    @apply relative font-semibold text-[#E40E20];
-  }
-  .gastro-day::after {
-    content: "🍽️";
-    @apply absolute -top-1 right-1 text-xs;
-  }
