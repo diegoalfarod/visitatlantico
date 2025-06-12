@@ -29,6 +29,10 @@ import {
   Sparkles,
   Check,
   Coffee,
+  AlertCircle,
+  X,
+  Menu,
+  ArrowLeft,
 } from "lucide-react";
 import { generateUniqueLink } from "utils/linkGenerator";
 import Image from "next/image";
@@ -52,7 +56,6 @@ type ApiStop = {
 };
 
 type ApiResponse = { itinerary: ApiStop[]; error?: string };
-type WritableStyle = Record<string, string>;
 
 declare global {
   interface Window {
@@ -87,10 +90,25 @@ const useUserPreferences = () => {
   return { preferences, updatePreferences };
 };
 
+// Helper para detectar móvil
+const useIsMobile = () => {
+  const [isMobile, setIsMobile] = useState(false);
+  
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+  
+  return isMobile;
+};
+
 /* ═════════════════ COMPONENTE PRINCIPAL ═════════════════ */
 
 export default function PremiumPlannerPage() {
   const router = useRouter();
+  const isMobile = useIsMobile();
   
   /* wizard answers */
   const [answers, setAnswers] = useState<{
@@ -175,32 +193,33 @@ export default function PremiumPlannerPage() {
     };
   }, [useLocation]);
 
-  /* pasos wizard mejorados */
+  /* pasos wizard mejorados para móvil */
   const steps = [
     {
       label: "¿Cuánto tiempo tienes?",
       valid: answers.days !== undefined,
       element: (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 gap-3 sm:gap-4">
           {[
-            { days: 1, label: "Un día", icon: "☀️" },
-            { days: 2, label: "Fin de semana", icon: "🌅" },
-            { days: 3, label: "Puente", icon: "🏖️" },
-            { days: 5, label: "Semana", icon: "🗓️" },
+            { days: 1, label: "Un día", icon: "☀️", desc: "Tour express" },
+            { days: 2, label: "Fin de semana", icon: "🌅", desc: "2 días" },
+            { days: 3, label: "Puente festivo", icon: "🏖️", desc: "3 días" },
+            { days: 5, label: "Una semana", icon: "🗓️", desc: "5-7 días" },
           ].map((opt) => (
             <motion.button
               key={opt.days}
-              whileHover={{ scale: 1.05 }}
+              whileHover={!isMobile ? { scale: 1.05 } : {}}
               whileTap={{ scale: 0.95 }}
               onClick={() => setAnswers({ ...answers, days: opt.days })}
-              className={`p-6 rounded-2xl border-2 transition-all ${
+              className={`p-4 sm:p-6 rounded-2xl border-2 transition-all ${
                 answers.days === opt.days
-                  ? "border-red-600 bg-red-50 scale-105 shadow-lg"
+                  ? "border-red-600 bg-red-50 shadow-lg"
                   : "border-gray-200 hover:border-gray-300 hover:shadow-md"
               }`}
             >
-              <div className="text-3xl mb-2">{opt.icon}</div>
-              <div className="font-semibold">{opt.label}</div>
+              <div className="text-2xl sm:text-3xl mb-2">{opt.icon}</div>
+              <div className="font-semibold text-sm sm:text-base">{opt.label}</div>
+              <div className="text-xs text-gray-500 mt-1">{opt.desc}</div>
             </motion.button>
           ))}
         </div>
@@ -211,7 +230,7 @@ export default function PremiumPlannerPage() {
       helper: "Elige la que más te atraiga",
       valid: !!answers.motivo,
       element: (
-        <div className="space-y-3">
+        <div className="space-y-2 sm:space-y-3">
           {[
             { id: "relax", emoji: "🏖️", title: "Relax total", desc: "Playas, spa y descanso" },
             { id: "cultura", emoji: "🎭", title: "Inmersión cultural", desc: "Museos, historia y tradiciones" },
@@ -221,26 +240,26 @@ export default function PremiumPlannerPage() {
           ].map((exp) => (
             <motion.button
               key={exp.id}
-              whileHover={{ x: 10 }}
+              whileHover={!isMobile ? { x: 10 } : {}}
               whileTap={{ scale: 0.98 }}
               onClick={() => setAnswers({ ...answers, motivo: exp.title })}
-              className={`w-full p-4 rounded-xl flex items-center gap-4 transition-all ${
+              className={`w-full p-3 sm:p-4 rounded-xl flex items-center gap-3 sm:gap-4 transition-all ${
                 answers.motivo === exp.title
                   ? "bg-gradient-to-r from-red-600 to-red-700 text-white shadow-lg"
                   : "bg-white border border-gray-200 hover:shadow-md"
               }`}
             >
-              <span className="text-3xl">{exp.emoji}</span>
+              <span className="text-2xl sm:text-3xl">{exp.emoji}</span>
               <div className="text-left flex-1">
-                <div className="font-semibold">{exp.title}</div>
-                <div className={`text-sm ${
+                <div className="font-semibold text-sm sm:text-base">{exp.title}</div>
+                <div className={`text-xs sm:text-sm ${
                   answers.motivo === exp.title ? "text-red-100" : "text-gray-500"
                 }`}>
                   {exp.desc}
                 </div>
               </div>
               {answers.motivo === exp.title && (
-                <Check className="w-5 h-5" />
+                <Check className="w-4 h-4 sm:w-5 sm:h-5" />
               )}
             </motion.button>
           ))}
@@ -251,25 +270,25 @@ export default function PremiumPlannerPage() {
       label: "¿Quieres explorar otros municipios?",
       valid: answers.otros !== undefined,
       element: (
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {[
-            { value: true, label: "Sí, aventurémonos", icon: "🚗", desc: "Conoce más lugares" },
-            { value: false, label: "No, cerca está bien", icon: "🏘️", desc: "Solo Barranquilla" }
+            { value: true, label: "Sí, aventurémonos", icon: "🚗", desc: "Conoce más lugares del Atlántico" },
+            { value: false, label: "No, cerca está bien", icon: "🏘️", desc: "Solo Barranquilla y alrededores" }
           ].map((opt) => (
             <motion.button
               key={String(opt.value)}
-              whileHover={{ scale: 1.03 }}
+              whileHover={!isMobile ? { scale: 1.03 } : {}}
               whileTap={{ scale: 0.97 }}
               onClick={() => setAnswers({ ...answers, otros: opt.value })}
-              className={`p-6 rounded-2xl border-2 transition-all ${
+              className={`p-5 sm:p-6 rounded-2xl border-2 transition-all ${
                 answers.otros === opt.value
                   ? "border-red-600 bg-red-50"
                   : "border-gray-200 hover:border-gray-300"
               }`}
             >
-              <div className="text-4xl mb-3">{opt.icon}</div>
-              <div className="font-semibold mb-1">{opt.label}</div>
-              <div className="text-sm text-gray-500">{opt.desc}</div>
+              <div className="text-3xl sm:text-4xl mb-3">{opt.icon}</div>
+              <div className="font-semibold mb-1 text-sm sm:text-base">{opt.label}</div>
+              <div className="text-xs sm:text-sm text-gray-500">{opt.desc}</div>
             </motion.button>
           ))}
         </div>
@@ -286,9 +305,9 @@ export default function PremiumPlannerPage() {
             value={answers.email ?? ""}
             onChange={(e) => setAnswers({ ...answers, email: e.target.value })}
             placeholder="tu@email.com"
-            className="w-full px-6 py-4 text-lg border-2 border-gray-300 rounded-2xl focus:border-red-500 focus:outline-none transition-all"
+            className="w-full px-4 sm:px-6 py-3 sm:py-4 text-base sm:text-lg border-2 border-gray-300 rounded-2xl focus:border-red-500 focus:outline-none transition-all"
           />
-          <p className="text-sm text-gray-500 mt-2 text-center">
+          <p className="text-xs sm:text-sm text-gray-500 mt-2 text-center">
             No spam, solo tu itinerario 🎉
           </p>
         </div>
@@ -415,8 +434,17 @@ export default function PremiumPlannerPage() {
     if (!itinerary?.length) return alert("Itinerario vacío");
     try {
       const url = await generateUniqueLink(itinerary, answers.days ?? 1);
-      await navigator.clipboard.writeText(url);
-      alert("Link copiado ✅");
+      
+      if (navigator.share && isMobile) {
+        await navigator.share({
+          title: 'Mi itinerario en Atlántico',
+          text: 'Mira mi plan de viaje personalizado',
+          url: url
+        });
+      } else {
+        await navigator.clipboard.writeText(url);
+        alert("Link copiado al portapapeles ✅");
+      }
     } catch (e) {
       console.error(e);
       alert("No se pudo generar el link");
@@ -541,10 +569,10 @@ export default function PremiumPlannerPage() {
 
   /* ═════ vista loading mejorada ════ */
   if (view === "loading") {
-    return <LoadingItinerary profile={answers} />;
+    return <LoadingItinerary profile={answers} isMobile={isMobile} />;
   }
 
-  /* ═════ vista itinerario mejorada ════ */
+  /* ═════ vista itinerario mejorada para móvil ════ */
   if (view === "itinerary" && itinerary) {
     const totalH = Math.round(
       itinerary.reduce((s, t) => s + t.durationMinutes, 0) / 60
@@ -554,13 +582,27 @@ export default function PremiumPlannerPage() {
 
     return (
       <main ref={pdfRef} className="min-h-screen bg-gradient-to-br from-blue-50 to-red-50 pb-16">
-        {/* HERO */}
-        <div className="bg-gradient-to-r from-red-600 to-red-800 text-white py-16">
-          <div className="max-w-4xl mx-auto text-center">
+        {/* HERO móvil-first */}
+        <div className="bg-gradient-to-r from-red-600 to-red-800 text-white py-12 sm:py-16">
+          <div className="max-w-4xl mx-auto px-4 sm:px-6 text-center">
+            {/* Botón de regreso */}
+            <button
+              onClick={() => {
+                if (confirm("¿Regresar al inicio? Se perderá el itinerario actual.")) {
+                  setView("questions");
+                  setQIndex(0);
+                  setItinerary(null);
+                }
+              }}
+              className="absolute top-4 left-4 p-2 rounded-full bg-white/20 backdrop-blur-sm hover:bg-white/30 transition-colors"
+            >
+              <ArrowLeft className="w-5 h-5" />
+            </button>
+            
             <motion.h1 
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="text-5xl font-extrabold"
+              className="text-3xl sm:text-5xl font-extrabold"
             >
               Tu Aventura Generada
             </motion.h1>
@@ -569,7 +611,7 @@ export default function PremiumPlannerPage() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.2 }}
-                className="mt-2 text-lg"
+                className="mt-2 text-base sm:text-lg"
               >
                 📍 {userPlace}
               </motion.p>
@@ -578,70 +620,71 @@ export default function PremiumPlannerPage() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.4 }}
-              className="mt-4 flex items-center justify-center gap-2 text-sm bg-white/20 rounded-full px-4 py-2 backdrop-blur-sm"
+              className="mt-4 flex items-center justify-center gap-2 text-xs sm:text-sm bg-white/20 rounded-full px-3 sm:px-4 py-2 backdrop-blur-sm mx-auto max-w-fit"
             >
-              <Shuffle className="w-4 h-4" />
-              Arrastra las actividades para personalizar tu itinerario
+              <Shuffle className="w-3 h-3 sm:w-4 sm:h-4" />
+              <span className="hidden sm:inline">Arrastra las actividades para personalizar tu itinerario</span>
+              <span className="sm:hidden">Personaliza arrastrando</span>
             </motion.div>
           </div>
         </div>
 
-        <div className="max-w-4xl mx-auto px-4 -mt-12 space-y-10">
-          {/* resumen mejorado */}
+        <div className="max-w-4xl mx-auto px-4 -mt-8 sm:-mt-12 space-y-6 sm:space-y-10">
+          {/* resumen mejorado móvil */}
           <motion.section 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="bg-white p-8 rounded-3xl shadow-2xl space-y-6"
+            className="bg-white p-6 sm:p-8 rounded-3xl shadow-2xl space-y-4 sm:space-y-6"
           >
-            <h2 className="text-3xl font-bold">Resumen de tu aventura</h2>
-            <div className="grid grid-cols-3 gap-6 text-center">
-              <div className="space-y-2">
-                <Calendar className="w-8 h-8 mx-auto text-red-600" />
-                <p className="text-2xl font-bold">{days}</p>
-                <p className="text-sm text-gray-500">día{days > 1 ? "s" : ""}</p>
+            <h2 className="text-2xl sm:text-3xl font-bold">Resumen de tu aventura</h2>
+            <div className="grid grid-cols-3 gap-4 sm:gap-6 text-center">
+              <div className="space-y-1 sm:space-y-2">
+                <Calendar className="w-6 h-6 sm:w-8 sm:h-8 mx-auto text-red-600" />
+                <p className="text-xl sm:text-2xl font-bold">{days}</p>
+                <p className="text-xs sm:text-sm text-gray-500">día{days > 1 ? "s" : ""}</p>
               </div>
-              <div className="space-y-2">
-                <MapPin className="w-8 h-8 mx-auto text-red-600" />
-                <p className="text-2xl font-bold">{itinerary.length}</p>
-                <p className="text-sm text-gray-500">paradas</p>
+              <div className="space-y-1 sm:space-y-2">
+                <MapPin className="w-6 h-6 sm:w-8 sm:h-8 mx-auto text-red-600" />
+                <p className="text-xl sm:text-2xl font-bold">{itinerary.length}</p>
+                <p className="text-xs sm:text-sm text-gray-500">paradas</p>
               </div>
-              <div className="space-y-2">
-                <Clock className="w-8 h-8 mx-auto text-red-600" />
-                <p className="text-2xl font-bold">{totalH}</p>
-                <p className="text-sm text-gray-500">horas</p>
+              <div className="space-y-1 sm:space-y-2">
+                <Clock className="w-6 h-6 sm:w-8 sm:h-8 mx-auto text-red-600" />
+                <p className="text-xl sm:text-2xl font-bold">{totalH}</p>
+                <p className="text-xs sm:text-sm text-gray-500">horas</p>
               </div>
             </div>
-            <div className="flex gap-4 flex-wrap pt-4">
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 pt-2 sm:pt-4">
               <motion.button
-                whileHover={{ scale: 1.02 }}
+                whileHover={!isMobile ? { scale: 1.02 } : {}}
                 whileTap={{ scale: 0.98 }}
                 onClick={downloadPDF}
-                className="flex-1 bg-green-600 text-white px-5 py-3 rounded-full inline-flex items-center justify-center shadow hover:shadow-lg transition"
+                className="flex-1 bg-green-600 text-white px-4 sm:px-5 py-2.5 sm:py-3 rounded-full inline-flex items-center justify-center shadow hover:shadow-lg transition text-sm sm:text-base"
               >
-                <Download className="mr-2" /> Guardar para offline
+                <Download className="mr-2 w-4 h-4 sm:w-5 sm:h-5" /> Guardar PDF
               </motion.button>
               <motion.button
-                whileHover={{ scale: 1.02 }}
+                whileHover={!isMobile ? { scale: 1.02 } : {}}
                 whileTap={{ scale: 0.98 }}
                 onClick={handleShare} 
-                className="flex-1 bg-purple-600 text-white px-5 py-3 rounded-full inline-flex items-center justify-center shadow hover:shadow-lg transition"
+                className="flex-1 bg-purple-600 text-white px-4 sm:px-5 py-2.5 sm:py-3 rounded-full inline-flex items-center justify-center shadow hover:shadow-lg transition text-sm sm:text-base"
               >
-                <Share2 className="mr-2" /> Compartir
+                <Share2 className="mr-2 w-4 h-4 sm:w-5 sm:h-5" /> Compartir
               </motion.button>
             </div>
           </motion.section>
 
-          {/* mapa */}
+          {/* mapa - altura reducida en móvil */}
           <motion.div 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
-            className="bg-white rounded-3xl shadow-2xl overflow-hidden h-96 map-container"
+            className="bg-white rounded-3xl shadow-2xl overflow-hidden h-64 sm:h-96 map-container"
           >
             <ItineraryMap stops={itinerary} userLocation={location} />
           </motion.div>
 
-          {/* timeline por día mejorado */}
+          {/* timeline por día mejorado para móvil */}
           {Array.from({ length: days }).map((_, d) => {
             const dayStops = itinerary.slice(d * perDay, (d + 1) * perDay);
             return (
@@ -650,9 +693,9 @@ export default function PremiumPlannerPage() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.3 + d * 0.1 }}
-                className="bg-white p-8 rounded-3xl shadow-2xl space-y-6"
+                className="bg-white p-6 sm:p-8 rounded-3xl shadow-2xl space-y-4 sm:space-y-6"
               >
-                <DaySummaryCard day={d + 1} stops={dayStops} />
+                <DaySummaryCard day={d + 1} stops={dayStops} isMobile={isMobile} />
                 <ItineraryTimeline 
                   stops={dayStops} 
                   userLocation={location}
@@ -672,23 +715,23 @@ export default function PremiumPlannerPage() {
           })}
         </div>
 
-        {/* Panel de ajustes rápidos */}
-        <QuickCustomize itinerary={itinerary} onUpdate={setItinerary} />
+        {/* Panel de ajustes rápidos flotante */}
+        <QuickCustomize itinerary={itinerary} onUpdate={setItinerary} isMobile={isMobile} />
       </main>
     );
   }
 
-  /* ═════ wizard mejorado ════ */
+  /* ═════ wizard mejorado móvil ════ */
   const step = steps[qIndex];
   return (
     <main className="min-h-screen bg-gradient-to-br from-blue-50 to-red-50 pb-16">
-      {/* hero */}
-      <div className="bg-gradient-to-r from-red-600 to-red-800 text-white py-16">
-        <div className="max-w-4xl mx-auto text-center">
+      {/* hero móvil */}
+      <div className="bg-gradient-to-r from-red-600 to-red-800 text-white py-12 sm:py-16">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 text-center">
           <motion.h1 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="text-6xl font-extrabold"
+            className="text-4xl sm:text-6xl font-extrabold"
           >
             Descubre el Atlántico
           </motion.h1>
@@ -696,16 +739,16 @@ export default function PremiumPlannerPage() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.2 }}
-            className="mt-4 text-xl text-red-100"
+            className="mt-3 sm:mt-4 text-lg sm:text-xl text-red-100"
           >
             Creamos tu itinerario perfecto con IA ✨
           </motion.p>
         </div>
       </div>
 
-      {/* progress mejorado */}
-      <div className="max-w-4xl mx-auto px-4 -mt-8">
-        <div className="bg-white rounded-full p-2 shadow-lg">
+      {/* progress móvil mejorado */}
+      <div className="max-w-4xl mx-auto px-4 -mt-6 sm:-mt-8">
+        <div className="bg-white rounded-full p-1.5 sm:p-2 shadow-lg">
           <div className="flex items-center justify-between">
             {steps.map((_, idx) => (
               <div key={idx} className="flex-1 flex items-center">
@@ -713,17 +756,17 @@ export default function PremiumPlannerPage() {
                   initial={{ scale: 0 }}
                   animate={{ scale: 1 }}
                   transition={{ delay: idx * 0.1 }}
-                  className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${
+                  className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center transition-all text-xs sm:text-sm ${
                     idx <= qIndex
-                      ? "bg-red-600 text-white scale-110"
+                      ? "bg-red-600 text-white scale-105 sm:scale-110"
                       : "bg-gray-200 text-gray-400"
                   }`}
                 >
-                  {idx < qIndex ? <Check className="w-5 h-5" /> : idx + 1}
+                  {idx < qIndex ? <Check className="w-4 h-4 sm:w-5 sm:h-5" /> : idx + 1}
                 </motion.div>
                 {idx < steps.length - 1 && (
                   <div
-                    className={`flex-1 h-1 mx-2 transition-all ${
+                    className={`flex-1 h-0.5 sm:h-1 mx-1 sm:mx-2 transition-all ${
                       idx < qIndex ? "bg-red-600" : "bg-gray-200"
                     }`}
                   />
@@ -734,15 +777,15 @@ export default function PremiumPlannerPage() {
         </div>
       </div>
 
-      {/* card mejorado */}
-      <div className="max-w-4xl mx-auto px-4 mt-8">
+      {/* card mejorado móvil */}
+      <div className="max-w-4xl mx-auto px-4 mt-6 sm:mt-8">
         <AnimatePresence mode="wait">
           <motion.div
             key={qIndex}
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -20 }}
-            className="bg-white p-12 rounded-3xl shadow-2xl space-y-10"
+            className="bg-white p-6 sm:p-12 rounded-3xl shadow-2xl space-y-6 sm:space-y-10"
           >
             {/* Smart suggestions basadas en preferencias anteriores */}
             {preferences.lastItineraries?.length > 0 && qIndex === 1 && (
@@ -751,14 +794,14 @@ export default function PremiumPlannerPage() {
 
             <WizardStep step={step} qIndex={qIndex} answers={answers} />
 
-            {/* ubicación toggle mejorado */}
+            {/* ubicación toggle móvil mejorado */}
             <motion.div 
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.3 }}
-              className="bg-gray-50 rounded-xl p-4"
+              className="bg-gray-50 rounded-xl p-3 sm:p-4"
             >
-              <label className="inline-flex items-center cursor-pointer space-x-3">
+              <label className="inline-flex items-center cursor-pointer space-x-2 sm:space-x-3 w-full">
                 <div className="relative">
                   <input
                     type="checkbox"
@@ -767,67 +810,68 @@ export default function PremiumPlannerPage() {
                     onChange={(e) => setUseLocation(e.target.checked)}
                   />
                   <div
-                    className={`w-14 h-8 rounded-full transition ${
+                    className={`w-12 h-6 sm:w-14 sm:h-8 rounded-full transition ${
                       useLocation ? "bg-red-600" : "bg-gray-300"
                     }`}
                   />
                   <div
-                    className={`dot absolute left-1 top-1 w-6 h-6 bg-white rounded-full transition shadow-md ${
+                    className={`dot absolute left-1 top-1 w-4 h-4 sm:w-6 sm:h-6 bg-white rounded-full transition shadow-md ${
                       useLocation ? "translate-x-6" : ""
                     }`}
                   />
                 </div>
-                <span className="text-lg">
+                <span className="text-sm sm:text-lg flex-1">
                   Personalizar según mi ubicación actual 📍
                 </span>
               </label>
 
               {fetchingPlace && (
-                <p className="text-gray-600 flex items-center gap-2 text-sm mt-2">
-                  <Loader2 className="w-4 h-4 animate-spin" />
+                <p className="text-gray-600 flex items-center gap-2 text-xs sm:text-sm mt-2 ml-14 sm:ml-16">
+                  <Loader2 className="w-3 h-3 sm:w-4 sm:h-4 animate-spin" />
                   Detectando ubicación…
                 </p>
               )}
-              {geoError && <p className="text-red-600 text-sm mt-2">{geoError}</p>}
+              {geoError && <p className="text-red-600 text-xs sm:text-sm mt-2 ml-14 sm:ml-16">{geoError}</p>}
               {userPlace && !fetchingPlace && !geoError && (
-                <p className="text-sm text-gray-700 mt-2">📍 {userPlace}</p>
+                <p className="text-xs sm:text-sm text-gray-700 mt-2 ml-14 sm:ml-16">📍 {userPlace}</p>
               )}
             </motion.div>
 
-            {/* navegación mejorada */}
-            <div className="flex justify-between">
+            {/* navegación móvil mejorada */}
+            <div className="flex justify-between items-center">
               <motion.button
-                whileHover={{ scale: 1.05 }}
+                whileHover={!isMobile ? { scale: 1.05 } : {}}
                 whileTap={{ scale: 0.95 }}
                 onClick={prev}
                 disabled={qIndex === 0}
-                className="text-gray-500 hover:text-gray-700 disabled:opacity-50 flex items-center gap-2"
+                className="text-gray-500 hover:text-gray-700 disabled:opacity-50 flex items-center gap-1 sm:gap-2 text-sm sm:text-base"
               >
-                <ChevronLeft className="w-5 h-5" />
-                Anterior
+                <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5" />
+                <span className="hidden sm:inline">Anterior</span>
               </motion.button>
 
               {qIndex < steps.length - 1 ? (
                 <motion.button
-                  whileHover={{ scale: 1.05 }}
+                  whileHover={!isMobile ? { scale: 1.05 } : {}}
                   whileTap={{ scale: 0.95 }}
                   onClick={next}
                   disabled={!step.valid}
-                  className="bg-red-600 text-white px-8 py-3 rounded-full shadow hover:shadow-lg transition disabled:opacity-50 flex items-center gap-2"
+                  className="bg-red-600 text-white px-6 sm:px-8 py-2.5 sm:py-3 rounded-full shadow hover:shadow-lg transition disabled:opacity-50 flex items-center gap-1 sm:gap-2 text-sm sm:text-base"
                 >
                   Siguiente
-                  <ChevronRight className="w-5 h-5" />
+                  <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5" />
                 </motion.button>
               ) : (
                 <motion.button
-                  whileHover={{ scale: 1.05 }}
+                  whileHover={!isMobile ? { scale: 1.05 } : {}}
                   whileTap={{ scale: 0.95 }}
                   onClick={generateItinerary}
                   disabled={!step.valid}
-                  className="bg-gradient-to-r from-red-600 to-red-700 text-white px-8 py-3 rounded-full shadow-lg hover:shadow-xl transition disabled:opacity-50 flex items-center gap-2"
+                  className="bg-gradient-to-r from-red-600 to-red-700 text-white px-6 sm:px-8 py-2.5 sm:py-3 rounded-full shadow-lg hover:shadow-xl transition disabled:opacity-50 flex items-center gap-1 sm:gap-2 text-sm sm:text-base"
                 >
-                  <Sparkles className="w-5 h-5" />
-                  Generar mi aventura
+                  <Sparkles className="w-4 h-4 sm:w-5 sm:h-5" />
+                  <span className="hidden sm:inline">Generar mi aventura</span>
+                  <span className="sm:hidden">Generar</span>
                 </motion.button>
               )}
             </div>
@@ -840,19 +884,6 @@ export default function PremiumPlannerPage() {
 
 /* ═════════════════ COMPONENTES AUXILIARES ═════════════════ */
 
-// Función helper para recalcular timings
-const recalculateTimings = (stops: Stop[]): Stop[] => {
-  let current = 9 * 60; // 09:00 en minutos
-  return stops.map((stop, idx) => {
-    if (idx > 0) {
-      current += 30; // 30 min de viaje entre paradas
-    }
-    const startTime = `${Math.floor(current / 60).toString().padStart(2, "0")}:${(current % 60).toString().padStart(2, "0")}`;
-    current += stop.durationMinutes || 60;
-    return { ...stop, startTime };
-  });
-};
-
 // Componente de paso del wizard
 const WizardStep = ({ step, qIndex, answers }: any) => {
   return (
@@ -860,19 +891,19 @@ const WizardStep = ({ step, qIndex, answers }: any) => {
       initial={{ opacity: 0, x: 20 }}
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: -20 }}
-      className="space-y-8"
+      className="space-y-6 sm:space-y-8"
     >
       <div className="text-center">
         <motion.h2
           key={step.label}
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="text-3xl font-bold mb-2"
+          className="text-2xl sm:text-3xl font-bold mb-2"
         >
           {step.label}
         </motion.h2>
         {step.helper && (
-          <p className="text-gray-500">{step.helper}</p>
+          <p className="text-gray-500 text-sm sm:text-base">{step.helper}</p>
         )}
       </div>
 
@@ -895,16 +926,16 @@ const SmartSuggestions = ({ preferences }: any) => {
     <motion.div 
       initial={{ opacity: 0, y: -10 }}
       animate={{ opacity: 1, y: 0 }}
-      className="mb-6 p-4 bg-blue-50 rounded-xl"
+      className="mb-4 sm:mb-6 p-3 sm:p-4 bg-blue-50 rounded-xl"
     >
-      <p className="text-sm font-medium mb-2 text-blue-800">
+      <p className="text-xs sm:text-sm font-medium mb-2 text-blue-800">
         💡 Basado en tus viajes anteriores
       </p>
       <div className="flex gap-2 flex-wrap">
         {preferences.favoriteCategories?.map((cat: string) => (
           <span
             key={cat}
-            className="px-3 py-1 bg-white rounded-full text-sm shadow-sm"
+            className="px-2 sm:px-3 py-1 bg-white rounded-full text-xs sm:text-sm shadow-sm"
           >
             {cat}
           </span>
@@ -914,8 +945,8 @@ const SmartSuggestions = ({ preferences }: any) => {
   );
 };
 
-// Vista de loading mejorada
-const LoadingItinerary = ({ profile }: any) => {
+// Vista de loading mejorada móvil
+const LoadingItinerary = ({ profile, isMobile }: any) => {
   const [currentMessage, setCurrentMessage] = useState(0);
   const messages = [
     "🤖 Analizando tus preferencias...",
@@ -934,9 +965,9 @@ const LoadingItinerary = ({ profile }: any) => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-red-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-3xl shadow-2xl p-8 max-w-md w-full">
-        <div className="text-center space-y-6">
-          <div className="relative w-32 h-32 mx-auto">
+      <div className="bg-white rounded-3xl shadow-2xl p-6 sm:p-8 max-w-md w-full">
+        <div className="text-center space-y-4 sm:space-y-6">
+          <div className="relative w-24 h-24 sm:w-32 sm:h-32 mx-auto">
             <motion.div
               animate={{ rotate: 360 }}
               transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
@@ -949,7 +980,7 @@ const LoadingItinerary = ({ profile }: any) => {
               transition={{ duration: 2, repeat: Infinity }}
               className="absolute inset-0 flex items-center justify-center"
             >
-              <div className="w-16 h-16 bg-red-600 rounded-full opacity-30" />
+              <div className="w-12 h-12 sm:w-16 sm:h-16 bg-red-600 rounded-full opacity-30" />
             </motion.div>
           </div>
 
@@ -957,12 +988,12 @@ const LoadingItinerary = ({ profile }: any) => {
             key={currentMessage}
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="text-lg font-medium text-gray-700"
+            className="text-base sm:text-lg font-medium text-gray-700"
           >
             {messages[currentMessage]}
           </motion.p>
 
-          <div className="bg-gray-50 rounded-xl p-4 text-sm text-gray-600">
+          <div className="bg-gray-50 rounded-xl p-3 sm:p-4 text-xs sm:text-sm text-gray-600">
             <p>Creando itinerario de <strong>{profile.Días || 1} días</strong></p>
             <p>Enfocado en: <strong>{profile.Motivo || "Experiencia variada"}</strong></p>
           </div>
@@ -972,8 +1003,8 @@ const LoadingItinerary = ({ profile }: any) => {
   );
 };
 
-// Resumen visual del día
-const DaySummaryCard = ({ day, stops }: { day: number; stops: Stop[] }) => {
+// Resumen visual del día móvil
+const DaySummaryCard = ({ day, stops, isMobile }: { day: number; stops: Stop[]; isMobile: boolean }) => {
   const totalMinutes = stops.reduce((sum, stop) => sum + stop.durationMinutes, 0);
   const totalHours = Math.floor(totalMinutes / 60);
   const minutes = totalMinutes % 60;
@@ -981,53 +1012,55 @@ const DaySummaryCard = ({ day, stops }: { day: number; stops: Stop[] }) => {
   const categories = Array.from(new Set(stops.map(s => s.category || "General")));
   
   return (
-    <div className="bg-gradient-to-r from-red-600 to-red-700 text-white rounded-2xl p-6 mb-6">
-      <div className="flex justify-between items-center mb-4">
-        <h3 className="text-2xl font-bold">Día {day}</h3>
-        <div className="flex gap-2">
+    <div className="bg-gradient-to-r from-red-600 to-red-700 text-white rounded-2xl p-4 sm:p-6 mb-4 sm:mb-6">
+      <div className="flex justify-between items-center mb-3 sm:mb-4">
+        <h3 className="text-xl sm:text-2xl font-bold">Día {day}</h3>
+        <div className="flex gap-1 sm:gap-2">
           {stops.map((_, i) => (
             <motion.div
               key={i}
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
               transition={{ delay: i * 0.1 }}
-              className="w-2.5 h-2.5 bg-white rounded-full opacity-70"
+              className="w-2 h-2 sm:w-2.5 sm:h-2.5 bg-white rounded-full opacity-70"
             />
           ))}
         </div>
       </div>
       
-      <div className="grid grid-cols-3 gap-4 text-center">
+      <div className="grid grid-cols-3 gap-3 sm:gap-4 text-center">
         <div>
-          <p className="text-3xl font-bold">{stops.length}</p>
-          <p className="text-sm opacity-90">Lugares</p>
+          <p className="text-2xl sm:text-3xl font-bold">{stops.length}</p>
+          <p className="text-xs sm:text-sm opacity-90">Lugares</p>
         </div>
         <div>
-          <p className="text-3xl font-bold">{totalHours}h {minutes > 0 ? `${minutes}m` : ''}</p>
-          <p className="text-sm opacity-90">Duración</p>
+          <p className="text-2xl sm:text-3xl font-bold">{totalHours}h {minutes > 0 ? `${minutes}m` : ''}</p>
+          <p className="text-xs sm:text-sm opacity-90">Duración</p>
         </div>
         <div>
-          <p className="text-3xl font-bold">{categories.length}</p>
-          <p className="text-sm opacity-90">Categorías</p>
+          <p className="text-2xl sm:text-3xl font-bold">{categories.length}</p>
+          <p className="text-xs sm:text-sm opacity-90">Categorías</p>
         </div>
       </div>
       
-      <div className="flex gap-2 mt-4 flex-wrap">
-        {categories.map(cat => (
-          <span
-            key={cat}
-            className="px-3 py-1 bg-white/20 rounded-full text-xs backdrop-blur-sm"
-          >
-            {cat}
-          </span>
-        ))}
-      </div>
+      {!isMobile && (
+        <div className="flex gap-2 mt-4 flex-wrap">
+          {categories.map(cat => (
+            <span
+              key={cat}
+              className="px-3 py-1 bg-white/20 rounded-full text-xs backdrop-blur-sm"
+            >
+              {cat}
+            </span>
+          ))}
+        </div>
+      )}
     </div>
   );
 };
 
-// Panel de ajustes rápidos
-const QuickCustomize = ({ itinerary, onUpdate }: { itinerary: Stop[]; onUpdate: (stops: Stop[]) => void }) => {
+// Panel de ajustes rápidos móvil
+const QuickCustomize = ({ itinerary, onUpdate, isMobile }: { itinerary: Stop[]; onUpdate: (stops: Stop[]) => void; isMobile: boolean }) => {
   const [showPanel, setShowPanel] = useState(false);
   const [showBreakModal, setShowBreakModal] = useState(false);
   const [breakForm, setBreakForm] = useState({
@@ -1048,9 +1081,9 @@ const QuickCustomize = ({ itinerary, onUpdate }: { itinerary: Stop[]; onUpdate: 
       id: `break-${Date.now()}`,
       name: breakForm.name,
       description: breakForm.description || "Tiempo para descansar",
-      lat: itinerary[Math.floor(itinerary.length / 2)]?.lat || 10.9, // Usar coordenadas del medio del itinerario
+      lat: itinerary[Math.floor(itinerary.length / 2)]?.lat || 10.9,
       lng: itinerary[Math.floor(itinerary.length / 2)]?.lng || -74.9,
-      startTime: "12:00", // Se recalculará con el resto
+      startTime: "12:00",
       durationMinutes: breakForm.duration,
       category: "Descanso",
       municipality: "Tu ubicación",
@@ -1069,6 +1102,18 @@ const QuickCustomize = ({ itinerary, onUpdate }: { itinerary: Stop[]; onUpdate: 
     ];
 
     // Recalcular tiempos
+    const recalculateTimings = (stops: Stop[]): Stop[] => {
+      let current = 9 * 60; // 09:00 en minutos
+      return stops.map((stop, idx) => {
+        if (idx > 0) {
+          current += 30; // 30 min de viaje entre paradas
+        }
+        const startTime = `${Math.floor(current / 60).toString().padStart(2, "0")}:${(current % 60).toString().padStart(2, "0")}`;
+        current += stop.durationMinutes || 60;
+        return { ...stop, startTime };
+      });
+    };
+    
     const recalculated = recalculateTimings(updatedItinerary);
     
     onUpdate(recalculated);
@@ -1087,8 +1132,8 @@ const QuickCustomize = ({ itinerary, onUpdate }: { itinerary: Stop[]; onUpdate: 
   const quickActions = [
     {
       id: "add-break",
-      icon: <Coffee className="w-5 h-5" />,
-      label: "Agregar Descanso",
+      icon: <Coffee className="w-4 h-4 sm:w-5 sm:h-5" />,
+      label: isMobile ? "Descanso" : "Agregar Descanso",
       action: () => {
         setShowBreakModal(true);
         setShowPanel(false);
@@ -1096,8 +1141,8 @@ const QuickCustomize = ({ itinerary, onUpdate }: { itinerary: Stop[]; onUpdate: 
     },
     {
       id: "regenerate",
-      icon: <Sparkles className="w-5 h-5" />,
-      label: "Re-Generar Ruta",
+      icon: <Sparkles className="w-4 h-4 sm:w-5 sm:h-5" />,
+      label: isMobile ? "Regenerar" : "Re-Generar Ruta",
       action: handleRegenerate
     }
   ];
@@ -1105,12 +1150,12 @@ const QuickCustomize = ({ itinerary, onUpdate }: { itinerary: Stop[]; onUpdate: 
   return (
     <>
       <motion.button
-        className="fixed bottom-24 right-6 bg-red-600 text-white p-4 rounded-full shadow-lg z-40"
-        whileHover={{ scale: 1.1 }}
+        className="fixed bottom-20 sm:bottom-24 right-4 sm:right-6 bg-red-600 text-white p-3 sm:p-4 rounded-full shadow-lg z-40"
+        whileHover={!isMobile ? { scale: 1.1 } : {}}
         whileTap={{ scale: 0.95 }}
         onClick={() => setShowPanel(!showPanel)}
       >
-        <Settings className="w-6 h-6" />
+        <Settings className="w-5 h-5 sm:w-6 sm:h-6" />
       </motion.button>
 
       <AnimatePresence>
@@ -1119,16 +1164,16 @@ const QuickCustomize = ({ itinerary, onUpdate }: { itinerary: Stop[]; onUpdate: 
             initial={{ opacity: 0, y: 20, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.95 }}
-            className="fixed bottom-44 right-6 bg-white rounded-2xl shadow-2xl p-4 z-40 w-64"
+            className={`fixed ${isMobile ? 'bottom-36 right-4 left-4' : 'bottom-44 right-6'} bg-white rounded-2xl shadow-2xl p-4 z-40 ${isMobile ? '' : 'w-64'}`}
           >
-            <h3 className="font-semibold mb-3">Ajustes rápidos</h3>
+            <h3 className="font-semibold mb-3 text-sm sm:text-base">Ajustes rápidos</h3>
             <div className="space-y-2">
               {quickActions.map((action) => (
                 <motion.button
                   key={action.id}
-                  whileHover={{ x: 5 }}
+                  whileHover={!isMobile ? { x: 5 } : {}}
                   onClick={action.action}
-                  className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 text-left transition-all"
+                  className="w-full flex items-center gap-3 p-2.5 sm:p-3 rounded-lg hover:bg-gray-50 text-left transition-all text-sm sm:text-base"
                 >
                   <div className="text-red-600">{action.icon}</div>
                   <span className="text-sm">{action.label}</span>
@@ -1139,7 +1184,7 @@ const QuickCustomize = ({ itinerary, onUpdate }: { itinerary: Stop[]; onUpdate: 
         )}
       </AnimatePresence>
 
-      {/* Modal para agregar descanso */}
+      {/* Modal para agregar descanso - adaptado móvil */}
       <AnimatePresence>
         {showBreakModal && (
           <motion.div
@@ -1153,10 +1198,10 @@ const QuickCustomize = ({ itinerary, onUpdate }: { itinerary: Stop[]; onUpdate: 
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-white rounded-2xl p-6 max-w-md w-full"
+              className="bg-white rounded-2xl p-5 sm:p-6 max-w-md w-full"
               onClick={(e) => e.stopPropagation()}
             >
-              <h3 className="text-xl font-bold mb-4">Agregar Descanso</h3>
+              <h3 className="text-lg sm:text-xl font-bold mb-4">Agregar Descanso</h3>
               
               <div className="space-y-4">
                 <div>
@@ -1168,7 +1213,7 @@ const QuickCustomize = ({ itinerary, onUpdate }: { itinerary: Stop[]; onUpdate: 
                     value={breakForm.name}
                     onChange={(e) => setBreakForm({ ...breakForm, name: e.target.value })}
                     placeholder="Ej: Almuerzo, Café, Siesta..."
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 text-sm sm:text-base"
                     autoFocus
                   />
                 </div>
@@ -1181,7 +1226,7 @@ const QuickCustomize = ({ itinerary, onUpdate }: { itinerary: Stop[]; onUpdate: 
                     value={breakForm.description}
                     onChange={(e) => setBreakForm({ ...breakForm, description: e.target.value })}
                     placeholder="Ej: Parada para almorzar en un restaurante local"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 text-sm sm:text-base"
                     rows={3}
                   />
                 </div>
@@ -1193,7 +1238,7 @@ const QuickCustomize = ({ itinerary, onUpdate }: { itinerary: Stop[]; onUpdate: 
                   <select
                     value={breakForm.duration}
                     onChange={(e) => setBreakForm({ ...breakForm, duration: Number(e.target.value) })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 text-sm sm:text-base"
                   >
                     <option value={15}>15 minutos</option>
                     <option value={30}>30 minutos</option>
@@ -1208,13 +1253,13 @@ const QuickCustomize = ({ itinerary, onUpdate }: { itinerary: Stop[]; onUpdate: 
               <div className="flex gap-3 mt-6">
                 <button
                   onClick={() => setShowBreakModal(false)}
-                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
+                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition text-sm sm:text-base"
                 >
                   Cancelar
                 </button>
                 <button
                   onClick={handleAddBreak}
-                  className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition"
+                  className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition text-sm sm:text-base"
                 >
                   Agregar
                 </button>
