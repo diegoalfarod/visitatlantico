@@ -3,7 +3,6 @@
 @import 'mapbox-gl/dist/mapbox-gl.css';
 @import '@mapbox/mapbox-gl-directions/dist/mapbox-gl-directions.css';
 @import "tailwindcss";
-@import "tw-animate-css";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -121,7 +120,7 @@
     @apply border-border outline-ring/50;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply font-sans bg-background text-foreground;
   }
 }
 
@@ -162,3 +161,4 @@
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
+
