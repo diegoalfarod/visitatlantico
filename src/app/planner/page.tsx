@@ -1133,7 +1133,7 @@ const QuickCustomize = ({ itinerary, onUpdate, isMobile }: { itinerary: Stop[]; 
     {
       id: "add-break",
       icon: <Coffee className="w-4 h-4 sm:w-5 sm:h-5" />,
-      label: isMobile ? "Descanso" : "Agregar Descanso",
+      label: isMobile ? "Descanso" : "Agregar Descanso o Actividad",
       action: () => {
         setShowBreakModal(true);
         setShowPanel(false);
@@ -1201,7 +1201,7 @@ const QuickCustomize = ({ itinerary, onUpdate, isMobile }: { itinerary: Stop[]; 
               className="bg-white rounded-2xl p-5 sm:p-6 max-w-md w-full"
               onClick={(e) => e.stopPropagation()}
             >
-              <h3 className="text-lg sm:text-xl font-bold mb-4">Agregar Descanso</h3>
+              <h3 className="text-lg sm:text-xl font-bold mb-4">Agregar Descanso o Actividad</h3>
               
               <div className="space-y-4">
                 <div>

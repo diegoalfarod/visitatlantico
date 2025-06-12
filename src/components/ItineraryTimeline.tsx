@@ -26,7 +26,6 @@ import {
   MoreVertical,
   Maximize2,
   Edit3,
-  AlertCircle,
   Check,
   X,
   Plus,
@@ -114,82 +113,92 @@ const recalculateTimings = (stops: Stop[], startIndex: number = 0, baseTime?: st
   });
 };
 
-// Función para detectar conflictos de horario
-const detectTimeConflicts = (stops: Stop[]): { stopId: string; message: string }[] => {
-  const conflicts: { stopId: string; message: string }[] = [];
-  
-  for (let i = 0; i < stops.length; i++) {
-    const currentStop = stops[i];
-    const currentStart = toMin(currentStop.startTime);
-    const currentEnd = currentStart + currentStop.durationMinutes;
-    
-    // Verificar horario muy temprano o muy tarde
-    if (currentStart < 6 * 60) {
-      conflicts.push({
-        stopId: currentStop.id,
-        message: "Comienza muy temprano (antes de 6:00 AM)"
-      });
-    }
-    
-    if (currentEnd > 23 * 60) {
-      conflicts.push({
-        stopId: currentStop.id,
-        message: "Termina muy tarde (después de 11:00 PM)"
-      });
-    }
-    
-    // Verificar conflictos con actividad anterior
-    if (i > 0) {
-      const prevStop = stops[i - 1];
-      const prevEnd = toMin(prevStop.startTime) + prevStop.durationMinutes;
-      const travelTime = 30; // minutos de viaje
-      
-      if (currentStart < prevEnd + travelTime) {
-        const neededTime = prevEnd + travelTime;
-        conflicts.push({
-          stopId: currentStop.id,
-          message: `Conflicto: necesitas llegar a las ${toHHMM(neededTime)} (incluye 30 min de viaje)`
-        });
-      }
-    }
-  }
-  
-  return conflicts;
-};
-
-// Función para detectar espacios para descansos
+// Función para detectar espacios para descansos - VERSIÓN MEJORADA
 const detectBreakOpportunities = (stops: Stop[]): { afterIndex: number; duration: number; suggestedTime: string }[] => {
   const opportunities: { afterIndex: number; duration: number; suggestedTime: string }[] = [];
+  
+  // No sugerir descansos si hay muy pocas paradas
+  if (stops.length < 3) return opportunities;
+  
+  let lastBreakIndex = -1;
+  let accumulatedActivityTime = 0;
   
   for (let i = 0; i < stops.length - 1; i++) {
     const currentStop = stops[i];
     const nextStop = stops[i + 1];
     
+    // Acumular tiempo de actividad
+    accumulatedActivityTime += currentStop.durationMinutes;
+    
+    // Verificar si la parada actual ya es un descanso
+    const isCurrentBreak = currentStop.category?.toLowerCase().includes('descanso') || 
+                          currentStop.category?.toLowerCase().includes('comida') ||
+                          currentStop.category?.toLowerCase().includes('almuerzo') ||
+                          currentStop.name.toLowerCase().includes('café') ||
+                          currentStop.name.toLowerCase().includes('restaurante');
+    
+    if (isCurrentBreak) {
+      lastBreakIndex = i;
+      accumulatedActivityTime = 0; // Resetear contador
+      continue;
+    }
+    
     const currentEnd = toMin(currentStop.startTime) + currentStop.durationMinutes;
     const nextStart = toMin(nextStop.startTime);
     const gap = nextStart - currentEnd - 30; // Restamos 30 min de viaje
     
-    // Si hay al menos 45 minutos libres, sugerir un descanso
-    if (gap >= 45) {
+    // Condiciones más estrictas para sugerir descanso:
+    const conditions = {
+      hasEnoughGap: gap >= 45, // Mínimo 45 minutos libres
+      hasBeenLongEnough: accumulatedActivityTime >= 180, // Han pasado al menos 3 horas
+      notTooSoon: i - lastBreakIndex >= 2, // Al menos 2 paradas desde el último descanso
+      notNearEnd: i < stops.length - 2, // No sugerir en las últimas paradas
+      isGoodTiming: isGoodTimeForBreak(currentEnd), // Verificar si es buen momento del día
+      notTooManyBreaks: countExistingBreaks(stops) < 2 // Máximo 2 descansos sugeridos
+    };
+    
+    // Solo sugerir si se cumplen TODAS las condiciones
+    if (Object.values(conditions).every(condition => condition)) {
       opportunities.push({
         afterIndex: i,
         duration: Math.min(gap, 60), // Máximo 60 minutos de descanso
         suggestedTime: toHHMM(currentEnd + 30) // Después del viaje
       });
-    }
-    
-    // También sugerir descanso si han pasado más de 3 horas sin pausa
-    const timeSinceStart = currentEnd - toMin(stops[0].startTime);
-    if (timeSinceStart > 180 && !stops.slice(0, i + 1).some(s => s.category?.toLowerCase().includes('descanso'))) {
-      opportunities.push({
-        afterIndex: i,
-        duration: 30,
-        suggestedTime: toHHMM(currentEnd + 30)
-      });
+      
+      lastBreakIndex = i; // Actualizar índice del último descanso sugerido
+      accumulatedActivityTime = 0; // Resetear contador
     }
   }
   
-  return opportunities;
+  // Limitar a máximo 2 sugerencias, priorizando las mejores ubicaciones
+  return opportunities
+    .sort((a, b) => {
+      // Priorizar descansos alrededor del mediodía
+      const aTime = toMin(a.suggestedTime);
+      const bTime = toMin(b.suggestedTime);
+      const noon = 12 * 60;
+      const aDiff = Math.abs(aTime - noon);
+      const bDiff = Math.abs(bTime - noon);
+      return aDiff - bDiff;
+    })
+    .slice(0, 2); // Máximo 2 sugerencias
+};
+
+// Función auxiliar para verificar si es buen momento para un descanso
+const isGoodTimeForBreak = (timeInMinutes: number): boolean => {
+  const hour = Math.floor(timeInMinutes / 60);
+  // Buenos momentos: media mañana (10-11am), almuerzo (12-2pm), media tarde (3-4pm)
+  return (hour >= 10 && hour <= 11) || (hour >= 12 && hour <= 14) || (hour >= 15 && hour <= 16);
+};
+
+// Función auxiliar para contar descansos existentes
+const countExistingBreaks = (stops: Stop[]): number => {
+  return stops.filter(stop => 
+    stop.category?.toLowerCase().includes('descanso') ||
+    stop.category?.toLowerCase().includes('comida') ||
+    stop.name.toLowerCase().includes('café') ||
+    stop.name.toLowerCase().includes('descanso')
+  ).length;
 };
 
 // Componente de editor de duración inline
@@ -270,19 +279,6 @@ const DurationEditor = ({
       >
         <X className="w-4 h-4 text-red-600" />
       </button>
-      {error && (
-        <motion.div 
-          initial={{ opacity: 0, y: -5 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="absolute top-full left-0 mt-1 bg-red-100 text-red-700 text-xs px-3 py-2 rounded-lg shadow-md whitespace-nowrap z-50 border border-red-200"
-        >
-          <div className="flex items-center gap-1">
-            <AlertCircle className="w-3 h-3 flex-shrink-0" />
-            <span>{error}</span>
-          </div>
-          <div className="absolute -top-1 left-4 w-2 h-2 bg-red-100 border-l border-t border-red-200 transform rotate-45"></div>
-        </motion.div>
-      )}
     </div>
   );
 };
@@ -321,12 +317,12 @@ const TimeEditor = ({
     }
     
     if (!isFirstStop && minTime && toMin(newTime) < toMin(minTime)) {
-      setError(`Conflicto: mínimo ${formatTime(minTime)}`);
+      setError(`Mínimo ${formatTime(minTime)}`);
       return false;
     }
     
     if (maxTime && toMin(newTime) > toMin(maxTime)) {
-      setError(`Conflicto: máximo ${formatTime(maxTime)}`);
+      setError(`Máximo ${formatTime(maxTime)}`);
       return false;
     }
     
@@ -379,24 +375,12 @@ const TimeEditor = ({
       >
         <X className="w-4 h-4 text-red-600" />
       </button>
-      {error && (
-        <motion.div 
-          initial={{ opacity: 0, y: -5 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="absolute top-full left-0 mt-1 bg-red-100 text-red-700 text-xs px-3 py-2 rounded-lg shadow-md whitespace-nowrap z-50 border border-red-200"
-        >
-          <div className="flex items-center gap-1">
-            <AlertCircle className="w-3 h-3 flex-shrink-0" />
-            <span>{error}</span>
-          </div>
-          <div className="absolute -top-1 left-4 w-2 h-2 bg-red-100 border-l border-t border-red-200 transform rotate-45"></div>
-        </motion.div>
-      )}
     </div>
   );
 };
 
 // Componente de sugerencia de descanso
+// Componente de sugerencia de descanso - VERSIÓN MEJORADA
 const BreakSuggestion = ({ 
   opportunity,
   onAdd,
@@ -406,38 +390,66 @@ const BreakSuggestion = ({
   onAdd: () => void;
   onDismiss: () => void;
 }) => {
+  const suggestedHour = Math.floor(toMin(opportunity.suggestedTime) / 60);
+  const isLunchTime = suggestedHour >= 12 && suggestedHour <= 14;
+  
   return (
     <motion.div
-      initial={{ opacity: 0, height: 0 }}
-      animate={{ opacity: 1, height: "auto" }}
-      exit={{ opacity: 0, height: 0 }}
-      className="mx-10 my-4 p-3 bg-amber-50 border border-amber-200 rounded-lg"
+      initial={{ opacity: 0, height: 0, scale: 0.95 }}
+      animate={{ opacity: 1, height: "auto", scale: 1 }}
+      exit={{ opacity: 0, height: 0, scale: 0.95 }}
+      transition={{ duration: 0.3, ease: "easeOut" }}
+      className="mx-10 my-3 relative"
     >
-      <div className="flex items-start justify-between">
-        <div className="flex items-start gap-2">
-          <Coffee className="w-4 h-4 text-amber-600 mt-0.5" />
-          <div>
-            <p className="text-sm font-medium text-amber-800">
-              Sugerencia de descanso
-            </p>
-            <p className="text-xs text-amber-700 mt-0.5">
-              Tienes {opportunity.duration} minutos libres aquí. ¿Agregar una pausa?
-            </p>
+      <div className={`p-3 rounded-lg border ${
+        isLunchTime 
+          ? 'bg-orange-50 border-orange-200' 
+          : 'bg-blue-50 border-blue-200'
+      }`}>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            {isLunchTime ? (
+              <Utensils className="w-4 h-4 text-orange-600" />
+            ) : (
+              <Coffee className="w-4 h-4 text-blue-600" />
+            )}
+            <div>
+              <p className={`text-sm font-medium ${
+                isLunchTime ? 'text-orange-800' : 'text-blue-800'
+              }`}>
+                {isLunchTime ? 'Hora de almorzar' : 'Momento para un descanso'}
+              </p>
+              <p className={`text-xs mt-0.5 ${
+                isLunchTime ? 'text-orange-700' : 'text-blue-700'
+              }`}>
+                {opportunity.duration} min disponibles • {formatTime(opportunity.suggestedTime)}
+              </p>
+            </div>
           </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={onAdd}
-            className="text-xs bg-amber-600 text-white px-3 py-1 rounded-full hover:bg-amber-700 transition-colors"
-          >
-            Agregar
-          </button>
-          <button
-            onClick={onDismiss}
-            className="text-xs text-amber-600 hover:text-amber-700"
-          >
-            <X className="w-4 h-4" />
-          </button>
+          <div className="flex items-center gap-1">
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={onAdd}
+              className={`text-xs px-3 py-1 rounded-full transition-colors ${
+                isLunchTime 
+                  ? 'bg-orange-600 hover:bg-orange-700 text-white' 
+                  : 'bg-blue-600 hover:bg-blue-700 text-white'
+              }`}
+            >
+              Agregar
+            </motion.button>
+            <motion.button
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
+              onClick={onDismiss}
+              className="p-1 rounded-full hover:bg-gray-100 transition-colors"
+            >
+              <X className={`w-3.5 h-3.5 ${
+                isLunchTime ? 'text-orange-600' : 'text-blue-600'
+              }`} />
+            </motion.button>
+          </div>
         </div>
       </div>
     </motion.div>
@@ -639,9 +651,7 @@ function SortableStop({
   onDurationSave,
   stops,
   onStopsUpdate,
-  autoAdjust,
-  hasConflict,
-  conflictMessage
+  autoAdjust
 }: {
   stop: Stop;
   index: number;
@@ -657,8 +667,6 @@ function SortableStop({
   stops: Stop[];
   onStopsUpdate: (stops: Stop[]) => void;
   autoAdjust: boolean;
-  hasConflict?: boolean;
-  conflictMessage?: string;
 }) {
   const {
     attributes,
@@ -788,21 +796,13 @@ function SortableStop({
           </motion.div>
         </div>
 
-        {/* tarjeta mejorada con indicador de conflicto */}
+        {/* tarjeta mejorada */}
         <motion.div 
-          className={`ml-10 rounded-2xl shadow-lg border ${hasConflict ? 'border-yellow-400' : c.border} bg-white ${isDragging ? 'shadow-2xl' : ''} overflow-hidden relative`}
+          className={`ml-10 rounded-2xl shadow-lg border ${c.border} bg-white ${isDragging ? 'shadow-2xl' : ''} overflow-hidden relative`}
           whileHover={{ scale: 1.02 }}
           transition={{ type: "spring", stiffness: 300 }}
         >
-          {/* Indicador de conflicto */}
-          {hasConflict && (
-            <div className="absolute top-0 left-0 right-0 bg-yellow-100 border-b border-yellow-400 px-3 py-1.5 flex items-center gap-2">
-              <AlertCircle className="w-4 h-4 text-yellow-600 flex-shrink-0" />
-              <span className="text-xs text-yellow-800 font-medium">{conflictMessage}</span>
-            </div>
-          )}
-          
-          <div className="cursor-pointer" onClick={toggleExpand} style={{ marginTop: hasConflict ? '2rem' : '0' }}>
+          <div className="cursor-pointer" onClick={toggleExpand}>
             {!expanded && (
               <div className="flex flex-col sm:flex-row">
                 {stop.imageUrl && (
@@ -972,7 +972,6 @@ export default function ItineraryTimeline({ stops, onStopsReorder, userLocation 
   const [editingDurationId, setEditingDurationId] = useState<string | null>(null);
   const [view, setView] = useState<"timeline" | "cards">("timeline");
   const [autoAdjust, setAutoAdjust] = useState(true);
-  const [conflicts, setConflicts] = useState<{ stopId: string; message: string }[]>([]);
   const [breakOpportunities, setBreakOpportunities] = useState<{ afterIndex: number; duration: number; suggestedTime: string }[]>([]);
   const [dismissedBreaks, setDismissedBreaks] = useState<Set<number>>(new Set());
 
@@ -980,11 +979,8 @@ export default function ItineraryTimeline({ stops, onStopsReorder, userLocation 
     setLocalStops(stops);
   }, [stops]);
 
-  // Detectar conflictos y oportunidades de descanso cuando cambian los stops
+  // Detectar oportunidades de descanso cuando cambian los stops
   React.useEffect(() => {
-    const newConflicts = detectTimeConflicts(localStops);
-    setConflicts(newConflicts);
-    
     const opportunities = detectBreakOpportunities(localStops);
     setBreakOpportunities(opportunities.filter(o => !dismissedBreaks.has(o.afterIndex)));
   }, [localStops, dismissedBreaks]);
@@ -1124,7 +1120,7 @@ export default function ItineraryTimeline({ stops, onStopsReorder, userLocation 
 
   return (
     <div className="relative">
-      {/* encabezado mejorado con toggle de ajuste automático y alertas */}
+      {/* encabezado mejorado con toggle de ajuste automático */}
       <div className="bg-gradient-to-r from-red-600 to-red-800 rounded-xl shadow-lg p-4 md:p-5 mb-6">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
           <div className="text-white">
@@ -1169,27 +1165,6 @@ export default function ItineraryTimeline({ stops, onStopsReorder, userLocation 
             </span>
           </label>
         </div>
-        
-        {/* Mostrar alertas de conflictos */}
-        {conflicts.length > 0 && (
-          <motion.div 
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: "auto" }}
-            className="mt-3 bg-white/10 backdrop-blur-sm rounded-lg p-3"
-          >
-            <div className="flex items-start gap-2">
-              <AlertCircle className="w-4 h-4 text-yellow-300 flex-shrink-0 mt-0.5" />
-              <div className="text-xs space-y-1">
-                <p className="text-yellow-100 font-medium">Conflictos detectados:</p>
-                {conflicts.map((conflict, idx) => (
-                  <p key={idx} className="text-yellow-100/90">
-                    • {localStops.find(s => s.id === conflict.stopId)?.name}: {conflict.message}
-                  </p>
-                ))}
-              </div>
-            </div>
-          </motion.div>
-        )}
       </div>
 
       {/* Toggle de vista */}
@@ -1269,8 +1244,6 @@ export default function ItineraryTimeline({ stops, onStopsReorder, userLocation 
               strategy={verticalListSortingStrategy}
             >
               {filteredStops.map((s, i) => {
-                const conflict = conflicts.find(c => c.stopId === s.id);
-                
                 // Encontrar oportunidad de descanso después de esta parada
                 const breakOpp = breakOpportunities.find(o => o.afterIndex === i);
                 
@@ -1291,8 +1264,6 @@ export default function ItineraryTimeline({ stops, onStopsReorder, userLocation 
                       stops={filteredStops}
                       onStopsUpdate={setLocalStops}
                       autoAdjust={autoAdjust}
-                      hasConflict={!!conflict}
-                      conflictMessage={conflict?.message}
                     />
                     
                     {/* Sugerencia de descanso */}
