@@ -1,5 +1,7 @@
 "use client";
 
+export const dynamic = "force-dynamic";
+
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { DndProvider } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
@@ -431,6 +433,26 @@ export default function PremiumPlannerPage() {
     }
   };
 
+  const saveOffline = () => {
+    if (!itinerary) return;
+    if (navigator.serviceWorker?.controller) {
+      navigator.serviceWorker.controller.postMessage({
+        type: "CACHE_ITINERARY",
+        payload: {
+          itinerary,
+          days: parseInt(answers[1] || "1", 10) || 1,
+        },
+      });
+      alert("Itinerario guardado para uso sin conexión");
+    } else {
+      alert("Service Worker no disponible");
+    }
+  };
+
+  const handleSaveChanges = () => {
+    saveOffline();
+  };
+
   /* ═════ vista loading ════ */
   if (view === "loading") {
     const frases = [
@@ -554,7 +576,7 @@ export default function PremiumPlannerPage() {
   }
 
   /* ═════ wizard ════ */
-  const step = steps[qIndex];
+  const step = steps[qIndex] ?? { label: "", valid: false, element: null };
   return (
     <main className="min-h-screen bg-gradient-to-b from-blue-50 to-red-50 pb-16">
       {/* hero */}
@@ -587,9 +609,6 @@ export default function PremiumPlannerPage() {
           {/* pregunta */}
           <div className="space-y-4">
             <h2 className="text-2xl font-semibold">{step.label}</h2>
-            {step.helper && (
-              <p className="text-sm text-gray-500">{step.helper}</p>
-            )}
             {step.element}
           </div>
 

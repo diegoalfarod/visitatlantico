@@ -77,7 +77,8 @@ export default function ItineraryMap({ stops, userLocation }: Props) {
           sanitizedStops[sanitizedStops.length - 1].lat,
         ]);
 
-        directions.on("route", (e) => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        directions.on("route", (e: any) => {
           timeMarkersRef.current.forEach((m) => m.remove());
           timeMarkersRef.current = [];
           const route = e.route && e.route[0];

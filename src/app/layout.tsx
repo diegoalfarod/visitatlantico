@@ -1,21 +1,10 @@
 // src/app/layout.tsx
 
 import "./globals.css";
-import { Poppins, Merriweather_Sans } from "next/font/google";
 import { ReactNode } from "react";
 import ServiceWorkerRegister from "@/components/ServiceWorkerRegister";
 import type { Metadata } from "next";
 
-const poppins = Poppins({
-  subsets: ["latin"],
-  weight: ["400", "600", "700"],
-  variable: "--font-poppins",
-});
-const merriweatherSans = Merriweather_Sans({
-  subsets: ["latin"],
-  weight: ["400", "600", "700"],
-  variable: "--font-merriweather-sans",
-});
 
 export const metadata: Metadata = {
   title: "VisitAtlántico · Explora el paraíso costero",
@@ -62,11 +51,20 @@ export function generateViewport() {
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html
-      lang="es"
-      className={`${poppins.variable} ${merriweatherSans.variable}`}
-    >
+    <html lang="es">
       <head>
+        {/* Google Fonts */}
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link
+          rel="preconnect"
+          href="https://fonts.gstatic.com"
+          crossOrigin="anonymous"
+        />
+        <link
+          href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&family=Merriweather+Sans:wght@400;600;700&display=swap"
+          rel="stylesheet"
+        />
+
         {/* Next.js inyecta aquí todos los meta tags definidos en `metadata` */}
 
         {/* Canonical URL */}

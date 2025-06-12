@@ -5,7 +5,6 @@ import { motion, AnimatePresence } from "framer-motion";
 import { FaBars, FaTimes } from "react-icons/fa";
 import Image from "next/image";
 import Link from "next/link";
-import "@/styles/globals.css";
 
 export default function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false);
