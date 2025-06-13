@@ -11,6 +11,52 @@ import { ArrowLeft, Camera, Clock, MapPin } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
+// Función para formatear texto en párrafos
+function formatDescription(text) {
+  if (!text) return [];
+  
+  // Primero, intenta dividir por dobles saltos de línea
+  let paragraphs = text.split(/\n\n+/);
+  
+  // Si no hay dobles saltos de línea, intenta con saltos simples
+  if (paragraphs.length === 1) {
+    paragraphs = text.split(/\n+/);
+  }
+  
+  // Si aún es un solo párrafo largo, divídelo por puntos seguidos
+  if (paragraphs.length === 1 && text.length > 500) {
+    // Divide por puntos seguidos, pero mantén el punto
+    const sentences = text.match(/[^.!?]+[.!?]+/g) || [text];
+    paragraphs = [];
+    let currentParagraph = "";
+    
+    sentences.forEach((sentence, index) => {
+      currentParagraph += sentence.trim() + " ";
+      
+      // Crea un nuevo párrafo cada 3-4 oraciones o cuando sea apropiado
+      if ((index + 1) % 3 === 0 || 
+          sentence.includes('Por otro lado') || 
+          sentence.includes('Además') ||
+          sentence.includes('También') ||
+          sentence.includes('Sin embargo') ||
+          sentence.includes('En conclusión')) {
+        paragraphs.push(currentParagraph.trim());
+        currentParagraph = "";
+      }
+    });
+    
+    // Agrega el último párrafo si existe
+    if (currentParagraph.trim()) {
+      paragraphs.push(currentParagraph.trim());
+    }
+  }
+  
+  // Filtra párrafos vacíos y limpia espacios
+  return paragraphs
+    .map(p => p.trim())
+    .filter(p => p.length > 0);
+}
+
 // Genera metadata dinámica para cada destino
 export async function generateMetadata({ params }) {
   const { id } = params;
@@ -91,6 +137,9 @@ export default async function DestinationDetail({ params }) {
   const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
     d.address
   )}`;
+  
+  // Formatea la descripción en párrafos
+  const descriptionParagraphs = formatDescription(d.description);
 
   return (
     <>
@@ -111,7 +160,7 @@ export default async function DestinationDetail({ params }) {
         }}
       />
 
-      <div className="bg-white dark:bg-gray-900 min-h-screen flex flex-col">
+      <div className="bg-white min-h-screen flex flex-col">
         {/* Hero */}
         <div className="relative h-[70vh] w-full overflow-hidden">
           {imageUrl ? (
@@ -155,16 +204,16 @@ export default async function DestinationDetail({ params }) {
         </div>
 
         {/* Breadcrumb */}
-        <div className="sticky top-16 z-30 bg-white/90 dark:bg-gray-900/90 backdrop-blur-md border-b border-gray-200 dark:border-gray-800 shadow-sm">
+        <div className="sticky top-16 z-30 bg-white/95 backdrop-blur-md border-b border-gray-200 shadow-sm">
           <div className="max-w-5xl mx-auto flex items-center justify-between h-16 px-4 md:px-8">
             <div className="flex items-center gap-2">
               <Link
                 href="/destinations"
-                className="inline-flex items-center text-sm text-gray-600 dark:text-gray-300 hover:text-primary transition-colors px-3 py-1"
+                className="inline-flex items-center text-sm text-gray-600 hover:text-primary transition-colors px-3 py-1"
               >
                 <ArrowLeft className="w-4 h-4 mr-1" /> Destinos
               </Link>
-              <span className="text-gray-300 dark:text-gray-700">|</span>
+              <span className="text-gray-300">|</span>
               <span className="text-sm font-medium truncate max-w-[200px]">
                 {d.name}
               </span>
@@ -177,27 +226,40 @@ export default async function DestinationDetail({ params }) {
           <div className="max-w-5xl mx-auto px-4 md:px-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
             <div className="lg:col-span-2 space-y-8">
               {/* Descripción */}
-              <section className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
-                <header className="px-6 py-5 border-b border-gray-100 dark:border-gray-700">
+              <section className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                <header className="px-6 py-5 border-b border-gray-100">
                   <h2 className="text-2xl font-bold">Sobre este lugar</h2>
                 </header>
                 <div className="p-6">
-                  <p className="text-gray-700 dark:text-gray-300 whitespace-pre-line">
-                    {d.description}
-                  </p>
+                  <div className="prose prose-gray max-w-none">
+                    {descriptionParagraphs.length > 0 ? (
+                      descriptionParagraphs.map((paragraph, index) => (
+                        <p 
+                          key={index} 
+                          className="text-gray-700 mb-4 last:mb-0 leading-relaxed"
+                        >
+                          {paragraph}
+                        </p>
+                      ))
+                    ) : (
+                      <p className="text-gray-700">
+                        {d.description || "No hay descripción disponible."}
+                      </p>
+                    )}
+                  </div>
                 </div>
               </section>
 
               {/* Galería */}
-              <section className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
-                <header className="px-6 py-5 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center">
+              <section className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                <header className="px-6 py-5 border-b border-gray-100 flex justify-between items-center">
                   <h2 className="text-2xl font-bold">Fotos y videos</h2>
                   <button className="text-primary hover:underline text-sm font-medium flex items-center">
                     <Camera className="w-4 h-4 mr-1" /> Ver galería completa
                   </button>
                 </header>
                 <div className="p-6">
-                  <div className="aspect-video bg-gray-100 dark:bg-gray-700 rounded-xl overflow-hidden relative">
+                  <div className="aspect-video bg-gray-100 rounded-xl overflow-hidden relative">
                     {imageUrl ? (
                       <Image
                         src={imageUrl}
@@ -218,7 +280,7 @@ export default async function DestinationDetail({ params }) {
 
             {/* Sidebar */}
             <div className="lg:col-span-1 space-y-4">
-              <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden sticky top-36 p-6">
+              <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden sticky top-36 p-6">
                 <h2 className="text-xl font-bold mb-4">Información</h2>
                 <InfoRow icon={<MapPin className="w-5 h-5 text-primary" />}>
                   <p className="text-sm text-gray-500">Dirección</p>
@@ -257,7 +319,7 @@ export default async function DestinationDetail({ params }) {
 // Fila de información
 function InfoRow({ icon, children }) {
   return (
-    <div className="px-6 py-4 flex items-start gap-4 border-b last:border-none border-gray-100 dark:border-gray-700">
+    <div className="px-6 py-4 flex items-start gap-4 border-b last:border-none border-gray-100">
       <div className="bg-primary/10 p-3 rounded-full">{icon}</div>
       <div className="space-y-0.5">{children}</div>
     </div>
