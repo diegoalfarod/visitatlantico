@@ -2,14 +2,17 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import {
   Instagram,
   Mail,
   Phone,
   MapPin,
   Send,
-  ChevronRight,
-  ExternalLink,
+  Facebook,
+  Twitter,
+  Youtube,
+  ArrowUpRight,
 } from "lucide-react";
 
 export default function Footer() {
@@ -26,194 +29,253 @@ export default function Footer() {
 
   /* ---- enlaces de navegación ---- */
   const footerLinks = {
-    destinos: [
-      { label: "Barranquilla", href: "/destinations/barranquilla" },
-      { label: "Puerto Colombia", href: "/destinations/puerto-colombia" },
-      { label: "Tubará", href: "/destinations/tubara" },
-      { label: "Usiacurí", href: "/destinations/usiacuri" },
-      { label: "Mapa Completo", href: "/mapa" },
-    ],
-    ayuda: [
-      { label: "Preguntas Frecuentes", href: "/ayuda/faq" },
+    institucional: [
+      { label: "Políticas de Privacidad", href: "/ayuda/privacidad" },
       { label: "Términos y Condiciones", href: "/ayuda/terminos" },
-      { label: "Política de Privacidad", href: "/ayuda/privacidad" },
-      { label: "Contacto", href: "/contacto" },
+      { label: "Mapa del Sitio", href: "/sitemap" },
+    ],
+    servicios: [
+      { label: "Atención al Ciudadano", href: "https://www.atlantico.gov.co/index.php/ayuda" },
+      { label: "Preguntas Frecuentes", href: "/ayuda/faq" },
+      { label: "Contáctenos", href: "/contacto" },
     ],
   };
 
   const socialMedia = [
     {
-      icon: <Instagram size={20} />,
+      icon: <Instagram size={18} />,
       label: "Instagram",
       href: "https://instagram.com/turismoatlantico_",
-      color: "hover:text-pink-500",
     },
-  ];
-
-  const contactInfo = [
-    { icon: <Mail size={16} />, text: "atencionalciudadano@atlantico.gov.co" },
-    { icon: <Phone size={16} />, text: "+57 (605) 330-7000" },
-    { icon: <MapPin size={16} />, text: "CL 40 45 46 - Barranquilla, Colombia" },
+    {
+      icon: <Facebook size={18} />,
+      label: "Facebook",
+      href: "https://facebook.com/gobatlantico",
+    },
+    {
+      icon: <Twitter size={18} />,
+      label: "Twitter",
+      href: "https://twitter.com/gobatlantico",
+    },
+    {
+      icon: <Youtube size={18} />,
+      label: "YouTube",
+      href: "https://youtube.com/@gobatlantico",
+    },
   ];
 
   /* ---------- UI ---------- */
   return (
-    <footer className="w-full relative pt-20 pb-10 mt-16 overflow-hidden bg-background/30 border-t border-muted">
-      {/* onda decorativa */}
-      <div className="absolute top-0 left-0 w-full overflow-hidden pointer-events-none">
-        <svg
-          viewBox="0 0 1440 100"
-          fill="none"
-          className="w-full h-[60px]"
-          preserveAspectRatio="none"
-        >
-          <path
-            d="M0,32L48,26.7C96,21,192,11,288,16C384,21,480,43,576,48C672,53,768,43,864,37.3C960,32,1056,32,1152,26.7C1248,21,1344,11,1392,5.3L1440,0V100H0Z"
-            fill="url(#footer-grad)"
-            opacity="0.2"
-          />
-          <defs>
-            <linearGradient id="footer-grad" x1="0%" y1="0%" x2="100%" y2="0%">
-              <stop offset="0%" stopColor="#0065FF" stopOpacity="0.3" />
-              <stop offset="100%" stopColor="#FF715B" stopOpacity="0.3" />
-            </linearGradient>
-          </defs>
-        </svg>
-      </div>
+    <footer className="w-full relative bg-gradient-to-b from-slate-50 to-white border-t border-slate-200">
+      {/* Sección superior con logo y info principal */}
+      <div className="bg-white border-b border-slate-100">
+        <div className="max-w-7xl mx-auto px-6 py-12">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-start">
+            {/* Logo e información institucional */}
+            <div className="lg:col-span-5 space-y-6">
+              <div className="flex items-center gap-4">
+                <Image
+                  src="/logo-black.png"
+                  alt="VisitAtlántico - Gobernación del Atlántico"
+                  width={80}
+                  height={80}
+                  className="object-contain"
+                />
+                <div>
+                  <h2 className="text-2xl font-bold text-slate-900">
+                    VisitAtlántico
+                  </h2>
+                  <p className="text-sm text-slate-600 mt-1">
+                    Gobernación del Atlántico
+                  </p>
+                </div>
+              </div>
+              
+              <p className="text-slate-600 leading-relaxed">
+                Portal oficial de turismo del departamento del Atlántico. 
+                Descubre la riqueza cultural, gastronómica y natural del corazón 
+                del Caribe colombiano.
+              </p>
 
-      <div className="max-w-7xl mx-auto px-6 relative">
-        {/* ---------- columnas principales ---------- */}
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-8 mb-12">
-          {/* marca & contacto */}
-          <div className="md:col-span-3 space-y-6">
-            <div>
-              <h2 className="text-2xl font-heading font-bold text-foreground">
-                VisitAtlántico
-              </h2>
-              <div className="h-1 w-10 bg-primary mt-2 rounded-full" />
+              {/* Información de contacto */}
+              <div className="space-y-3 pt-4">
+                <h3 className="text-sm font-semibold text-slate-900 uppercase tracking-wider">
+                  Contacto Institucional
+                </h3>
+                <div className="space-y-2">
+                  <a
+                    href="mailto:atencionalciudadano@atlantico.gov.co"
+                    className="flex items-center gap-3 text-sm text-slate-600 hover:text-blue-600 transition-colors group"
+                  >
+                    <Mail size={16} className="text-blue-500" />
+                    <span>atencionalciudadano@atlantico.gov.co</span>
+                  </a>
+                  <a
+                    href="tel:+576053307000"
+                    className="flex items-center gap-3 text-sm text-slate-600 hover:text-blue-600 transition-colors"
+                  >
+                    <Phone size={16} className="text-blue-500" />
+                    <span>+57 (605) 330-7000</span>
+                  </a>
+                  <div className="flex items-start gap-3 text-sm text-slate-600">
+                    <MapPin size={16} className="text-blue-500 mt-0.5" />
+                    <span>CL 40 45 46<br />Barranquilla, Atlántico, Colombia</span>
+                  </div>
+                </div>
+              </div>
             </div>
 
-            <p className="text-sm text-muted-foreground">
-              Explora el corazón del Caribe colombiano. Playas, cultura,
-              gastronomía y aventuras inolvidables te esperan en el Atlántico.
-            </p>
-
-            <ul className="space-y-3">
-              {contactInfo.map((c, i) => (
-                <li
-                  key={i}
-                  className="flex items-center gap-2 text-sm text-muted-foreground"
-                >
-                  <span className="text-primary">{c.icon}</span>
-                  {c.text}
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          {/* enlaces destinos / ayuda */}
-          <div className="md:col-span-6 grid grid-cols-2 sm:grid-cols-2 gap-6">
-            {(["destinos", "ayuda"] as const).map((section) => (
-              <div key={section}>
-                <h3 className="font-semibold text-foreground mb-4 capitalize">
-                  {section}
+            {/* Enlaces institucionales y servicios */}
+            <div className="lg:col-span-4 grid grid-cols-1 sm:grid-cols-2 gap-8">
+              <div>
+                <h3 className="text-sm font-semibold text-slate-900 uppercase tracking-wider mb-4">
+                  Institucional
                 </h3>
                 <ul className="space-y-2">
-                  {footerLinks[section].map((link) => (
+                  {footerLinks.institucional.map((link) => (
                     <li key={link.href}>
                       <Link
                         href={link.href}
-                        className="text-sm text-muted-foreground hover:text-primary flex items-center gap-1 group transition-all"
+                        className="text-sm text-slate-600 hover:text-blue-600 flex items-center gap-1 group transition-all duration-200"
                       >
-                        <ChevronRight className="w-3 h-3 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all" />
-                        {link.label}
+                        <span className="group-hover:underline">{link.label}</span>
                       </Link>
                     </li>
                   ))}
                 </ul>
               </div>
-            ))}
-          </div>
 
-          {/* newsletter & redes */}
-          <div className="md:col-span-3 space-y-6">
-            <div>
-              <h3 className="font-semibold text-foreground mb-4">
-                Mantente informado
-              </h3>
-              <p className="text-sm text-muted-foreground mb-3">
-                Suscríbete y recibe ofertas exclusivas y novedades.
-              </p>
-
-              <div className="relative">
-                <input
-                  type="email"
-                  placeholder="Tu correo electrónico"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="w-full border border-gray-300 rounded-lg py-2 px-4 pr-12 text-sm focus:ring-primary/40 focus:border-primary/60 outline-none"
-                />
-                <button
-                  onClick={handleSubscribe}
-                  className="absolute right-1 top-1/2 -translate-y-1/2 bg-primary text-white p-1.5 rounded-md hover:bg-primary/90"
-                  aria-label="Suscribirme"
-                >
-                  <Send size={16} />
-                </button>
+              <div>
+                <h3 className="text-sm font-semibold text-slate-900 uppercase tracking-wider mb-4">
+                  Servicios
+                </h3>
+                <ul className="space-y-2">
+                  {footerLinks.servicios.map((link) => (
+                    <li key={link.href}>
+                      {link.href.startsWith('http') ? (
+                        <a
+                          href={link.href}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-sm text-slate-600 hover:text-blue-600 flex items-center gap-1 group transition-all duration-200"
+                        >
+                          <span className="group-hover:underline">{link.label}</span>
+                        </a>
+                      ) : (
+                        <Link
+                          href={link.href}
+                          className="text-sm text-slate-600 hover:text-blue-600 flex items-center gap-1 group transition-all duration-200"
+                        >
+                          <span className="group-hover:underline">{link.label}</span>
+                        </Link>
+                      )}
+                    </li>
+                  ))}
+                </ul>
               </div>
-              {sent && (
-                <p className="text-green-600 text-xs mt-1">
-                  ¡Gracias por suscribirte!
-                </p>
-              )}
             </div>
 
-            <div>
-              <h3 className="font-semibold text-foreground mb-4">Síguenos</h3>
-              <div className="flex gap-3">
-                {socialMedia.map((s) => (
-                  <a
-                    key={s.label}
-                    href={s.href}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    aria-label={s.label}
-                    className={`border p-2 rounded-full ${s.color} hover:scale-110 transition`}
-                  >
-                    {s.icon}
-                  </a>
-                ))}
+            {/* Newsletter */}
+            <div className="lg:col-span-3">
+              <div className="bg-gradient-to-br from-blue-50 to-indigo-50 p-6 rounded-xl border border-blue-100">
+                <h3 className="text-sm font-semibold text-slate-900 uppercase tracking-wider mb-3">
+                  Boletín Informativo
+                </h3>
+                <p className="text-sm text-slate-600 mb-4">
+                  Recibe las últimas noticias y eventos turísticos del Atlántico.
+                </p>
+
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    handleSubscribe();
+                  }}
+                  className="space-y-3"
+                >
+                  <div className="relative">
+                    <input
+                      type="email"
+                      placeholder="correo@ejemplo.com"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      className="w-full bg-white border border-slate-300 rounded-lg py-3 px-4 pr-12 text-sm placeholder:text-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                      required
+                    />
+                    <button
+                      type="submit"
+                      className="absolute right-2 top-1/2 -translate-y-1/2 bg-blue-600 text-white p-2 rounded-md hover:bg-blue-700 transition-colors"
+                      aria-label="Suscribirme"
+                    >
+                      <Send size={16} />
+                    </button>
+                  </div>
+                  {sent && (
+                    <p className="text-green-600 text-xs flex items-center gap-1">
+                      ✓ Suscripción exitosa
+                    </p>
+                  )}
+                </form>
+
+                {/* Redes sociales */}
+                <div className="mt-6 pt-6 border-t border-blue-100">
+                  <p className="text-xs font-semibold text-slate-700 mb-3">SÍGUENOS</p>
+                  <div className="flex gap-2">
+                    {socialMedia.map((s) => (
+                      <a
+                        key={s.label}
+                        href={s.href}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        aria-label={s.label}
+                        className="bg-white border border-slate-200 p-2.5 rounded-lg hover:bg-blue-50 hover:border-blue-300 hover:text-blue-600 transition-all duration-200"
+                      >
+                        {s.icon}
+                      </a>
+                    ))}
+                  </div>
+                </div>
               </div>
             </div>
           </div>
         </div>
+      </div>
 
-        {/* divisor */}
-        <div className="h-px w-full bg-gradient-to-r from-transparent via-muted to-transparent my-8" />
-
-        {/* credits */}
-        <div className="flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-muted-foreground">
-          <span>
-            © {new Date().getFullYear()} VisitAtlántico. Todos los derechos
-            reservados.
-          </span>
-          <div className="flex gap-6">
+      {/* Enlaces gubernamentales */}
+      <div className="bg-slate-50 py-6 border-b border-slate-200">
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="flex items-center justify-center text-sm">
             <a
               href="https://www.atlantico.gov.co"
               target="_blank"
-              className="hover:text-primary flex items-center gap-1"
               rel="noopener noreferrer"
+              className="flex items-center gap-2 text-slate-600 hover:text-blue-600 transition-colors"
             >
-              Gobernación del Atlántico <ExternalLink size={12} />
+              <span>Gobernación del Atlántico</span>
+              <ArrowUpRight size={14} />
             </a>
-            <a
-              href=""
-              target="_blank"
-              className="hover:text-primary flex items-center gap-1"
-              rel="noopener noreferrer"
-            >
-               <ExternalLink size={12} />
-            </a>
+          </div>
+        </div>
+      </div>
+
+      {/* Copyright */}
+      <div className="bg-slate-100 py-6">
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-600">
+            <span>
+              © {new Date().getFullYear()} VisitAtlántico - Gobernación del Atlántico. 
+              Todos los derechos reservados.
+            </span>
+            <div className="flex items-center gap-6">
+              <Link href="/ayuda/privacidad" className="hover:text-blue-600 transition-colors">
+                Privacidad
+              </Link>
+              <Link href="/ayuda/terminos" className="hover:text-blue-600 transition-colors">
+                Términos
+              </Link>
+              <Link href="/accesibilidad" className="hover:text-blue-600 transition-colors">
+                Accesibilidad
+              </Link>
+            </div>
           </div>
         </div>
       </div>
