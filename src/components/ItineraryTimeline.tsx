@@ -4,6 +4,7 @@
 import React, { useState, useMemo, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { createPortal } from "react-dom";
+import { useSwipeable } from "react-swipeable";
 import { Stop } from "./ItineraryStopCard";
 import {
   Clock,
@@ -228,6 +229,109 @@ const countExistingBreaks = (stops: Stop[]): number => {
     stop.name.toLowerCase().includes('café') ||
     stop.name.toLowerCase().includes('descanso')
   ).length;
+};
+
+// Componente de tabs móviles con swipe
+const MobileDayTabs = ({ 
+  days, 
+  activeDay, 
+  onDayChange 
+}: { 
+  days: DayData[]; 
+  activeDay: number; 
+  onDayChange: (day: number) => void;
+}) => {
+  const tabsRef = useRef<HTMLDivElement>(null);
+  const [tabsWidth, setTabsWidth] = useState<number[]>([]);
+  const { vibrate } = useHapticFeedback();
+
+  useEffect(() => {
+    if (tabsRef.current) {
+      const widths = Array.from(tabsRef.current.children).map(
+        (child) => (child as HTMLElement).offsetWidth
+      );
+      setTabsWidth(widths);
+    }
+  }, [days]);
+
+  const underlinePosition = useMemo(() => {
+    let offset = 0;
+    for (let i = 0; i < activeDay; i++) {
+      offset += tabsWidth[i] || 0;
+    }
+    return offset;
+  }, [activeDay, tabsWidth]);
+
+  const underlineWidth = tabsWidth[activeDay] || 0;
+
+  return (
+    <div className="sticky top-0 z-40 bg-white border-b border-gray-200">
+      <div className="relative">
+        <div 
+          ref={tabsRef}
+          className="flex items-center overflow-x-auto scrollbar-hide"
+        >
+          {days.map((day, index) => (
+            <motion.button
+              key={day.id}
+              onClick={() => {
+                onDayChange(index);
+                vibrate(10);
+              }}
+              className={`px-4 py-3 flex items-center gap-2 whitespace-nowrap transition-colors ${
+                activeDay === index 
+                  ? 'text-red-600 font-semibold' 
+                  : 'text-gray-600'
+              }`}
+              whileTap={{ scale: 0.95 }}
+            >
+              <span className="text-sm">Día {index + 1}</span>
+              {day.stops.length > 0 && (
+                <span className={`text-xs px-1.5 py-0.5 rounded-full ${
+                  activeDay === index 
+                    ? 'bg-red-100 text-red-600' 
+                    : 'bg-gray-100 text-gray-600'
+                }`}>
+                  {day.stops.length}
+                </span>
+              )}
+            </motion.button>
+          ))}
+        </div>
+        
+        {/* Animated underline */}
+        <motion.div
+          className="absolute bottom-0 h-0.5 bg-red-600"
+          animate={{
+            x: underlinePosition,
+            width: underlineWidth,
+          }}
+          transition={{
+            type: "spring",
+            stiffness: 300,
+            damping: 30
+          }}
+        />
+      </div>
+      
+      {/* Dots indicator for many days */}
+      {days.length > 3 && (
+        <div className="flex justify-center gap-1 py-2 bg-gray-50">
+          {days.map((_, index) => (
+            <motion.div
+              key={index}
+              className="w-1.5 h-1.5 rounded-full"
+              animate={{
+                backgroundColor: activeDay === index ? '#dc2626' : '#e5e7eb',
+                scale: activeDay === index ? 1.2 : 1,
+              }}
+              transition={{ duration: 0.3 }}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
 };
 
 // Componente de editor de tiempo para móvil (modal fullscreen)
@@ -892,14 +996,14 @@ const MobileTutorial = ({ onDismiss }: { onDismiss: () => void }) => {
           <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <Hand className="w-8 h-8 text-red-600" />
           </div>
-          <h3 className="text-lg font-bold mb-3">Cómo reordenar actividades</h3>
+          <h3 className="text-lg font-bold mb-3">Cómo navegar entre días</h3>
           <div className="space-y-4 text-sm text-gray-600">
             <div className="flex items-start gap-3">
               <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center flex-shrink-0">
                 <span className="text-xs font-bold">1</span>
               </div>
               <p className="text-left">
-                Mantén presionada una tarjeta para activar el modo de reordenamiento
+                Desliza horizontalmente para cambiar de día
               </p>
             </div>
             <div className="flex items-start gap-3">
@@ -907,7 +1011,7 @@ const MobileTutorial = ({ onDismiss }: { onDismiss: () => void }) => {
                 <span className="text-xs font-bold">2</span>
               </div>
               <p className="text-left">
-                Usa los botones de flecha para mover la actividad arriba o abajo
+                O toca los tabs en la parte superior
               </p>
             </div>
             <div className="flex items-start gap-3">
@@ -915,7 +1019,7 @@ const MobileTutorial = ({ onDismiss }: { onDismiss: () => void }) => {
                 <span className="text-xs font-bold">3</span>
               </div>
               <p className="text-left">
-                O arrastra usando el ícono de puntos para reorganizar
+                Mantén presionada una tarjeta para reorganizar actividades
               </p>
             </div>
           </div>
@@ -2081,14 +2185,16 @@ export default function ItineraryTimeline({ days: initialDays = [], onDaysUpdate
   const [selectedDayId, setSelectedDayId] = useState<string | null>(null);
   const [showMobileTutorial, setShowMobileTutorial] = useState(false);
   const [isReorderMode, setIsReorderMode] = useState(false);
+  const [activeDay, setActiveDay] = useState(0);
   const isMobile = useIsMobile();
   const { vibrate } = useHapticFeedback();
+  const containerRef = useRef<HTMLDivElement>(null);
 
   // Mostrar tutorial móvil la primera vez
   useEffect(() => {
     if (isMobile && typeof window !== 'undefined') {
-      const hasSeenTutorial = localStorage.getItem('hasSeenMobileDragTutorial');
-      if (!hasSeenTutorial && days.some(d => d.stops.length > 0)) {
+      const hasSeenTutorial = localStorage.getItem('hasSeenMobileSwipeTutorial');
+      if (!hasSeenTutorial && days.length > 1) {
         setShowMobileTutorial(true);
       }
     }
@@ -2097,9 +2203,27 @@ export default function ItineraryTimeline({ days: initialDays = [], onDaysUpdate
   const dismissTutorial = () => {
     setShowMobileTutorial(false);
     if (typeof window !== 'undefined') {
-      localStorage.setItem('hasSeenMobileDragTutorial', 'true');
+      localStorage.setItem('hasSeenMobileSwipeTutorial', 'true');
     }
   };
+
+  // Configurar swipe handlers
+  const swipeHandlers = useSwipeable({
+    onSwipedLeft: () => {
+      if (activeDay < days.length - 1) {
+        setActiveDay(activeDay + 1);
+        vibrate(10);
+      }
+    },
+    onSwipedRight: () => {
+      if (activeDay > 0) {
+        setActiveDay(activeDay - 1);
+        vibrate(10);
+      }
+    },
+    trackMouse: false,
+    trackTouch: true,
+  });
 
   // Configurar sensores para drag & drop con soporte móvil mejorado
   const sensors = useSensors(
@@ -2268,90 +2392,155 @@ export default function ItineraryTimeline({ days: initialDays = [], onDaysUpdate
           )}
         </AnimatePresence>
 
-        {/* Indicador de múltiples días con modo reordenamiento móvil */}
-        {days.length > 1 && (
-          <div className="flex items-center justify-between gap-2 text-sm text-gray-600">
-            <div className="flex items-center gap-2">
-              <CalendarDays className="w-4 h-4" />
-              <span>Itinerario de {days.length} días</span>
-              {!isMobile && (
-                <span className="text-xs text-gray-500 ml-2">
-                  • Arrastra actividades entre días para reorganizar
-                </span>
-              )}
-            </div>
-            {isMobile && (
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={() => {
-                  setIsReorderMode(!isReorderMode);
-                  vibrate(20);
+        {/* Layout móvil con tabs y swipe */}
+        {isMobile && days.length > 1 ? (
+          <div>
+            {/* Tabs móviles sticky */}
+            <MobileDayTabs
+              days={days}
+              activeDay={activeDay}
+              onDayChange={setActiveDay}
+            />
+
+            {/* Contenedor swipeable */}
+            <div 
+              
+              {...swipeHandlers}
+              className="relative overflow-hidden"
+            >
+              <motion.div
+                className="flex"
+                animate={{
+                  x: `-${activeDay * 100}%`
                 }}
-                className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
-                  isReorderMode 
-                    ? 'bg-red-600 text-white' 
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                }`}
+                transition={{
+                  type: "spring",
+                  stiffness: 300,
+                  damping: 30
+                }}
               >
-                {isReorderMode ? (
-                  <>
-                    <X className="w-3 h-3 inline mr-1" />
-                    Salir
-                  </>
-                ) : (
-                  <>
-                    <Move className="w-3 h-3 inline mr-1" />
-                    Reordenar
-                  </>
-                )}
-              </motion.button>
-            )}
+                {days.map((day, index) => (
+                  <div
+                    key={day.id}
+                    className="w-full flex-shrink-0 px-4 py-6"
+                  >
+                    <DayTimeline
+                      day={day}
+                      onStopsUpdate={(stops) => handleDayStopsUpdate(day.id, stops)}
+                      userLocation={userLocation}
+                      isOver={false}
+                      canDrop={false}
+                      isMobile={true}
+                      isReorderMode={isReorderMode}
+                    />
+
+                    {/* Botón para agregar actividad */}
+                    <motion.button
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={() => {
+                        setSelectedDayId(day.id);
+                        setShowAddModal(true);
+                      }}
+                      className="mt-4 mx-auto flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-full hover:bg-red-700 transition-colors font-medium text-sm"
+                    >
+                      <PlusCircle className="w-4 h-4" />
+                      Agregar actividad
+                    </motion.button>
+                  </div>
+                ))}
+              </motion.div>
+            </div>
           </div>
-        )}
-
-        {/* Días del itinerario */}
-        {days.map((day, index) => {
-          const isDroppable = !!(overId === `day-${day.id}` || 
-                            (overId && overId.toString().startsWith(`${day.id}-`)));
-          
-          return (
-            <div key={day.id} className="relative">
-              {/* Indicador de día */}
-              {index > 0 && (
-                <div className="flex items-center justify-center my-6">
-                  <div className="flex-1 h-px bg-gray-300" />
-                  <ArrowRight className="w-5 h-5 text-gray-400 mx-4" />
-                  <div className="flex-1 h-px bg-gray-300" />
+        ) : (
+          // Layout desktop o móvil con 1 solo día
+          <>
+            {/* Indicador de múltiples días con modo reordenamiento móvil */}
+            {days.length > 1 && (
+              <div className="flex items-center justify-between gap-2 text-sm text-gray-600">
+                <div className="flex items-center gap-2">
+                  <CalendarDays className="w-4 h-4" />
+                  <span>Itinerario de {days.length} días</span>
+                  {!isMobile && (
+                    <span className="text-xs text-gray-500 ml-2">
+                      • Arrastra actividades entre días para reorganizar
+                    </span>
+                  )}
                 </div>
-              )}
+                {isMobile && (
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => {
+                      setIsReorderMode(!isReorderMode);
+                      vibrate(20);
+                    }}
+                    className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+                      isReorderMode 
+                        ? 'bg-red-600 text-white' 
+                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    }`}
+                  >
+                    {isReorderMode ? (
+                      <>
+                        <X className="w-3 h-3 inline mr-1" />
+                        Salir
+                      </>
+                    ) : (
+                      <>
+                        <Move className="w-3 h-3 inline mr-1" />
+                        Reordenar
+                      </>
+                    )}
+                  </motion.button>
+                )}
+              </div>
+            )}
 
-              <DayTimeline
-                day={day}
-                onStopsUpdate={(stops) => handleDayStopsUpdate(day.id, stops)}
-                userLocation={userLocation}
-                isOver={isDroppable}
-                canDrop={!!activeId}
-                isMobile={isMobile}
-                isReorderMode={isReorderMode}
-              />
+            {/* Días del itinerario */}
+            {days.map((day, index) => {
+              const isDroppable = !!(overId === `day-${day.id}` || 
+                                (overId && overId.toString().startsWith(`${day.id}-`)));
+              
+              return (
+                <div key={day.id} className="relative">
+                  {/* Indicador de día */}
+                  {index > 0 && (
+                    <div className="flex items-center justify-center my-6">
+                      <div className="flex-1 h-px bg-gray-300" />
+                      <ArrowRight className="w-5 h-5 text-gray-400 mx-4" />
+                      <div className="flex-1 h-px bg-gray-300" />
+                    </div>
+                  )}
 
-              {/* Botón para agregar actividad */}
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={() => {
-                  setSelectedDayId(day.id);
-                  setShowAddModal(true);
-                }}
-                className="mt-4 mx-auto flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-full hover:bg-red-700 transition-colors font-medium text-sm"
-              >
-                <PlusCircle className="w-4 h-4" />
-                Agregar actividad al {day.title.toLowerCase()}
-              </motion.button>
-            </div>
-          );
-        })}
+                  <DayTimeline
+                    day={day}
+                    onStopsUpdate={(stops) => handleDayStopsUpdate(day.id, stops)}
+                    userLocation={userLocation}
+                    isOver={isDroppable}
+                    canDrop={!!activeId}
+                    isMobile={isMobile}
+                    isReorderMode={isReorderMode}
+                  />
+
+                  {/* Botón para agregar actividad */}
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => {
+                      setSelectedDayId(day.id);
+                      setShowAddModal(true);
+                    }}
+                    className="mt-4 mx-auto flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-full hover:bg-red-700 transition-colors font-medium text-sm"
+                  >
+                    <PlusCircle className="w-4 h-4" />
+                    Agregar actividad al {day.title.toLowerCase()}
+                  </motion.button>
+                </div>
+              );
+            })}
+          </>
+        )}
       </div>
 
       {/* DragOverlay para mostrar el elemento que se está arrastrando */}
