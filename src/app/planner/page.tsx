@@ -38,6 +38,7 @@ import {
   Menu,
   ArrowLeft,
   Plus,
+  Home,
 } from "lucide-react";
 import { generateUniqueLink } from "@/utils/linkGenerator";
 import Image from "next/image";
@@ -313,8 +314,21 @@ export default function PremiumPlannerPage() {
     },
   ];
 
-  const next = () => qIndex < steps.length - 1 && setQIndex((i) => i + 1);
-  const prev = () => qIndex > 0 && setQIndex((i) => i - 1);
+  const next = () => {
+    if (qIndex < steps.length - 1) {
+      setQIndex((i) => i + 1);
+      // Scroll to top cuando se cambia de paso
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+  
+  const prev = () => {
+    if (qIndex > 0) {
+      setQIndex((i) => i - 1);
+      // Scroll to top cuando se cambia de paso
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
 
   /* API & itinerario */
   const [itinerary, setItinerary] = useState<Stop[] | null>(null);
@@ -582,20 +596,30 @@ export default function PremiumPlannerPage() {
       <main ref={pdfRef} className="min-h-screen bg-gradient-to-br from-blue-50 to-red-50 pb-16">
         {/* HERO móvil-first */}
         <div className="bg-gradient-to-r from-red-600 to-red-800 text-white py-12 sm:py-16">
-          <div className="max-w-4xl mx-auto px-4 sm:px-6 text-center">
-            {/* Botón de regreso */}
-            <button
-              onClick={() => {
-                if (confirm("¿Regresar al inicio? Se perderá el itinerario actual.")) {
-                  setView("questions");
-                  setQIndex(0);
-                  setItinerary(null);
-                }
-              }}
-              className="absolute top-4 left-4 p-2 rounded-full bg-white/20 backdrop-blur-sm hover:bg-white/30 transition-colors"
-            >
-              <ArrowLeft className="w-5 h-5" />
-            </button>
+          <div className="max-w-4xl mx-auto px-4 sm:px-6 text-center relative">
+            {/* Botones de navegación */}
+            <div className="absolute top-4 left-4 flex gap-2">
+              <button
+                onClick={() => window.location.href = 'https://visitatlantico.com'}
+                className="p-2 rounded-full bg-white/20 backdrop-blur-sm hover:bg-white/30 transition-colors"
+                title="Ir a la página principal"
+              >
+                <Home className="w-5 h-5" />
+              </button>
+              <button
+                onClick={() => {
+                  if (confirm("¿Regresar al inicio? Se perderá el itinerario actual.")) {
+                    setView("questions");
+                    setQIndex(0);
+                    setItinerary(null);
+                  }
+                }}
+                className="p-2 rounded-full bg-white/20 backdrop-blur-sm hover:bg-white/30 transition-colors"
+                title="Crear nuevo itinerario"
+              >
+                <ArrowLeft className="w-5 h-5" />
+              </button>
+            </div>
             
             <motion.h1 
               initial={{ opacity: 0, y: 20 }}
@@ -757,7 +781,16 @@ export default function PremiumPlannerPage() {
     <main className="min-h-screen bg-gradient-to-br from-blue-50 to-red-50 pb-16">
       {/* hero móvil */}
       <div className="bg-gradient-to-r from-red-600 to-red-800 text-white py-12 sm:py-16">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 text-center">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 text-center relative">
+          {/* Botón de Home */}
+          <button
+            onClick={() => window.location.href = 'https://visitatlantico.com'}
+            className="absolute top-4 left-4 p-2 rounded-full bg-white/20 backdrop-blur-sm hover:bg-white/30 transition-colors"
+            title="Ir a la página principal"
+          >
+            <Home className="w-5 h-5" />
+          </button>
+          
           <motion.h1 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -975,6 +1008,47 @@ const LoadingItinerary = ({ profile, isMobile }: any) => {
     return () => clearInterval(interval);
   }, []);
 
+  // Mapeo de IDs de motivos a nombres legibles
+  const motivoLabels: { [key: string]: string } = {
+    "relax": "Relax total",
+    "cultura": "Inmersión cultural",
+    "aventura": "Aventura activa",
+    "gastronomia": "Sabores locales",
+    "artesanias": "Artesanías locales",
+    "ritmos": "Ritmos y baile",
+    "festivales": "Festivales y eventos",
+    "deportes-acuaticos": "Deportes acuáticos",
+    "avistamiento": "Avistamiento de aves",
+    "ecoturismo": "Ecoturismo & manglares",
+    "malecon": "Ruta del Malecón",
+    "playas-urbanas": "Playas urbanas & relax",
+    "historia-portuaria": "Historia portuaria",
+    "arte-urbano": "Arte urbano & museos",
+    "sabores-marinos": "Ruta de sabores marinos",
+    "vida-nocturna": "Vida nocturna chic",
+    "bienestar": "Bienestar & spa",
+    "mixto": "De todo un poco"
+  };
+
+  // Obtener los nombres legibles de los motivos seleccionados
+  const getMotivosText = () => {
+    if (!profile.motivos || profile.motivos.length === 0) {
+      return "Experiencia variada";
+    }
+    
+    const motivosNames = profile.motivos.map((id: string) => 
+      motivoLabels[id] || id
+    );
+    
+    if (motivosNames.length === 1) {
+      return motivosNames[0];
+    } else if (motivosNames.length === 2) {
+      return `${motivosNames[0]} y ${motivosNames[1]}`;
+    } else {
+      return `${motivosNames.slice(0, -1).join(", ")} y ${motivosNames[motivosNames.length - 1]}`;
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-red-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-3xl shadow-2xl p-6 sm:p-8 max-w-md w-full">
@@ -1006,8 +1080,13 @@ const LoadingItinerary = ({ profile, isMobile }: any) => {
           </motion.p>
 
           <div className="bg-gray-50 rounded-xl p-3 sm:p-4 text-xs sm:text-sm text-gray-600">
-            <p>Creando itinerario de <strong>{profile.Días || 1} días</strong></p>
-            <p>Enfocado en: <strong>{profile.Motivos || "Experiencia variada"}</strong></p>
+            <p>Creando itinerario de <strong>{profile.days || 1} día{profile.days > 1 ? 's' : ''}</strong></p>
+            <p className="mt-1">Enfocado en: <strong>{getMotivosText()}</strong></p>
+            {profile.otros !== undefined && (
+              <p className="mt-1 text-xs">
+                {profile.otros ? "Incluye otros municipios" : "Solo Barranquilla y alrededores"}
+              </p>
+            )}
           </div>
         </div>
       </div>
@@ -1324,4 +1403,4 @@ const QuickCustomize = ({ itinerary, onUpdate, isMobile, location }: {
       </AnimatePresence>
     </>
   );
- };
+};
