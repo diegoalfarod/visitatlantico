@@ -4,7 +4,7 @@
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import ItineraryTimeline from "./ItineraryTimeline";
-import { Stop } from "./ItineraryStopCard";
+import { Stop } from "@/types/itinerary"; 
 import { Calendar, MapPin, Clock, Sparkles, CalendarDays } from "lucide-react";
 import { toMin, toHHMM } from "@/utils/itinerary-helpers";
 

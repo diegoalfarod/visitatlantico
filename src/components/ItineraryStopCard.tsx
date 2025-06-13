@@ -1,6 +1,6 @@
 // File: src/components/ItineraryStopCard.tsx
 "use client";
-
+import { Stop } from "@/types/itinerary"; 
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {

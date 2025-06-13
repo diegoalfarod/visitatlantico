@@ -17,10 +17,10 @@ const db = admin.firestore();
 
 export async function GET(
   request: NextRequest,
-  context: { params: Promise<{ shortId: string }> } // CAMBIO: params es ahora Promise
+  context: { params: Promise<{ shortId: string }> }
 ) {
   try {
-    const { shortId } = await context.params; // CAMBIO: await necesario
+    const { shortId } = await context.params;
 
     if (!shortId) {
       return NextResponse.json(
@@ -45,12 +45,34 @@ export async function GET(
     const doc = snapshot.docs[0];
     const data = doc.data();
 
-    // Verificar si no ha expirado
-    if (data.expiresAt && data.expiresAt.toDate() < new Date()) {
-      return NextResponse.json(
-        { error: 'Itinerario expirado' },
-        { status: 410 }
-      );
+    // Verificar si no ha expirado - Manejo mejorado de timestamps
+    if (data.expiresAt) {
+      let expirationDate: Date;
+      
+      // Manejar diferentes formatos de fecha
+      if (data.expiresAt.toDate && typeof data.expiresAt.toDate === 'function') {
+        // Es un Timestamp de Firestore
+        expirationDate = data.expiresAt.toDate();
+      } else if (data.expiresAt._seconds) {
+        // Es un objeto Timestamp serializado
+        expirationDate = new Date(data.expiresAt._seconds * 1000);
+      } else if (data.expiresAt.seconds) {
+        // Otro formato de Timestamp
+        expirationDate = new Date(data.expiresAt.seconds * 1000);
+      } else if (typeof data.expiresAt === 'string') {
+        // Es una string de fecha
+        expirationDate = new Date(data.expiresAt);
+      } else {
+        // Intentar convertir directamente
+        expirationDate = new Date(data.expiresAt);
+      }
+
+      if (expirationDate < new Date()) {
+        return NextResponse.json(
+          { error: 'Itinerario expirado' },
+          { status: 410 }
+        );
+      }
     }
 
     // Actualizar vistas
@@ -59,13 +81,34 @@ export async function GET(
       lastViewedAt: admin.firestore.FieldValue.serverTimestamp(),
     });
 
-    // Convertir timestamps a strings
+    // Función helper para convertir timestamps
+    const convertTimestamp = (timestamp: any): string | null => {
+      if (!timestamp) return null;
+      
+      if (timestamp.toDate && typeof timestamp.toDate === 'function') {
+        return timestamp.toDate().toISOString();
+      } else if (timestamp._seconds) {
+        return new Date(timestamp._seconds * 1000).toISOString();
+      } else if (timestamp.seconds) {
+        return new Date(timestamp.seconds * 1000).toISOString();
+      } else if (typeof timestamp === 'string') {
+        return timestamp;
+      } else {
+        try {
+          return new Date(timestamp).toISOString();
+        } catch {
+          return null;
+        }
+      }
+    };
+
+    // Convertir timestamps a strings para la respuesta
     const itinerary = {
       ...data,
-      createdAt: data.createdAt?.toDate?.()?.toISOString() || data.createdAt,
-      updatedAt: data.updatedAt?.toDate?.()?.toISOString() || data.updatedAt,
-      expiresAt: data.expiresAt?.toDate?.()?.toISOString() || data.expiresAt,
-      lastViewedAt: data.lastViewedAt?.toDate?.()?.toISOString() || data.lastViewedAt,
+      createdAt: convertTimestamp(data.createdAt),
+      updatedAt: convertTimestamp(data.updatedAt),
+      expiresAt: convertTimestamp(data.expiresAt),
+      lastViewedAt: convertTimestamp(data.lastViewedAt),
     };
 
     return NextResponse.json(itinerary);
@@ -81,10 +124,10 @@ export async function GET(
 
 export async function DELETE(
   request: NextRequest,
-  context: { params: Promise<{ shortId: string }> } // CAMBIO: params es ahora Promise
+  context: { params: Promise<{ shortId: string }> }
 ) {
   try {
-    const { shortId } = await context.params; // CAMBIO: await necesario
+    const { shortId } = await context.params;
 
     // Verificar autorización (por email o token)
     const body = await request.json();

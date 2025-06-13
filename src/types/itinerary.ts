@@ -8,7 +8,7 @@ export interface Stop {
     tip?: string;
     municipality: string;
     startTime: string;
-    category?: string;
+    category?: string; // Opcional
     imageUrl?: string;
     photos?: string[];
     distance?: number;

@@ -72,10 +72,15 @@ export default function RootLayout({ children }: { children: ReactNode }) {
 
         {/* Canonical URL */}
         <link rel="canonical" href="https://visitatlantico.com" />
-
-        {/* JSON-LD Structured Data */}
+      </head>
+      <body className="font-sans">
+        <ClientInitializer />
+        {children}
+        
+        {/* JSON-LD Structured Data - Movido al final del body para evitar conflictos */}
         <script
           type="application/ld+json"
+          suppressHydrationWarning
           dangerouslySetInnerHTML={{
             __html: JSON.stringify({
               "@context": "https://schema.org",
@@ -94,10 +99,6 @@ export default function RootLayout({ children }: { children: ReactNode }) {
             }),
           }}
         />
-      </head>
-      <body className="font-sans">
-        <ClientInitializer />
-        {children}
       </body>
     </html>
   );

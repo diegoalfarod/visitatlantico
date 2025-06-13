@@ -41,12 +41,23 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Guardar en Firestore
-    const docRef = await db.collection('saved_itineraries').add({
+    // Preparar datos con timestamps de Firestore
+    const now = admin.firestore.FieldValue.serverTimestamp();
+    const expiresAt = body.expiresAt 
+      ? admin.firestore.Timestamp.fromDate(new Date(body.expiresAt))
+      : admin.firestore.Timestamp.fromDate(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)); // 30 días por defecto
+
+    const dataToSave = {
       ...body,
-      createdAt: admin.firestore.FieldValue.serverTimestamp(),
-      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-    });
+      createdAt: now,
+      updatedAt: now,
+      expiresAt: expiresAt,
+      views: 0,
+      lastViewedAt: null
+    };
+
+    // Guardar en Firestore
+    const docRef = await db.collection('saved_itineraries').add(dataToSave);
 
     // Guardar metadata para búsquedas rápidas
     await db.collection('itinerary_metadata').doc(body.shortId).set({
@@ -55,8 +66,8 @@ export async function POST(request: NextRequest) {
       days: body.days,
       totalStops: body.stops.length,
       email: body.profile?.email || null,
-      createdAt: admin.firestore.FieldValue.serverTimestamp(),
-      expiresAt: body.expiresAt ? admin.firestore.Timestamp.fromDate(new Date(body.expiresAt)) : null,
+      createdAt: now,
+      expiresAt: expiresAt,
     });
 
     return NextResponse.json({ 
@@ -100,14 +111,30 @@ export async function GET(request: NextRequest) {
     }
 
     const doc = snapshot.docs[0];
-    const data = doc.data() as SavedItinerary;
+    const data = doc.data();
 
-    // Verificar si no ha expirado
-    if (data.expiresAt && new Date(data.expiresAt) < new Date()) {
-      return NextResponse.json(
-        { error: 'Itinerario expirado' },
-        { status: 410 }
-      );
+    // Verificar si no ha expirado - Mismo manejo que en [shortId]/route.ts
+    if (data.expiresAt) {
+      let expirationDate: Date;
+      
+      if (data.expiresAt.toDate && typeof data.expiresAt.toDate === 'function') {
+        expirationDate = data.expiresAt.toDate();
+      } else if (data.expiresAt._seconds) {
+        expirationDate = new Date(data.expiresAt._seconds * 1000);
+      } else if (data.expiresAt.seconds) {
+        expirationDate = new Date(data.expiresAt.seconds * 1000);
+      } else if (typeof data.expiresAt === 'string') {
+        expirationDate = new Date(data.expiresAt);
+      } else {
+        expirationDate = new Date(data.expiresAt);
+      }
+
+      if (expirationDate < new Date()) {
+        return NextResponse.json(
+          { error: 'Itinerario expirado' },
+          { status: 410 }
+        );
+      }
     }
 
     // Actualizar vistas
@@ -116,7 +143,37 @@ export async function GET(request: NextRequest) {
       lastViewedAt: admin.firestore.FieldValue.serverTimestamp(),
     });
 
-    return NextResponse.json(data);
+    // Función helper para convertir timestamps
+    const convertTimestamp = (timestamp: any): string | null => {
+      if (!timestamp) return null;
+      
+      if (timestamp.toDate && typeof timestamp.toDate === 'function') {
+        return timestamp.toDate().toISOString();
+      } else if (timestamp._seconds) {
+        return new Date(timestamp._seconds * 1000).toISOString();
+      } else if (timestamp.seconds) {
+        return new Date(timestamp.seconds * 1000).toISOString();
+      } else if (typeof timestamp === 'string') {
+        return timestamp;
+      } else {
+        try {
+          return new Date(timestamp).toISOString();
+        } catch {
+          return null;
+        }
+      }
+    };
+
+    // Convertir timestamps a strings para la respuesta
+    const itinerary = {
+      ...data,
+      createdAt: convertTimestamp(data.createdAt),
+      updatedAt: convertTimestamp(data.updatedAt),
+      expiresAt: convertTimestamp(data.expiresAt),
+      lastViewedAt: convertTimestamp(data.lastViewedAt),
+    };
+
+    return NextResponse.json(itinerary);
 
   } catch (error) {
     console.error('Error obteniendo itinerario:', error);
