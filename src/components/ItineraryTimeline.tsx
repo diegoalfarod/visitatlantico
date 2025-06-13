@@ -1,7 +1,7 @@
 // File: src/components/ItineraryTimeline.tsx
 "use client";
 
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Stop } from "./ItineraryStopCard";
 import {
@@ -35,6 +35,10 @@ import {
   Sparkles,
   ArrowRight,
   CalendarDays,
+  ArrowUp,
+  ArrowDown,
+  Move,
+  Hand,
 } from "lucide-react";
 import Image from "next/image";
 
@@ -44,6 +48,7 @@ import {
   closestCenter,
   KeyboardSensor,
   PointerSensor,
+  TouchSensor,
   useSensor,
   useSensors,
   DragEndEvent,
@@ -85,6 +90,38 @@ interface Props {
   onDaysUpdate?: (days: DayData[]) => void;
   userLocation?: { lat: number; lng: number } | null;
 }
+
+// Hook para detectar si es móvil
+const useIsMobile = () => {
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(
+        window.innerWidth < 768 || 
+        ('ontouchstart' in window) ||
+        (navigator.maxTouchPoints > 0)
+      );
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  return isMobile;
+};
+
+// Hook para haptic feedback
+const useHapticFeedback = () => {
+  const vibrate = (pattern: number | number[]) => {
+    if ('vibrate' in navigator) {
+      navigator.vibrate(pattern);
+    }
+  };
+
+  return { vibrate };
+};
 
 // Función mejorada para recalcular tiempos sin reordenar
 const recalculateTimings = (stops: Stop[], startIndex: number = 0, baseTime?: string): Stop[] => {
@@ -205,7 +242,7 @@ const DurationEditor = ({
   stopName: string;
 }) => {
   const [value, setValue] = useState(duration.toString());
-  const [error, setError] = useState("");
+  const [error, setError] = useState<string>("");
 
   const validate = (newDuration: string) => {
     const mins = parseInt(newDuration);
@@ -446,7 +483,66 @@ const BreakSuggestion = ({
   );
 };
 
-// Componente Sortable mejorado con soporte para drag entre días
+// Componente de tutorial móvil
+const MobileTutorial = ({ onDismiss }: { onDismiss: () => void }) => {
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+      onClick={onDismiss}
+    >
+      <motion.div
+        initial={{ scale: 0.9, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="text-center">
+          <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <Hand className="w-8 h-8 text-red-600" />
+          </div>
+          <h3 className="text-lg font-bold mb-3">Cómo reordenar actividades</h3>
+          <div className="space-y-4 text-sm text-gray-600">
+            <div className="flex items-start gap-3">
+              <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center flex-shrink-0">
+                <span className="text-xs font-bold">1</span>
+              </div>
+              <p className="text-left">
+                Mantén presionada una tarjeta para activar el modo de reordenamiento
+              </p>
+            </div>
+            <div className="flex items-start gap-3">
+              <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center flex-shrink-0">
+                <span className="text-xs font-bold">2</span>
+              </div>
+              <p className="text-left">
+                Usa los botones de flecha para mover la actividad arriba o abajo
+              </p>
+            </div>
+            <div className="flex items-start gap-3">
+              <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center flex-shrink-0">
+                <span className="text-xs font-bold">3</span>
+              </div>
+              <p className="text-left">
+                O arrastra usando el ícono de puntos para reorganizar
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={onDismiss}
+            className="mt-6 w-full py-3 bg-red-600 text-white rounded-xl font-medium hover:bg-red-700 transition-colors"
+          >
+            Entendido
+          </button>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+};
+
+// Componente Sortable mejorado con soporte para móviles
 function SortableStop({ 
   stop, 
   index,
@@ -464,7 +560,13 @@ function SortableStop({
   onStopsUpdate,
   autoAdjust,
   dayId,
-  isDragging: parentIsDragging
+  isDragging: parentIsDragging,
+  isReorderMode,
+  onMoveUp,
+  onMoveDown,
+  canMoveUp,
+  canMoveDown,
+  isMobile
 }: {
   stop: Stop;
   index: number;
@@ -483,6 +585,12 @@ function SortableStop({
   autoAdjust: boolean;
   dayId: string;
   isDragging?: boolean;
+  isReorderMode?: boolean;
+  onMoveUp?: () => void;
+  onMoveDown?: () => void;
+  canMoveUp?: boolean;
+  canMoveDown?: boolean;
+  isMobile?: boolean;
 }) {
   const {
     attributes,
@@ -510,6 +618,9 @@ function SortableStop({
   const [photoIndex, setPhotoIndex] = useState(0);
   const photos = stop.photos || (stop.imageUrl ? [stop.imageUrl] : []);
   const mapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${stop.lat},${stop.lng}`;
+  const longPressTimer = useRef<NodeJS.Timeout | null>(null);
+  const [isLongPressed, setIsLongPressed] = useState(false);
+  const { vibrate } = useHapticFeedback();
 
   const colors = {
     destination: {
@@ -541,20 +652,50 @@ function SortableStop({
     ? toHHMM(toMin(nextStop.startTime) - 30)
     : undefined;
 
+  // Manejo de long press para móviles
+  const handleTouchStart = () => {
+    if (!isMobile) return;
+    
+    longPressTimer.current = setTimeout(() => {
+      vibrate(50);
+      setIsLongPressed(true);
+    }, 500) as unknown as NodeJS.Timeout;
+  };
+
+  const handleTouchEnd = () => {
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+  };
+
+  useEffect(() => {
+    return () => {
+      if (longPressTimer.current !== null) {
+        clearTimeout(longPressTimer.current);
+        longPressTimer.current = null;
+      }
+    };
+  }, []);
+
   return (
     <motion.div 
       ref={setNodeRef} 
       style={style} 
       className={`relative ${isDragging ? 'z-50' : ''}`}
       initial={{ opacity: 0, x: -20 }}
-      animate={{ opacity: 1, x: 0 }}
+      animate={{ 
+        opacity: 1, 
+        x: 0,
+        scale: isDragging ? 1.05 : 1
+      }}
       transition={{ duration: 0.3 }}
     >
       {!isLast && (
         <div className={`absolute left-4 top-12 bottom-0 w-0.5 ${c.secondary}`} />
       )}
 
-      <div className="relative z-10 mb-6">
+      <div className={`relative z-10 mb-6 ${isDragging ? 'drop-shadow-2xl' : ''}`}>
         {/* hora + duración con edición */}
         <div className="flex items-center mb-2">
           <motion.div 
@@ -620,20 +761,27 @@ function SortableStop({
               <Trash2 className="w-4 h-4" />
             </motion.button>
             
-            {/* Drag Handle con indicador visual de que se puede mover entre días */}
+            {/* Drag Handle mejorado para móviles */}
             <motion.div 
               {...attributes} 
               {...listeners}
-              className={`p-2 rounded-lg cursor-grab active:cursor-grabbing transition-all touch-manipulation ${
+              className={`${
+                isMobile ? 'p-3' : 'p-2'
+              } rounded-lg cursor-grab active:cursor-grabbing transition-all touch-manipulation ${
                 isDragging 
                   ? 'bg-gray-200 shadow-inner' 
                   : 'hover:bg-gray-100 hover:shadow-md'
+              } ${
+                isMobile ? 'min-w-[44px] min-h-[44px]' : ''
               }`}
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.95 }}
               title="Arrastra para reordenar o mover a otro día"
+              onDragStart={() => vibrate(20)}
             >
-              <GripVertical className={`w-4 h-4 ${isDragging ? 'text-gray-600' : 'text-gray-400'}`} />
+              <GripVertical className={`${
+                isMobile ? 'w-5 h-5' : 'w-4 h-4'
+              } ${isDragging ? 'text-gray-600' : 'text-gray-400'}`} />
             </motion.div>
           </div>
         </div>
@@ -641,14 +789,18 @@ function SortableStop({
         {/* tarjeta mejorada */}
         <motion.div 
           className={`ml-10 rounded-2xl shadow-lg border ${c.border} bg-white overflow-hidden relative transition-all ${
-            isDragging ? 'shadow-2xl transform scale-98' : ''
+            isDragging ? 'shadow-2xl ring-4 ring-gray-300 ring-opacity-50' : ''
+          } ${
+            isReorderMode || isLongPressed ? 'ring-2 ring-red-400' : ''
           }`}
           animate={{
-            scale: isDragging ? 0.98 : 1,
-            opacity: isDragging ? 0.7 : 1,
+            scale: isDragging ? 1.05 : 1,
+            opacity: isDragging ? 0.9 : 1,
           }}
-          whileHover={{ scale: isDragging ? 0.98 : 1.02 }}
+          whileHover={{ scale: isDragging ? 1.05 : 1.02 }}
           transition={{ type: "spring", stiffness: 300 }}
+          onTouchStart={handleTouchStart}
+          onTouchEnd={handleTouchEnd}
         >
           <div className="cursor-pointer" onClick={toggleExpand}>
             {!expanded && (
@@ -718,6 +870,56 @@ function SortableStop({
               </div>
             )}
           </div>
+
+          {/* Botones de reordenamiento móvil */}
+          {(isReorderMode || isLongPressed) && isMobile && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 10 }}
+              className="absolute -bottom-12 left-1/2 -translate-x-1/2 flex gap-2 bg-white rounded-full shadow-lg p-1 border border-gray-200"
+            >
+              <motion.button
+                whileTap={{ scale: 0.95 }}
+                onClick={() => {
+                  onMoveUp?.();
+                  vibrate(20);
+                  setIsLongPressed(false);
+                }}
+                disabled={!canMoveUp}
+                className={`p-3 rounded-full transition-colors ${
+                  canMoveUp 
+                    ? 'bg-gray-100 hover:bg-gray-200 text-gray-700' 
+                    : 'bg-gray-50 text-gray-300 cursor-not-allowed'
+                }`}
+              >
+                <ArrowUp className="w-5 h-5" />
+              </motion.button>
+              <motion.button
+                whileTap={{ scale: 0.95 }}
+                onClick={() => {
+                  onMoveDown?.();
+                  vibrate(20);
+                  setIsLongPressed(false);
+                }}
+                disabled={!canMoveDown}
+                className={`p-3 rounded-full transition-colors ${
+                  canMoveDown 
+                    ? 'bg-gray-100 hover:bg-gray-200 text-gray-700' 
+                    : 'bg-gray-50 text-gray-300 cursor-not-allowed'
+                }`}
+              >
+                <ArrowDown className="w-5 h-5" />
+              </motion.button>
+              <motion.button
+                whileTap={{ scale: 0.95 }}
+                onClick={() => setIsLongPressed(false)}
+                className="p-3 rounded-full bg-red-100 hover:bg-red-200 text-red-600 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </motion.button>
+            </motion.div>
+          )}
 
           {/* contenido expandido */}
           <AnimatePresence>
@@ -812,7 +1014,7 @@ function SortableStop({
   );
 }
 
-// Componente DragOverlay para mostrar el elemento que se está arrastrando
+// Componente DragOverlay mejorado para móviles
 function DragOverlayContent({ stop }: { stop: Stop }) {
   const colors = {
     destination: {
@@ -832,8 +1034,18 @@ function DragOverlayContent({ stop }: { stop: Stop }) {
   const c = colors[stop.type];
 
   return (
-    <div className="w-96 opacity-90">
-      <div className={`rounded-2xl shadow-2xl border-2 ${c.border} bg-white overflow-hidden transform rotate-3`}>
+    <div className="w-96 opacity-95">
+      <motion.div 
+        className={`rounded-2xl shadow-2xl border-2 ${c.border} bg-white overflow-hidden`}
+        animate={{
+          rotate: 3,
+          scale: 1.05
+        }}
+        transition={{
+          type: "spring",
+          stiffness: 300
+        }}
+      >
         <div className="flex">
           {stop.imageUrl && (
             <div
@@ -864,24 +1076,28 @@ function DragOverlayContent({ stop }: { stop: Stop }) {
             </div>
           </div>
         </div>
-      </div>
+      </motion.div>
     </div>
   );
 }
 
-// Componente de día individual
+// Componente de día individual con soporte móvil mejorado
 function DayTimeline({ 
   day,
   onStopsUpdate,
   userLocation,
   isOver,
-  canDrop
+  canDrop,
+  isMobile,
+  isReorderMode
 }: {
   day: DayData;
   onStopsUpdate: (stops: Stop[]) => void;
   userLocation?: { lat: number; lng: number } | null;
   isOver?: boolean;
   canDrop?: boolean;
+  isMobile?: boolean;
+  isReorderMode?: boolean;
 }) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [editingTimeId, setEditingTimeId] = useState<string | null>(null);
@@ -889,12 +1105,32 @@ function DayTimeline({
   const [autoAdjust, setAutoAdjust] = useState(true);
   const [breakOpportunities, setBreakOpportunities] = useState<{ afterIndex: number; duration: number; suggestedTime: string }[]>([]);
   const [dismissedBreaks, setDismissedBreaks] = useState<Set<number>>(new Set());
+  const { vibrate } = useHapticFeedback();
 
   // Detectar oportunidades de descanso
   React.useEffect(() => {
     const opportunities = detectBreakOpportunities(day.stops);
     setBreakOpportunities(opportunities.filter(o => !dismissedBreaks.has(o.afterIndex)));
   }, [day.stops, dismissedBreaks]);
+
+  // Manejar movimiento con botones (móvil)
+  const handleMoveUp = (index: number) => {
+    if (index === 0) return;
+    const newStops = [...day.stops];
+    [newStops[index - 1], newStops[index]] = [newStops[index], newStops[index - 1]];
+    const recalculated = recalculateTimings(newStops);
+    onStopsUpdate(recalculated);
+    vibrate(20);
+  };
+
+  const handleMoveDown = (index: number) => {
+    if (index === day.stops.length - 1) return;
+    const newStops = [...day.stops];
+    [newStops[index], newStops[index + 1]] = [newStops[index + 1], newStops[index]];
+    const recalculated = recalculateTimings(newStops);
+    onStopsUpdate(recalculated);
+    vibrate(20);
+  };
 
   // Manejar edición de tiempo
   const handleTimeEdit = (stopId: string) => {
@@ -1016,10 +1252,17 @@ function DayTimeline({
         </div>
         
         <div className="mt-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
-          <p className="text-red-100 text-xs flex items-center gap-1">
-            <GripVertical className="w-3 h-3" />
-            Arrastra entre días para reorganizar
-          </p>
+          {isMobile ? (
+            <p className="text-red-100 text-xs flex items-center gap-1">
+              <Hand className="w-3 h-3" />
+              Mantén presionado para reordenar
+            </p>
+          ) : (
+            <p className="text-red-100 text-xs flex items-center gap-1">
+              <GripVertical className="w-3 h-3" />
+              Arrastra entre días para reorganizar
+            </p>
+          )}
           
           <label className="flex items-center gap-2 text-xs text-white cursor-pointer">
             <input
@@ -1097,6 +1340,12 @@ function DayTimeline({
                     onStopsUpdate={onStopsUpdate}
                     autoAdjust={autoAdjust}
                     dayId={day.id}
+                    isReorderMode={isReorderMode}
+                    onMoveUp={() => handleMoveUp(i)}
+                    onMoveDown={() => handleMoveDown(i)}
+                    canMoveUp={i > 0}
+                    canMoveDown={i < day.stops.length - 1}
+                    isMobile={isMobile}
                   />
                   
                   {breakOpp && !dismissedBreaks.has(i) && (
@@ -1144,19 +1393,46 @@ function DayTimeline({
   );
 }
 
-// Componente principal con soporte para múltiples días
-export default function ItineraryTimeline({ days: initialDays, onDaysUpdate, userLocation }: Props) {
+// Componente principal con soporte para múltiples días y móviles
+export default function ItineraryTimeline({ days: initialDays = [], onDaysUpdate, userLocation }: Props) {
   const [days, setDays] = useState<DayData[]>(initialDays);
   const [activeId, setActiveId] = useState<UniqueIdentifier | null>(null);
   const [overId, setOverId] = useState<UniqueIdentifier | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [selectedDayId, setSelectedDayId] = useState<string | null>(null);
+  const [showMobileTutorial, setShowMobileTutorial] = useState(false);
+  const [isReorderMode, setIsReorderMode] = useState(false);
+  const isMobile = useIsMobile();
+  const { vibrate } = useHapticFeedback();
 
-  // Configurar sensores para drag & drop
+  // Mostrar tutorial móvil la primera vez
+  useEffect(() => {
+    if (isMobile && typeof window !== 'undefined') {
+      const hasSeenTutorial = localStorage.getItem('hasSeenMobileDragTutorial');
+      if (!hasSeenTutorial && days.some(d => d.stops.length > 0)) {
+        setShowMobileTutorial(true);
+      }
+    }
+  }, [isMobile, days]);
+
+  const dismissTutorial = () => {
+    setShowMobileTutorial(false);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('hasSeenMobileDragTutorial', 'true');
+    }
+  };
+
+  // Configurar sensores para drag & drop con soporte móvil mejorado
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
-        distance: 8,
+        distance: isMobile ? 5 : 8,
+      },
+    }),
+    useSensor(TouchSensor, {
+      activationConstraint: {
+        delay: 250,
+        tolerance: 5,
       },
     }),
     useSensor(KeyboardSensor, {
@@ -1178,6 +1454,7 @@ export default function ItineraryTimeline({ days: initialDays, onDaysUpdate, use
   // Manejar inicio del drag
   const handleDragStart = (event: DragStartEvent) => {
     setActiveId(event.active.id);
+    vibrate(50);
   };
 
   // Manejar drag over
@@ -1192,6 +1469,7 @@ export default function ItineraryTimeline({ days: initialDays, onDaysUpdate, use
     if (!over) {
       setActiveId(null);
       setOverId(null);
+      vibrate(20);
       return;
     }
 
@@ -1252,6 +1530,7 @@ export default function ItineraryTimeline({ days: initialDays, onDaysUpdate, use
 
     setDays(newDays);
     onDaysUpdate?.(newDays);
+    vibrate(50);
 
     setActiveId(null);
     setOverId(null);
@@ -1294,15 +1573,6 @@ export default function ItineraryTimeline({ days: initialDays, onDaysUpdate, use
     setSelectedDayId(null);
   };
 
-  // Check if we're on mobile
-  const [isMobile, setIsMobile] = useState(false);
-  useEffect(() => {
-    const checkMobile = () => setIsMobile(window.innerWidth < 768);
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
-  }, []);
-
   return (
     <DndContext
       sensors={sensors}
@@ -1312,14 +1582,52 @@ export default function ItineraryTimeline({ days: initialDays, onDaysUpdate, use
       onDragEnd={handleDragEnd}
     >
       <div className="space-y-8">
-        {/* Indicador de múltiples días */}
+        {/* Tutorial móvil */}
+        <AnimatePresence>
+          {showMobileTutorial && (
+            <MobileTutorial onDismiss={dismissTutorial} />
+          )}
+        </AnimatePresence>
+
+        {/* Indicador de múltiples días con modo reordenamiento móvil */}
         {days.length > 1 && (
-          <div className="flex items-center justify-center gap-2 text-sm text-gray-600">
-            <CalendarDays className="w-4 h-4" />
-            <span>Itinerario de {days.length} días</span>
-            <span className="text-xs text-gray-500 ml-2">
-              • Arrastra actividades entre días para reorganizar
-            </span>
+          <div className="flex items-center justify-between gap-2 text-sm text-gray-600">
+            <div className="flex items-center gap-2">
+              <CalendarDays className="w-4 h-4" />
+              <span>Itinerario de {days.length} días</span>
+              {!isMobile && (
+                <span className="text-xs text-gray-500 ml-2">
+                  • Arrastra actividades entre días para reorganizar
+                </span>
+              )}
+            </div>
+            {isMobile && (
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => {
+                  setIsReorderMode(!isReorderMode);
+                  vibrate(20);
+                }}
+                className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+                  isReorderMode 
+                    ? 'bg-red-600 text-white' 
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                {isReorderMode ? (
+                  <>
+                    <X className="w-3 h-3 inline mr-1" />
+                    Salir
+                  </>
+                ) : (
+                  <>
+                    <Move className="w-3 h-3 inline mr-1" />
+                    Reordenar
+                  </>
+                )}
+              </motion.button>
+            )}
           </div>
         )}
 
@@ -1345,6 +1653,8 @@ export default function ItineraryTimeline({ days: initialDays, onDaysUpdate, use
                 userLocation={userLocation}
                 isOver={isDroppable}
                 canDrop={!!activeId}
+                isMobile={isMobile}
+                isReorderMode={isReorderMode}
               />
 
               {/* Botón para agregar actividad */}
