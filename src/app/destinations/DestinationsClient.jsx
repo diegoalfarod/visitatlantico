@@ -9,7 +9,6 @@ import {
   Search,
   MapPin,
   Calendar,
-  Compass,
   X,
 } from "lucide-react";
 import Image from "next/image";
@@ -18,13 +17,30 @@ import { useSearchParams } from "next/navigation";
 
 const CATEGORIES = [
   "Todos",
-  "Spots Instagrameables",
   "Playas",
+  "Eco",
+  "Gastronomía",
+  "Aventura",
+  "Cultura",
   "Historia",
+  "Familia",
+  "Deportes",
+  "Nocturna",
+  "Bienestar",
+  "Festivales",
+  "Romántico",
+  "Naturaleza",
+  "Avistamiento",
+  "Compras",
+  "Fotografía",
+  "Náutica",
+  "Acuáticos",
+  "Pesca",
+  "Cine",
+  "Arte",
+  "Spots instagrameables",
   "Artesanías",
   "EcoTurismo",
-  "Gastronomía",
-  "Cultura",
 ];
 
 const ITEMS_PER_PAGE = 10;
@@ -157,7 +173,7 @@ export default function DestinationsClient() {
           <select
             value={category}
             onChange={(e) => setCategory(e.target.value)}
-            className="rounded-xl py-2.5 px-4 bg-gray-100 text-sm"
+            className="rounded-xl py-3 px-4 bg-gray-100 text-sm min-w-[180px] cursor-pointer hover:bg-gray-200 transition-colors"
           >
             {CATEGORIES.map((c) => (
               <option key={c} value={c}>
@@ -213,10 +229,23 @@ export default function DestinationsClient() {
                       sizes="(max-width:768px)100vw, 33vw"
                       className="object-cover group-hover:scale-110 transition-transform duration-500"
                     />
-                    <span className="absolute top-4 right-4 bg-primary text-white text-xs px-3 py-1 rounded-full flex items-center gap-1">
-                      <Compass size={12} />
-                      {it.kind === "destino" ? "Destino" : "Experiencia"}
-                    </span>
+                    {it.categories.length > 0 && (
+                      <div className="absolute top-4 right-4 flex flex-wrap gap-1 max-w-[60%] justify-end">
+                        {it.categories.slice(0, 2).map((cat, idx) => (
+                          <span
+                            key={idx}
+                            className="bg-primary text-white text-xs px-3 py-1 rounded-full"
+                          >
+                            {cat}
+                          </span>
+                        ))}
+                        {it.categories.length > 2 && (
+                          <span className="bg-primary/80 text-white text-xs px-3 py-1 rounded-full">
+                            +{it.categories.length - 2}
+                          </span>
+                        )}
+                      </div>
+                    )}
                   </div>
 
                   <div className="p-6">

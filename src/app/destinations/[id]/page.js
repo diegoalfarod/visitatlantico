@@ -132,10 +132,17 @@ export default async function DestinationDetail({ params }) {
           )}
           <div className="absolute inset-0 z-20 flex flex-col justify-end p-8 md:p-16 text-white">
             <div className="max-w-5xl mx-auto">
-              {d.categories?.[0] && (
-                <span className="bg-primary/80 px-3 py-1 rounded-full text-xs font-medium">
-                  {d.categories[0]}
-                </span>
+              {d.categories?.length > 0 && (
+                <div className="flex gap-2 mb-4">
+                  {d.categories.map((cat, idx) => (
+                    <span
+                      key={idx}
+                      className="bg-primary/80 px-3 py-1 rounded-full text-xs font-medium"
+                    >
+                      {cat}
+                    </span>
+                  ))}
+                </div>
               )}
               <h1 className="text-5xl md:text-6xl font-bold mt-4 mb-2">
                 {d.name}
@@ -171,7 +178,7 @@ export default async function DestinationDetail({ params }) {
             <div className="lg:col-span-2 space-y-8">
               {/* Descripción */}
               <section className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
-                <header className="px-6 py-5 border-b border-gray-100 dark:border-  gray-700">
+                <header className="px-6 py-5 border-b border-gray-100 dark:border-gray-700">
                   <h2 className="text-2xl font-bold">Sobre este lugar</h2>
                 </header>
                 <div className="p-6">
