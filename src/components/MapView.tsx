@@ -240,9 +240,10 @@ export default function MapView({ destinations, categoryConfig, brandColors, map
       const firstCategory = dest.categories[0] || "Otros";
       const categoryColor = categoryConfig[firstCategory]?.color || brandColors.primary;
       
-      // Modern marker design
+      // Create marker element with better structure
       const el = document.createElement('div');
       el.className = 'destination-marker';
+      el.style.cursor = 'pointer';
       
       const markerHtml = `
         <div class="marker-container" style="
@@ -250,6 +251,7 @@ export default function MapView({ destinations, categoryConfig, brandColors, map
           width: ${isMobileView ? '40px' : '48px'};
           height: ${isMobileView ? '40px' : '48px'};
           cursor: pointer;
+          pointer-events: all;
         ">
           <div class="marker-pulse" style="
             position: absolute;
@@ -258,6 +260,7 @@ export default function MapView({ destinations, categoryConfig, brandColors, map
             border-radius: 50%;
             background: ${categoryColor}20;
             animation: pulse-ring 3s infinite;
+            pointer-events: none;
           "></div>
           <div class="marker-body" style="
             position: relative;
@@ -273,6 +276,7 @@ export default function MapView({ destinations, categoryConfig, brandColors, map
             box-shadow: 0 2px 12px rgba(0,0,0,0.15);
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             overflow: hidden;
+            pointer-events: all;
           ">
             <img src="${dest.image || '/placeholder-destination.jpg'}" 
                  alt="${dest.name}"
@@ -284,6 +288,7 @@ export default function MapView({ destinations, categoryConfig, brandColors, map
                    pointer-events: none;
                  " 
                  loading="lazy"
+                 onerror="this.src='/placeholder-destination.jpg'"
             />
             <div style="
               position: absolute;
@@ -297,6 +302,7 @@ export default function MapView({ destinations, categoryConfig, brandColors, map
               align-items: center;
               justify-content: center;
               box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+              pointer-events: none;
             ">
               <svg width="${isMobileView ? '8' : '10'}" height="${isMobileView ? '8' : '10'}" viewBox="0 0 24 24" fill="white">
                 <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/>
@@ -348,13 +354,35 @@ export default function MapView({ destinations, categoryConfig, brandColors, map
         handleMarkerClick(dest, marker);
       });
       
+      // Add simple popup on creation
+      const simplePopup = new mapboxgl.Popup({
+        offset: 25,
+        closeButton: false,
+        closeOnClick: false
+      })
+        .setHTML(`
+          <div style="padding: 10px; text-align: center;">
+            <strong>${dest.name}</strong><br>
+            <small>Click para más información</small>
+          </div>
+        `);
+      
+      marker.setPopup(simplePopup);
+      
       markersRef.current.push(marker);
     });
   }, [destinations, selectedDestination, categoryConfig, brandColors, mapLoaded, isMobileView, activeCategory]);
 
   // Handle marker click differently for mobile/desktop
-  const handleMarkerClick = (dest: Destination, marker: CustomMarker) => {
+  const handleMarkerClick = useCallback((dest: Destination, marker: CustomMarker) => {
+    console.log('Marker clicked:', dest.name);
     setSelectedDestination(dest);
+    
+    // Close any existing popup first
+    if (popupRef.current) {
+      popupRef.current.remove();
+      popupRef.current = null;
+    }
     
     // Smooth animation to destination
     mapRef.current!.flyTo({
@@ -365,14 +393,17 @@ export default function MapView({ destinations, categoryConfig, brandColors, map
       essential: true,
     });
     
-    if (isMobileView) {
-      // Mobile: Show bottom sheet
-      showMobileBottomSheet(dest);
-    } else {
-      // Desktop: Show popup
-      showDesktopPopup(dest, marker);
-    }
-  };
+    // Always show popup first, then bottom sheet on mobile
+    setTimeout(() => {
+      if (isMobileView) {
+        // Mobile: Show bottom sheet
+        showMobileBottomSheet(dest);
+      } else {
+        // Desktop: Show popup
+        showDesktopPopup(dest, marker);
+      }
+    }, 300);
+  }, [isMobileView]);
 
   // Mobile bottom sheet
   const showMobileBottomSheet = (dest: Destination) => {
@@ -380,9 +411,13 @@ export default function MapView({ destinations, categoryConfig, brandColors, map
   };
 
   // Desktop popup
-  const showDesktopPopup = (dest: Destination, marker: CustomMarker) => {
+  const showDesktopPopup = useCallback((dest: Destination, marker: CustomMarker) => {
+    if (!mapRef.current) return;
+    
+    // Remove any existing popup
     if (popupRef.current) {
       popupRef.current.remove();
+      popupRef.current = null;
     }
     
     const popupContent = document.createElement('div');
@@ -394,7 +429,7 @@ export default function MapView({ destinations, categoryConfig, brandColors, map
           border-radius: 16px;
           overflow: hidden;
           background: white;
-          box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+          box-shadow: 0 20px 40px rgba(0,0,0,0.15);
         }
         .popup-image {
           width: 100%;
@@ -415,6 +450,7 @@ export default function MapView({ destinations, categoryConfig, brandColors, map
           align-items: center;
           gap: 8px;
           margin-bottom: 12px;
+          flex-wrap: wrap;
         }
         .popup-category {
           font-size: 12px;
@@ -463,7 +499,7 @@ export default function MapView({ destinations, categoryConfig, brandColors, map
           background: #eee;
         }
       </style>
-      <img src="${dest.image}" alt="${dest.name}" class="popup-image" />
+      <img src="${dest.image}" alt="${dest.name}" class="popup-image" onerror="this.src='/placeholder-destination.jpg'" />
       <div class="popup-content">
         <h3 class="popup-title">${dest.name}</h3>
         <div class="popup-meta">
@@ -486,12 +522,15 @@ export default function MapView({ destinations, categoryConfig, brandColors, map
       </div>
     `;
     
+    // Create popup with proper positioning
     const popup = new mapboxgl.Popup({
-      offset: [0, -20],
+      offset: 25,
       closeButton: true,
-      closeOnClick: true,
+      closeOnClick: false,
+      closeOnMove: false,
       maxWidth: 'none',
-      className: 'modern-popup-container'
+      className: 'modern-popup-container',
+      anchor: 'bottom'
     })
       .setDOMContent(popupContent)
       .setLngLat([dest.coordinates!.lng, dest.coordinates!.lat])
@@ -499,10 +538,12 @@ export default function MapView({ destinations, categoryConfig, brandColors, map
     
     popupRef.current = popup;
     
+    // Handle popup close
     popup.on('close', () => {
       setSelectedDestination(null);
+      popupRef.current = null;
     });
-  };
+  }, [categoryConfig, brandColors]);
 
   // Update markers
   useEffect(() => {
@@ -565,13 +606,27 @@ export default function MapView({ destinations, categoryConfig, brandColors, map
             opacity: 0;
           }
         }
+        .destination-marker {
+          cursor: pointer !important;
+        }
+        .marker-container {
+          cursor: pointer !important;
+        }
+        .marker-body {
+          cursor: pointer !important;
+        }
         .mapboxgl-popup {
           max-width: none !important;
+          z-index: 100 !important;
         }
         .mapboxgl-popup-content {
           padding: 0 !important;
           background: transparent !important;
           box-shadow: none !important;
+          border-radius: 16px !important;
+        }
+        .mapboxgl-popup-tip {
+          border-top-color: white !important;
         }
         .mapboxgl-popup-close-button {
           display: ${isMobileView ? 'none' : 'flex'};
@@ -587,6 +642,7 @@ export default function MapView({ destinations, categoryConfig, brandColors, map
           justify-content: center;
           box-shadow: 0 2px 8px rgba(0,0,0,0.1);
           transition: all 0.2s;
+          z-index: 101;
         }
         .mapboxgl-popup-close-button:hover {
           background: #f5f5f5;
@@ -615,6 +671,9 @@ export default function MapView({ destinations, categoryConfig, brandColors, map
         }
         .mapboxgl-ctrl-icon {
           background-size: 20px !important;
+        }
+        .modern-popup {
+          cursor: default !important;
         }
       `}</style>
 
