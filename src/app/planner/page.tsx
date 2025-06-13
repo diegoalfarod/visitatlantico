@@ -623,11 +623,11 @@ if (view === "itinerary" && itinerary) {
           </div>
           
           <motion.h1 
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             className="text-3xl sm:text-5xl font-extrabold"
           >
-            Tu Aventura Generada
+          -
           </motion.h1>
           {locationData?.address && (
             <motion.p 
