@@ -36,20 +36,9 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 
-// Importaciones de @dnd-kit
+// Importaciones de @dnd-kit - NO importamos DndContext aquí
 import {
-  DndContext,
-  closestCenter,
-  KeyboardSensor,
-  PointerSensor,
-  useSensor,
-  useSensors,
-  DragEndEvent,
-} from '@dnd-kit/core';
-import {
-  arrayMove,
   SortableContext,
-  sortableKeyboardCoordinates,
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import {
@@ -70,6 +59,7 @@ interface Props {
   stops: Stop[];
   onStopsReorder?: (newStops: Stop[]) => void;
   userLocation?: { lat: number; lng: number } | null;
+  dayId?: string; // Para identificar el día cuando tengamos múltiples días
 }
 
 // Función mejorada para recalcular tiempos con duraciones editables
@@ -361,7 +351,6 @@ const TimeEditor = ({
 };
 
 // Componente de sugerencia de descanso
-// Componente de sugerencia de descanso - VERSIÓN MEJORADA
 const BreakSuggestion = ({ 
   opportunity,
   onAdd,
@@ -681,7 +670,7 @@ function SortableStop({
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
-    opacity: isDragging ? 0.5 : 1,
+    opacity: isDragging ? 0.3 : 1,
   };
 
   const [photoIndex, setPhotoIndex] = useState(0);
@@ -798,23 +787,34 @@ function SortableStop({
               <Trash2 className="w-4 h-4" />
             </motion.button>
             
-            {/* Drag Handle mejorado */}
+            {/* Drag Handle mejorado con efecto visual */}
             <motion.div 
               {...attributes} 
               {...listeners}
-              className="p-2 rounded-lg cursor-grab active:cursor-grabbing hover:bg-gray-100 transition-all touch-manipulation"
+              className={`p-2 rounded-lg cursor-grab active:cursor-grabbing transition-all touch-manipulation ${
+                isDragging 
+                  ? 'bg-gray-200 shadow-inner' 
+                  : 'hover:bg-gray-100 hover:shadow-md'
+              }`}
               whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.95 }}
               title="Arrastra para reordenar"
             >
-              <GripVertical className="w-4 h-4 text-gray-400" />
+              <GripVertical className={`w-4 h-4 ${isDragging ? 'text-gray-600' : 'text-gray-400'}`} />
             </motion.div>
           </div>
         </div>
 
-        {/* tarjeta mejorada */}
+        {/* tarjeta mejorada con efecto de elevación al arrastrar */}
         <motion.div 
-          className={`ml-10 rounded-2xl shadow-lg border ${c.border} bg-white ${isDragging ? 'shadow-2xl' : ''} overflow-hidden relative`}
-          whileHover={{ scale: 1.02 }}
+          className={`ml-10 rounded-2xl shadow-lg border ${c.border} bg-white overflow-hidden relative transition-all ${
+            isDragging ? 'shadow-2xl transform scale-98' : ''
+          }`}
+          animate={{
+            scale: isDragging ? 0.98 : 1,
+            opacity: isDragging ? 0.7 : 1,
+          }}
+          whileHover={{ scale: isDragging ? 0.98 : 1.02 }}
           transition={{ type: "spring", stiffness: 300 }}
         >
           <div className="cursor-pointer" onClick={toggleExpand}>
@@ -980,8 +980,8 @@ function SortableStop({
 }
 
 /* ───────── componente principal mejorado con edición de duraciones ───────── */
-export default function ItineraryTimeline({ stops, onStopsReorder, userLocation }: Props) {
-  // Eliminamos el estado localStops y trabajamos directamente con los props
+export default function ItineraryTimeline({ stops, onStopsReorder, userLocation, dayId }: Props) {
+  // Estados principales
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [editingTimeId, setEditingTimeId] = useState<string | null>(null);
   const [editingDurationId, setEditingDurationId] = useState<string | null>(null);
@@ -996,31 +996,6 @@ export default function ItineraryTimeline({ stops, onStopsReorder, userLocation 
     const opportunities = detectBreakOpportunities(stops);
     setBreakOpportunities(opportunities.filter(o => !dismissedBreaks.has(o.afterIndex)));
   }, [stops, dismissedBreaks]);
-
-  const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: {
-        distance: 8,
-      },
-    }),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    })
-  );
-
-  function handleDragEnd(event: DragEndEvent) {
-    const { active, over } = event;
-
-    if (active.id !== over?.id) {
-      const oldIndex = stops.findIndex((stop) => stop.id === active.id);
-      const newIndex = stops.findIndex((stop) => stop.id === over?.id);
-      
-      const reorderedStops = arrayMove(stops, oldIndex, newIndex);
-      const recalculatedStops = recalculateTimings(reorderedStops);
-      
-      onStopsReorder?.(recalculatedStops);
-    }
-  }
 
   // Manejar edición de tiempo
   const handleTimeEdit = (stopId: string) => {
@@ -1161,189 +1136,184 @@ export default function ItineraryTimeline({ stops, onStopsReorder, userLocation 
           <div className="text-white">
             <h3 className="text-lg md:text-xl font-bold flex items-center">
               <Calendar className="w-5 h-5 mr-2" />
-Aventura del día
-</h3>
-        <p className="text-red-100 text-sm mt-1">
-         {filteredStops.length} actividades • {h} h {min > 0 ? `${min} min` : ""}
-       </p>
-     </div>
-     <div className="bg-white/20 backdrop-blur-sm px-3 py-1.5 rounded-lg text-white text-xs md:text-sm font-medium">
-       {startTime} - {endTime}
-     </div>
-   </div>
-   
-   <div className="mt-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
-     <p className="text-red-100 text-xs flex items-center gap-1">
-       <GripVertical className="w-3 h-3" />
-       {isMobile ? "Toca y arrastra" : "Arrastra para reordenar"} • Click en horarios/duraciones para editar
-     </p>
-     
-     {/* Toggle de ajuste automático */}
-     <label className="flex items-center gap-2 text-xs text-white cursor-pointer">
-       <input
-         type="checkbox"
-         checked={autoAdjust}
-         onChange={(e) => setAutoAdjust(e.target.checked)}
-         className="sr-only"
-       />
-       <div className={`w-10 h-5 rounded-full transition-colors ${
-         autoAdjust ? "bg-white/40" : "bg-white/20"
-       }`}>
-         <div className={`w-4 h-4 bg-white rounded-full shadow-md transition-transform ${
-           autoAdjust ? "translate-x-5" : "translate-x-0.5"
-         } mt-0.5`} />
-       </div>
-       <span className="hidden sm:inline">Ajuste automático</span>
-       <span className="sm:hidden">Auto</span>
-       <span title="Cuando está activado, cambiar un horario ajustará automáticamente los siguientes">
-         <Info className="w-3 h-3 opacity-60" />
-       </span>
-     </label>
-   </div>
- </div>
+              Aventura del día
+            </h3>
+            <p className="text-red-100 text-sm mt-1">
+              {filteredStops.length} actividades • {h} h {min > 0 ? `${min} min` : ""}
+            </p>
+          </div>
+          <div className="bg-white/20 backdrop-blur-sm px-3 py-1.5 rounded-lg text-white text-xs md:text-sm font-medium">
+            {startTime} - {endTime}
+          </div>
+        </div>
+        
+        <div className="mt-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+          <p className="text-red-100 text-xs flex items-center gap-1">
+            <GripVertical className="w-3 h-3" />
+            {isMobile ? "Toca y arrastra" : "Arrastra para reordenar"} • Click en horarios/duraciones para editar
+          </p>
+          
+          {/* Toggle de ajuste automático */}
+          <label className="flex items-center gap-2 text-xs text-white cursor-pointer">
+            <input
+              type="checkbox"
+              checked={autoAdjust}
+              onChange={(e) => setAutoAdjust(e.target.checked)}
+              className="sr-only"
+            />
+            <div className={`w-10 h-5 rounded-full transition-colors ${
+              autoAdjust ? "bg-white/40" : "bg-white/20"
+            }`}>
+              <div className={`w-4 h-4 bg-white rounded-full shadow-md transition-transform ${
+                autoAdjust ? "translate-x-5" : "translate-x-0.5"
+              } mt-0.5`} />
+            </div>
+            <span className="hidden sm:inline">Ajuste automático</span>
+            <span className="sm:hidden">Auto</span>
+            <span title="Cuando está activado, cambiar un horario ajustará automáticamente los siguientes">
+              <Info className="w-3 h-3 opacity-60" />
+            </span>
+          </label>
+        </div>
+      </div>
 
- {/* Toggle de vista */}
- <div className="flex flex-col sm:flex-row justify-between items-center gap-3 mb-4">
-   <div className="flex gap-2 w-full sm:w-auto">
-     <motion.button
-       whileHover={{ scale: 1.05 }}
-       whileTap={{ scale: 0.95 }}
-       onClick={() => setView("timeline")}
-       className={`flex-1 sm:flex-initial px-4 py-2 rounded-lg flex items-center justify-center gap-2 transition-all ${
-         view === "timeline" 
-           ? "bg-red-600 text-white shadow-md" 
-           : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-       }`}
-     >
-       <List className="w-4 h-4" /> 
-       <span className="hidden sm:inline">Línea de tiempo</span>
-       <span className="sm:hidden">Timeline</span>
-     </motion.button>
-     <motion.button
-       whileHover={{ scale: 1.05 }}
-       whileTap={{ scale: 0.95 }}
-       onClick={() => setView("cards")}
-       className={`flex-1 sm:flex-initial px-4 py-2 rounded-lg flex items-center justify-center gap-2 transition-all ${
-         view === "cards" 
-           ? "bg-red-600 text-white shadow-md" 
-           : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-       }`}
-     >
-       <Grid className="w-4 h-4" /> 
-       <span className="hidden sm:inline">Tarjetas</span>
-       <span className="sm:hidden">Cards</span>
-     </motion.button>
-   </div>
+      {/* Toggle de vista */}
+      <div className="flex flex-col sm:flex-row justify-between items-center gap-3 mb-4">
+        <div className="flex gap-2 w-full sm:w-auto">
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => setView("timeline")}
+            className={`flex-1 sm:flex-initial px-4 py-2 rounded-lg flex items-center justify-center gap-2 transition-all ${
+              view === "timeline" 
+                ? "bg-red-600 text-white shadow-md" 
+                : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+            }`}
+          >
+            <List className="w-4 h-4" /> 
+            <span className="hidden sm:inline">Línea de tiempo</span>
+            <span className="sm:hidden">Timeline</span>
+          </motion.button>
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => setView("cards")}
+            className={`flex-1 sm:flex-initial px-4 py-2 rounded-lg flex items-center justify-center gap-2 transition-all ${
+              view === "cards" 
+                ? "bg-red-600 text-white shadow-md" 
+                : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+            }`}
+          >
+            <Grid className="w-4 h-4" /> 
+            <span className="hidden sm:inline">Tarjetas</span>
+            <span className="sm:hidden">Cards</span>
+          </motion.button>
+        </div>
 
-   {/* Filtros de categoría - Scroll horizontal en móvil */}
-   {categories.length > 1 && (
-     <div className="flex gap-1.5 overflow-x-auto pb-2 w-full sm:w-auto">
-       <button
-         onClick={() => setActiveCategory(null)}
-         className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all whitespace-nowrap ${
-           !activeCategory
-             ? "bg-red-600 text-white"
-             : "bg-white border border-gray-200 text-gray-700 hover:bg-gray-50"
-         }`}
-       >
-         Todas
-       </button>
-       {categories.map((cat) => (
-         <button
-           key={cat}
-           onClick={() => setActiveCategory(cat)}
-           className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all flex items-center gap-1 whitespace-nowrap ${
-             activeCategory === cat
-               ? "bg-red-600 text-white"
-               : "bg-white border border-gray-200 text-gray-700 hover:bg-gray-50"
-           }`}
-         >
-           {getCategoryIcon(cat)}
-           {cat}
-         </button>
-       ))}
-     </div>
-   )}
- </div>
+        {/* Filtros de categoría - Scroll horizontal en móvil */}
+        {categories.length > 1 && (
+          <div className="flex gap-1.5 overflow-x-auto pb-2 w-full sm:w-auto">
+            <button
+              onClick={() => setActiveCategory(null)}
+              className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all whitespace-nowrap ${
+                !activeCategory
+                  ? "bg-red-600 text-white"
+                  : "bg-white border border-gray-200 text-gray-700 hover:bg-gray-50"
+              }`}
+            >
+              Todas
+            </button>
+            {categories.map((cat) => (
+              <button
+                key={cat}
+                onClick={() => setActiveCategory(cat)}
+                className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all flex items-center gap-1 whitespace-nowrap ${
+                  activeCategory === cat
+                    ? "bg-red-600 text-white"
+                    : "bg-white border border-gray-200 text-gray-700 hover:bg-gray-50"
+                }`}
+              >
+                {getCategoryIcon(cat)}
+                {cat}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
 
- {/* Vista condicional */}
- {view === "timeline" ? (
-   <div className="relative pt-4 pb-8">
-     <DndContext 
-       sensors={sensors}
-       collisionDetection={closestCenter}
-       onDragEnd={handleDragEnd}
-     >
-       <SortableContext 
-         items={filteredStops.map(s => s.id)} 
-         strategy={verticalListSortingStrategy}
-       >
-         {filteredStops.map((s, i) => {
-           // Encontrar oportunidad de descanso después de esta parada
-           const breakOpp = breakOpportunities.find(o => o.afterIndex === i);
-           
-           return (
-             <React.Fragment key={s.id}>
-               <SortableStop
-                 stop={s}
-                 index={i}
-                 expanded={expandedId === s.id}
-                 toggleExpand={() => setExpandedId(expandedId === s.id ? null : s.id)}
-                 isLast={i === filteredStops.length - 1}
-                 editingTime={editingTimeId === s.id}
-                 editingDuration={editingDurationId === s.id}
-                 onTimeEdit={() => handleTimeEdit(s.id)}
-                 onDurationEdit={() => handleDurationEdit(s.id)}
-                 onTimeSave={(newTime) => handleTimeSave(s.id, newTime)}
-                 onDurationSave={(newDuration) => handleDurationSave(s.id, newDuration)}
-                 onRemove={() => handleRemoveStop(s.id)}
-                 stops={filteredStops}
-                 onStopsUpdate={onStopsReorder || (() => {})}
-                 autoAdjust={autoAdjust}
-               />
-               
-               {/* Sugerencia de descanso */}
-               {breakOpp && !dismissedBreaks.has(i) && (
-                 <BreakSuggestion
-                   opportunity={breakOpp}
-                   onAdd={() => handleAddBreak(i, breakOpp.duration, breakOpp.suggestedTime)}
-                   onDismiss={() => {
-                     setDismissedBreaks(new Set([...dismissedBreaks, i]));
-                   }}
-                 />
-               )}
-             </React.Fragment>
-           );
-         })}
-       </SortableContext>
-     </DndContext>
+      {/* Vista condicional */}
+      {view === "timeline" ? (
+        <div className="relative pt-4 pb-8">
+          <SortableContext 
+            items={filteredStops.map(s => s.id)} 
+            strategy={verticalListSortingStrategy}
+          >
+            {filteredStops.map((s, i) => {
+              // Encontrar oportunidad de descanso después de esta parada
+              const breakOpp = breakOpportunities.find(o => o.afterIndex === i);
+              
+              return (
+                <React.Fragment key={s.id}>
+                  <SortableStop
+                    stop={s}
+                    index={i}
+                    expanded={expandedId === s.id}
+                    toggleExpand={() => setExpandedId(expandedId === s.id ? null : s.id)}
+                    isLast={i === filteredStops.length - 1}
+                    editingTime={editingTimeId === s.id}
+                    editingDuration={editingDurationId === s.id}
+                    onTimeEdit={() => handleTimeEdit(s.id)}
+                    onDurationEdit={() => handleDurationEdit(s.id)}
+                    onTimeSave={(newTime) => handleTimeSave(s.id, newTime)}
+                    onDurationSave={(newDuration) => handleDurationSave(s.id, newDuration)}
+                    onRemove={() => handleRemoveStop(s.id)}
+                    stops={filteredStops}
+                    onStopsUpdate={onStopsReorder || (() => {})}
+                    autoAdjust={autoAdjust}
+                  />
+                  
+                  {/* Sugerencia de descanso */}
+                  {breakOpp && !dismissedBreaks.has(i) && (
+                    <BreakSuggestion
+                      opportunity={breakOpp}
+                      onAdd={() => handleAddBreak(i, breakOpp.duration, breakOpp.suggestedTime)}
+                      onDismiss={() => {
+                        setDismissedBreaks(new Set([...dismissedBreaks, i]));
+                      }}
+                    />
+                  )}
+                </React.Fragment>
+              );
+            })}
+          </SortableContext>
 
-     {/* fin del día */}
-     <motion.div 
-       initial={{ opacity: 0 }}
-       animate={{ opacity: 1 }}
-       transition={{ delay: 0.5 }}
-       className="flex items-center justify-center mt-8"
-     >
-       <div className="px-4 py-2 bg-gradient-to-r from-gray-100 to-gray-200 text-gray-600 rounded-full text-sm font-medium shadow-sm">
-         ✨ Fin del día
-       </div>
-     </motion.div>
-   </div>
- ) : (
-   <CardsView stops={filteredStops} onReorder={onStopsReorder} userLocation={userLocation} />
- )}
+          {/* fin del día */}
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.5 }}
+            className="flex items-center justify-center mt-8"
+          >
+            <div className="px-4 py-2 bg-gradient-to-r from-gray-100 to-gray-200 text-gray-600 rounded-full text-sm font-medium shadow-sm">
+              ✨ Fin del día
+            </div>
+          </motion.div>
+        </div>
+      ) : (
+        <CardsView stops={filteredStops} onReorder={onStopsReorder} userLocation={userLocation} />
+      )}
 
- {/* Modal para agregar destinos */}
- <AnimatePresence>
-   {showAddModal && (
-     <AddDestinationModal
-       onClose={() => setShowAddModal(false)}
-       onAdd={handleAddDestination}
-       currentStops={stops}
-       userLocation={userLocation}
-     />
-   )}
- </AnimatePresence></div>
- );
+      {/* Modal para agregar destinos */}
+      <AnimatePresence>
+        {showAddModal && (
+          <AddDestinationModal
+            onClose={() => setShowAddModal(false)}
+            onAdd={handleAddDestination}
+            currentStops={stops}
+            userLocation={userLocation}
+          />
+        )}
+      </AnimatePresence>
+    </div>
+  );
 }
