@@ -10,6 +10,7 @@ import AddDestinationModal from "@/components/AddDestinationModal";
 import { toMin, toHHMM } from "@/utils/itinerary-helpers";
 import LocationSelector from "@/components/LocationSelector";
 import MultiDayItinerary from "@/components/MultiDayItinerary";
+import SaveItineraryModal from "@/components/SaveItineraryModal";
 
 import {
   Loader2,
@@ -40,8 +41,9 @@ import {
   ArrowLeft,
   Plus,
   Home,
+  Save,
+  WifiOff,
 } from "lucide-react";
-import { generateUniqueLink } from "@/utils/linkGenerator";
 import Image from "next/image";
 
 /* ─────────── tipos & helpers ─────────── */
@@ -126,6 +128,9 @@ export default function PremiumPlannerPage() {
 
   /* preferencias de usuario */
   const { preferences, updatePreferences } = useUserPreferences();
+
+  /* estado para el modal de guardar */
+  const [showSaveModal, setShowSaveModal] = useState(false);
 
   /* pasos wizard mejorados para móvil */
   const steps = [
@@ -336,7 +341,6 @@ export default function PremiumPlannerPage() {
   /* API & itinerario */
   const [itinerary, setItinerary] = useState<Stop[] | null>(null);
   const [view, setView] = useState<"questions" | "loading" | "itinerary">("questions");
-  const pdfRef = useRef<HTMLDivElement>(null);
 
   function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
     const R = 6371;
@@ -349,10 +353,6 @@ export default function PremiumPlannerPage() {
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
     return R * c;
   }
-
-  const handleStopsReorder = (newStops: Stop[]) => {
-    setItinerary(newStops);
-  };
 
   const generateItinerary = async () => {
     if (!steps.every((s) => s.valid)) return;
@@ -445,143 +445,6 @@ export default function PremiumPlannerPage() {
     }
   };
 
-  const handleShare = async () => {
-    if (!itinerary?.length) return alert("Itinerario vacío");
-    try {
-      const url = await generateUniqueLink(itinerary, answers.days ?? 1);
-      
-      if (navigator.share && isMobile) {
-        await navigator.share({
-          title: 'Mi itinerario en Atlántico',
-          text: 'Mira mi plan de viaje personalizado',
-          url: url
-        });
-      } else {
-        await navigator.clipboard.writeText(url);
-        alert("Link copiado al portapapeles ✅");
-      }
-    } catch (e) {
-      console.error(e);
-      alert("No se pudo generar el link");
-    }
-  };
-
-  const downloadPDF = async () => {
-    if (!pdfRef.current) {
-      alert("No se encontró el contenido del itinerario.");
-      return;
-    }
-  
-    try {
-      const clone = pdfRef.current.cloneNode(true) as HTMLElement;
-      
-      clone.querySelectorAll('button, input, select, .map-container').forEach(el => el.remove());
-      
-      const mapPlaceholder = `<div class="map-static" style="height:400px;background:#eee;display:flex;align-items:center;justify-content:center;border-radius:1rem;margin:1rem 0">
-        <div style="text-align:center">
-          <h3 style="color:#333">Mapa del Itinerario</h3>
-          <p style="color:#666">${locationData?.address || 'Ubicación principal'}</p>
-        </div>
-      </div>`;
-      
-      const mapContainer = clone.querySelector('.map-container');
-      if (mapContainer) {
-        mapContainer.outerHTML = mapPlaceholder;
-      }
-  
-      const html = `<!DOCTYPE html>
-  <html lang="es">
-  <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Itinerario de Viaje - ${locationData?.address || 'Atlántico'}</title>
-    <style>
-      body {
-        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, 
-                     Ubuntu, Cantarell, sans-serif;
-        background-color: #f8fafc;
-        color: #1e293b;
-        padding: 20px;
-      }
-      .container {
-        max-width: 800px;
-        margin: 0 auto;
-      }
-      .header {
-        background: #dc2626;
-        color: white;
-        padding: 4rem 1rem;
-        text-align: center;
-        margin-bottom: 20px;
-      }
-      .card {
-        background: white;
-        border-radius: 1.5rem;
-        padding: 2rem;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        margin-bottom: 2rem;
-        break-inside: avoid;
-      }
-      .timeline-item {
-        border-left: 2px solid #dc2626;
-        padding-left: 1.5rem;
-        margin: 1.5rem 0;
-      }
-      @media print {
-        body { 
-          background: white;
-          padding: 0;
-        }
-        .header { 
-          padding: 2rem 1rem;
-        }
-        .card {
-          box-shadow: none;
-          page-break-inside: avoid;
-        }
-      }
-    </style>
-  </head>
-  <body>
-    <div class="container">
-      <div class="header">
-        <h1 style="font-size: 2.5rem; font-weight: 800; margin: 0;">Tu Aventura Generada</h1>
-        ${locationData?.address ? `<p style="margin-top: 0.5rem; font-size: 1rem;">📍 ${locationData.address}</p>` : ''}
-      </div>
-      
-      ${clone.innerHTML}
-    </div>
-  </body>
-  </html>`;
-  
-      const response = await fetch('/api/generate-pdf', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ html }),
-      });
-  
-      if (!response.ok) {
-        throw new Error('Error al generar PDF');
-      }
-  
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `itinerario-${new Date().toISOString().split('T')[0]}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      window.URL.revokeObjectURL(url);
-  
-    } catch (error) {
-      console.error("Error al generar PDF:", error);
-      alert("Error al generar el PDF. Inténtalo de nuevo.");
-    }
-  };
-
   /* ═════ vista loading mejorada ════ */
   if (view === "loading") {
     return <LoadingItinerary profile={answers} isMobile={isMobile} />;
@@ -595,7 +458,7 @@ export default function PremiumPlannerPage() {
     const days = answers.days ?? 1;
 
     return (
-      <main ref={pdfRef} className="min-h-screen bg-gradient-to-br from-blue-50 to-red-50 pb-16">
+      <main className="min-h-screen bg-gradient-to-br from-blue-50 to-red-50 pb-16">
         {/* HERO móvil-first - OPTIMIZADO */}
         <div className="bg-gradient-to-r from-red-600 to-red-800 text-white">
           <div className="max-w-4xl mx-auto px-4 sm:px-6">
@@ -683,23 +546,32 @@ export default function PremiumPlannerPage() {
                 <p className="text-xs sm:text-sm text-gray-500">horas</p>
               </div>
             </div>
-            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 pt-2 sm:pt-4">
-              <motion.button
-                whileHover={!isMobile ? { scale: 1.02 } : {}}
-                whileTap={{ scale: 0.98 }}
-                onClick={downloadPDF}
-                className="flex-1 bg-green-600 text-white px-4 sm:px-5 py-2.5 sm:py-3 rounded-full inline-flex items-center justify-center shadow hover:shadow-lg transition text-sm sm:text-base font-medium"
-              >
-                <Download className="mr-2 w-4 h-4 sm:w-5 sm:h-5" /> Guardar PDF
-              </motion.button>
-              <motion.button
-                whileHover={!isMobile ? { scale: 1.02 } : {}}
-                whileTap={{ scale: 0.98 }}
-                onClick={handleShare} 
-                className="flex-1 bg-purple-600 text-white px-4 sm:px-5 py-2.5 sm:py-3 rounded-full inline-flex items-center justify-center shadow hover:shadow-lg transition text-sm sm:text-base font-medium"
-              >
-                <Share2 className="mr-2 w-4 h-4 sm:w-5 sm:h-5" /> Compartir
-              </motion.button>
+            
+            {/* Nuevo botón único de guardar */}
+            <motion.button
+              whileHover={!isMobile ? { scale: 1.02 } : {}}
+              whileTap={{ scale: 0.98 }}
+              onClick={() => setShowSaveModal(true)}
+              className="w-full bg-gradient-to-r from-red-600 to-red-700 text-white px-6 py-3.5 rounded-full inline-flex items-center justify-center shadow-lg hover:shadow-xl transition-all text-base sm:text-lg font-semibold gap-3"
+            >
+              <Save className="w-5 h-5 sm:w-6 sm:h-6" />
+              Guardar Itinerario
+            </motion.button>
+
+            {/* Información adicional */}
+            <div className="bg-gray-50 rounded-xl p-4 space-y-2">
+              <div className="flex items-center gap-2 text-sm text-gray-600">
+                <Check className="w-4 h-4 text-green-600" />
+                <span>Acceso sin crear cuenta</span>
+              </div>
+              <div className="flex items-center gap-2 text-sm text-gray-600">
+                <WifiOff className="w-4 h-4 text-blue-600" />
+                <span>Disponible sin conexión</span>
+              </div>
+              <div className="flex items-center gap-2 text-sm text-gray-600">
+                <Share2 className="w-4 h-4 text-purple-600" />
+                <span>Comparte con un link único</span>
+              </div>
             </div>
           </motion.section>
 
@@ -728,6 +600,16 @@ export default function PremiumPlannerPage() {
           onUpdate={setItinerary} 
           isMobile={isMobile} 
           location={locationData ? { lat: locationData.lat, lng: locationData.lng } : null}
+        />
+
+        {/* Modal de guardar itinerario */}
+        <SaveItineraryModal
+          isOpen={showSaveModal}
+          onClose={() => setShowSaveModal(false)}
+          days={days}
+          answers={answers}
+          itinerary={itinerary}
+          locationData={locationData}
         />
       </main>
     );
