@@ -3,6 +3,7 @@
 
 import React, { useState, useMemo, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { createPortal } from "react-dom";
 import { Stop } from "./ItineraryStopCard";
 import {
   Clock,
@@ -229,7 +230,395 @@ const countExistingBreaks = (stops: Stop[]): number => {
   ).length;
 };
 
-// Componente de editor de duración inline
+// Componente de editor de tiempo para móvil (modal fullscreen)
+const MobileTimeEditor = ({ 
+  time, 
+  onSave, 
+  onCancel,
+  minTime,
+  maxTime,
+  stopName,
+  isFirstStop
+}: { 
+  time: string; 
+  onSave: (newTime: string) => void; 
+  onCancel: () => void;
+  minTime?: string;
+  maxTime?: string;
+  stopName: string;
+  isFirstStop: boolean;
+}) => {
+  const [value, setValue] = useState(time);
+  const { vibrate } = useHapticFeedback();
+  const [error, setError] = useState("");
+
+  // Prevenir scroll del body cuando el modal está abierto
+  useEffect(() => {
+    const originalStyle = window.getComputedStyle(document.body).overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = originalStyle;
+    };
+  }, []);
+
+  const adjustTime = (minutes: number) => {
+    const currentMinutes = toMin(value);
+    const newMinutes = currentMinutes + minutes;
+    const newTime = toHHMM(newMinutes);
+    setValue(newTime);
+    vibrate(10);
+    validate(newTime);
+  };
+
+  const validate = (newTime: string) => {
+    const mins = toMin(newTime);
+    
+    if (mins < 6 * 60) {
+      setError("Muy temprano (mínimo 6:00 AM)");
+      return false;
+    }
+    if (mins > 23 * 60) {
+      setError("Muy tarde (máximo 11:00 PM)");
+      return false;
+    }
+    
+    if (!isFirstStop && minTime && toMin(newTime) < toMin(minTime)) {
+      setError(`Mínimo ${formatTime(minTime)}`);
+      return false;
+    }
+    
+    if (maxTime && toMin(newTime) > toMin(maxTime)) {
+      setError(`Máximo ${formatTime(maxTime)}`);
+      return false;
+    }
+    
+    setError("");
+    return true;
+  };
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newTime = e.target.value;
+    setValue(newTime);
+    if (newTime) validate(newTime);
+  };
+
+  const handleSave = () => {
+    if (!error && validate(value)) {
+      onSave(value);
+      vibrate(20);
+    }
+  };
+
+  const suggestedTimes = [
+    { label: "Mañana", time: "09:00" },
+    { label: "Mediodía", time: "12:00" },
+    { label: "Tarde", time: "15:00" },
+    { label: "Atardecer", time: "18:00" }
+  ];
+
+  const modalContent = (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 bg-black/50 z-50 flex items-end"
+      onClick={onCancel}
+    >
+      <motion.div
+        initial={{ y: "100%" }}
+        animate={{ y: 0 }}
+        exit={{ y: "100%" }}
+        transition={{ type: "spring", damping: 25, stiffness: 500 }}
+        className="bg-white w-full rounded-t-3xl shadow-xl max-h-[80vh] overflow-hidden"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="p-6 border-b border-gray-200">
+          <h3 className="text-xl font-bold text-gray-900">Hora de inicio</h3>
+          <p className="text-sm text-gray-600 mt-1 line-clamp-1">{stopName}</p>
+        </div>
+
+        {/* Content */}
+        <div className="p-6 space-y-6">
+          {/* Time display con ajustes */}
+          <div className="bg-gray-50 rounded-2xl p-6">
+            <div className="flex items-center justify-center gap-4">
+              <motion.button
+                whileTap={{ scale: 0.9 }}
+                onClick={() => adjustTime(-15)}
+                className="w-12 h-12 bg-white rounded-full shadow-md flex items-center justify-center hover:bg-gray-50 transition-colors"
+              >
+                <span className="text-xl font-medium text-gray-700">−</span>
+              </motion.button>
+
+              <div className="text-center">
+                <input
+                  type="time"
+                  value={value}
+                  onChange={handleChange}
+                  className="text-4xl font-bold text-gray-900 bg-transparent border-none focus:outline-none text-center"
+                  style={{ width: "150px" }}
+                />
+                <p className="text-xs text-gray-500 mt-1">15 min</p>
+              </div>
+
+              <motion.button
+                whileTap={{ scale: 0.9 }}
+                onClick={() => adjustTime(15)}
+                className="w-12 h-12 bg-white rounded-full shadow-md flex items-center justify-center hover:bg-gray-50 transition-colors"
+              >
+                <span className="text-xl font-medium text-gray-700">+</span>
+              </motion.button>
+            </div>
+
+            {error && (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="mt-4 text-center"
+              >
+                <p className="text-sm text-red-600">{error}</p>
+              </motion.div>
+            )}
+          </div>
+
+          {/* Sugerencias rápidas */}
+          {isFirstStop && (
+            <div>
+              <p className="text-sm font-medium text-gray-700 mb-3">Horarios sugeridos</p>
+              <div className="grid grid-cols-2 gap-3">
+                {suggestedTimes.map((suggestion) => (
+                  <motion.button
+                    key={suggestion.time}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => {
+                      setValue(suggestion.time);
+                      vibrate(10);
+                      validate(suggestion.time);
+                    }}
+                    className={`p-4 rounded-xl font-medium transition-all ${
+                      value === suggestion.time
+                        ? 'bg-red-600 text-white'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                  >
+                    <div className="text-sm">{suggestion.label}</div>
+                    <div className="text-xs opacity-75 mt-1">{formatTime(suggestion.time)}</div>
+                  </motion.button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Restricciones */}
+          {(minTime || maxTime) && (
+            <div className="bg-blue-50 rounded-xl p-4">
+              <p className="text-sm text-blue-800">
+                {minTime && maxTime && (
+                  <>Horario disponible: {formatTime(minTime)} - {formatTime(maxTime)}</>
+                )}
+                {minTime && !maxTime && (
+                  <>Después de {formatTime(minTime)}</>
+                )}
+                {!minTime && maxTime && (
+                  <>Antes de {formatTime(maxTime)}</>
+                )}
+              </p>
+            </div>
+          )}
+        </div>
+
+        {/* Actions */}
+        <div className="p-6 border-t border-gray-200 flex gap-3">
+          <motion.button
+            whileTap={{ scale: 0.95 }}
+            onClick={onCancel}
+            className="flex-1 py-4 px-6 bg-gray-100 text-gray-700 rounded-xl font-semibold hover:bg-gray-200 transition-colors"
+          >
+            Cancelar
+          </motion.button>
+          <motion.button
+            whileTap={{ scale: 0.95 }}
+            onClick={handleSave}
+            disabled={!!error}
+            className={`flex-1 py-4 px-6 rounded-xl font-semibold transition-colors ${
+              error
+                ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                : 'bg-red-600 text-white hover:bg-red-700'
+            }`}
+          >
+            Guardar
+          </motion.button>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+
+  // Renderizar con portal para evitar problemas de z-index
+  if (typeof window !== 'undefined') {
+    return createPortal(modalContent, document.body);
+  }
+  
+  return modalContent;
+};
+
+// Componente de editor de duración para móvil (modal fullscreen)
+const MobileDurationEditor = ({
+  duration,
+  onSave,
+  onCancel,
+  stopName
+}: {
+  duration: number;
+  onSave: (newDuration: number) => void;
+  onCancel: () => void;
+  stopName: string;
+}) => {
+  const [value, setValue] = useState(duration);
+  const { vibrate } = useHapticFeedback();
+
+  // Prevenir scroll del body cuando el modal está abierto
+  useEffect(() => {
+    const originalStyle = window.getComputedStyle(document.body).overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = originalStyle;
+    };
+  }, []);
+
+  const durationOptions = [15, 30, 45, 60, 90, 120, 150, 180, 240, 300];
+  const presets = [
+    { label: "30 min", value: 30 },
+    { label: "1 hora", value: 60 },
+    { label: "2 horas", value: 120 },
+    { label: "Media jornada", value: 240 }
+  ];
+
+  const handleSave = () => {
+    onSave(value);
+    vibrate(20);
+  };
+
+  const handlePresetClick = (presetValue: number) => {
+    setValue(presetValue);
+    vibrate(10);
+  };
+
+  const formatDuration = (minutes: number) => {
+    const hours = Math.floor(minutes / 60);
+    const mins = minutes % 60;
+    if (hours === 0) return `${mins} min`;
+    if (mins === 0) return `${hours} hora${hours > 1 ? 's' : ''}`;
+    return `${hours}h ${mins}min`;
+  };
+
+  const modalContent = (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 bg-black/50 z-50 flex items-end"
+      onClick={onCancel}
+    >
+      <motion.div
+        initial={{ y: "100%" }}
+        animate={{ y: 0 }}
+        exit={{ y: "100%" }}
+        transition={{ type: "spring", damping: 25, stiffness: 500 }}
+        className="bg-white w-full rounded-t-3xl shadow-xl max-h-[80vh] overflow-hidden"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="p-6 border-b border-gray-200">
+          <h3 className="text-xl font-bold text-gray-900">Duración de la actividad</h3>
+          <p className="text-sm text-gray-600 mt-1 line-clamp-1">{stopName}</p>
+        </div>
+
+        {/* Content */}
+        <div className="p-6 space-y-6">
+          {/* Valor actual */}
+          <div className="text-center">
+            <div className="text-4xl font-bold text-gray-900">
+              {formatDuration(value)}
+            </div>
+          </div>
+
+          {/* Presets rápidos */}
+          <div>
+            <p className="text-sm font-medium text-gray-700 mb-3">Duraciones comunes</p>
+            <div className="grid grid-cols-2 gap-3">
+              {presets.map((preset) => (
+                <motion.button
+                  key={preset.value}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => handlePresetClick(preset.value)}
+                  className={`p-4 rounded-xl font-medium transition-all ${
+                    value === preset.value
+                      ? 'bg-red-600 text-white'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  {preset.label}
+                </motion.button>
+              ))}
+            </div>
+          </div>
+
+          {/* Selector de duración */}
+          <div>
+            <p className="text-sm font-medium text-gray-700 mb-3">O elige una duración específica</p>
+            <div className="grid grid-cols-3 gap-2">
+              {durationOptions.map((option) => (
+                <motion.button
+                  key={option}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => {
+                    setValue(option);
+                    vibrate(10);
+                  }}
+                  className={`p-3 rounded-lg font-medium text-sm transition-all ${
+                    value === option
+                      ? 'bg-red-100 text-red-700 ring-2 ring-red-600'
+                      : 'bg-gray-50 text-gray-700 hover:bg-gray-100'
+                  }`}
+                >
+                  {formatDuration(option)}
+                </motion.button>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Actions */}
+        <div className="p-6 border-t border-gray-200 flex gap-3">
+          <motion.button
+            whileTap={{ scale: 0.95 }}
+            onClick={onCancel}
+            className="flex-1 py-4 px-6 bg-gray-100 text-gray-700 rounded-xl font-semibold hover:bg-gray-200 transition-colors"
+          >
+            Cancelar
+          </motion.button>
+          <motion.button
+            whileTap={{ scale: 0.95 }}
+            onClick={handleSave}
+            className="flex-1 py-4 px-6 bg-red-600 text-white rounded-xl font-semibold hover:bg-red-700 transition-colors"
+          >
+            Guardar
+          </motion.button>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+
+  // Renderizar con portal para evitar problemas de z-index
+  if (typeof window !== 'undefined') {
+    return createPortal(modalContent, document.body);
+  }
+  
+  return modalContent;
+};
+
+// Componente de editor de duración inline (desktop)
 const DurationEditor = ({ 
   duration, 
   onSave, 
@@ -311,7 +700,7 @@ const DurationEditor = ({
   );
 };
 
-// Componente de edición de horario inline
+// Componente de edición de horario inline (desktop)
 const TimeEditor = ({ 
   time, 
   onSave, 
@@ -542,6 +931,172 @@ const MobileTutorial = ({ onDismiss }: { onDismiss: () => void }) => {
   );
 };
 
+// Componente ActionSheet para móvil
+const MobileActionSheet = ({
+  stop,
+  onClose,
+  onRemove,
+  onTimeEdit,
+  onDurationEdit,
+  mapsUrl,
+  detailsUrl
+}: {
+  stop: Stop;
+  onClose: () => void;
+  onRemove: () => void;
+  onTimeEdit: () => void;
+  onDurationEdit: () => void;
+  mapsUrl: string;
+  detailsUrl: string;
+}) => {
+  const { vibrate } = useHapticFeedback();
+
+  // Prevenir scroll del body cuando el modal está abierto
+  useEffect(() => {
+    const originalStyle = window.getComputedStyle(document.body).overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = originalStyle;
+    };
+  }, []);
+
+  const modalContent = (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 bg-black/50 z-50 flex items-end"
+      onClick={onClose}
+    >
+      <motion.div
+        initial={{ y: "100%" }}
+        animate={{ y: 0 }}
+        exit={{ y: "100%" }}
+        transition={{ type: "spring", damping: 25, stiffness: 500 }}
+        className="bg-white w-full rounded-t-3xl shadow-xl max-h-[80vh] overflow-hidden"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="p-4 border-b border-gray-200">
+          <div className="w-12 h-1 bg-gray-300 rounded-full mx-auto mb-3" />
+          <h3 className="text-lg font-semibold text-gray-900 text-center">{stop.name}</h3>
+        </div>
+
+        {/* Actions */}
+        <div className="p-4 space-y-2">
+          <motion.button
+            whileTap={{ scale: 0.98 }}
+            onClick={() => {
+              onTimeEdit();
+              vibrate(10);
+              onClose();
+            }}
+            className="w-full flex items-center gap-3 p-4 hover:bg-gray-50 rounded-xl transition-colors"
+          >
+            <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+              <Clock className="w-5 h-5 text-blue-600" />
+            </div>
+            <div className="text-left">
+              <p className="font-medium text-gray-900">Editar hora de inicio</p>
+              <p className="text-sm text-gray-500">{formatTime(stop.startTime)}</p>
+            </div>
+          </motion.button>
+
+          <motion.button
+            whileTap={{ scale: 0.98 }}
+            onClick={() => {
+              onDurationEdit();
+              vibrate(10);
+              onClose();
+            }}
+            className="w-full flex items-center gap-3 p-4 hover:bg-gray-50 rounded-xl transition-colors"
+          >
+            <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+              <Clock className="w-5 h-5 text-green-600" />
+            </div>
+            <div className="text-left">
+              <p className="font-medium text-gray-900">Editar duración</p>
+              <p className="text-sm text-gray-500">{stop.durationMinutes} minutos</p>
+            </div>
+          </motion.button>
+
+          <motion.a
+            whileTap={{ scale: 0.98 }}
+            href={mapsUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="w-full flex items-center gap-3 p-4 hover:bg-gray-50 rounded-xl transition-colors"
+            onClick={() => vibrate(10)}
+          >
+            <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
+              <Navigation className="w-5 h-5 text-purple-600" />
+            </div>
+            <div className="text-left">
+              <p className="font-medium text-gray-900">Cómo llegar</p>
+              <p className="text-sm text-gray-500">Abrir en Google Maps</p>
+            </div>
+          </motion.a>
+
+          <motion.a
+            whileTap={{ scale: 0.98 }}
+            href={detailsUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="w-full flex items-center gap-3 p-4 hover:bg-gray-50 rounded-xl transition-colors"
+            onClick={() => vibrate(10)}
+          >
+            <div className="w-10 h-10 bg-amber-100 rounded-full flex items-center justify-center">
+              <ExternalLink className="w-5 h-5 text-amber-600" />
+            </div>
+            <div className="text-left">
+              <p className="font-medium text-gray-900">Ver detalles completos</p>
+              <p className="text-sm text-gray-500">Más información del lugar</p>
+            </div>
+          </motion.a>
+
+          <div className="h-px bg-gray-200 my-2" />
+
+          <motion.button
+            whileTap={{ scale: 0.98 }}
+            onClick={() => {
+              onRemove();
+              vibrate(20);
+              onClose();
+            }}
+            className="w-full flex items-center gap-3 p-4 hover:bg-red-50 rounded-xl transition-colors"
+          >
+            <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
+              <Trash2 className="w-5 h-5 text-red-600" />
+            </div>
+            <div className="text-left">
+              <p className="font-medium text-red-600">Eliminar del itinerario</p>
+              <p className="text-sm text-red-500">Esta acción no se puede deshacer</p>
+            </div>
+          </motion.button>
+        </div>
+
+        {/* Cancel button */}
+        <div className="p-4 border-t border-gray-200">
+          <motion.button
+            whileTap={{ scale: 0.95 }}
+            onClick={onClose}
+            className="w-full py-3 bg-gray-100 text-gray-700 rounded-xl font-semibold hover:bg-gray-200 transition-colors"
+          >
+            Cancelar
+          </motion.button>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+
+  // Renderizar con portal para evitar problemas de z-index
+  if (typeof window !== 'undefined') {
+    return createPortal(modalContent, document.body);
+  }
+  
+  return modalContent;
+};
+
 // Componente Sortable mejorado con soporte para móviles
 function SortableStop({ 
   stop, 
@@ -616,8 +1171,10 @@ function SortableStop({
   };
 
   const [photoIndex, setPhotoIndex] = useState(0);
+  const [showActionSheet, setShowActionSheet] = useState(false);
   const photos = stop.photos || (stop.imageUrl ? [stop.imageUrl] : []);
   const mapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${stop.lat},${stop.lng}`;
+  const detailsUrl = `/${stop.type === "destination" ? "destinations" : "experiences"}/${stop.id}`;
   const longPressTimer = useRef<NodeJS.Timeout | null>(null);
   const [isLongPressed, setIsLongPressed] = useState(false);
   const { vibrate } = useHapticFeedback();
@@ -696,99 +1253,107 @@ function SortableStop({
       )}
 
       <div className={`relative z-10 mb-6 ${isDragging ? 'drop-shadow-2xl' : ''}`}>
-        {/* hora + duración con edición */}
-        <div className="flex items-center mb-2">
-          <motion.div 
-            className={`w-8 h-8 ${c.primary} rounded-full flex items-center justify-center shadow-md`}
-            whileHover={{ scale: 1.1 }}
-          >
-            <Clock className="w-4 h-4 text-white" />
-          </motion.div>
-          
-          {editingTime ? (
-            <div className="ml-3 relative">
-              <TimeEditor
-                time={stop.startTime}
-                onSave={onTimeSave}
-                onCancel={onTimeEdit}
-                minTime={minTime}
-                maxTime={maxTime}
-                stopName={stop.name}
-                isFirstStop={index === 0}
-              />
-            </div>
-          ) : (
-            <motion.button
-              onClick={onTimeEdit}
-              whileHover={{ scale: 1.05 }}
-              className={`${c.text} font-semibold ml-3 flex items-center gap-1 hover:bg-gray-100 px-2 py-1 rounded-lg transition-all group`}
-            >
-              {formatTime(stop.startTime)}
-              <Edit3 className="w-3 h-3 opacity-0 group-hover:opacity-50 transition-opacity" />
-            </motion.button>
-          )}
-          
-          {editingDuration ? (
-            <div className="ml-2 relative">
-              <DurationEditor
-                duration={stop.durationMinutes}
-                onSave={onDurationSave}
-                onCancel={onDurationEdit}
-                stopName={stop.name}
-              />
-            </div>
-          ) : (
-            <motion.button
-              onClick={onDurationEdit}
-              whileHover={{ scale: 1.05 }}
-              className="ml-2 px-2 py-0.5 bg-gray-100 rounded-full text-xs text-gray-600 hover:bg-gray-200 transition-all group flex items-center gap-1"
-            >
-              {stop.durationMinutes} min
-              <Edit3 className="w-3 h-3 opacity-0 group-hover:opacity-50 transition-opacity" />
-            </motion.button>
-          )}
-          
-          {/* Acciones */}
-          <div className="ml-auto flex items-center gap-2">
-            {/* Botón eliminar */}
-            <motion.button
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.9 }}
-              onClick={onRemove}
-              className="p-2 rounded-lg text-red-600 hover:bg-red-50 transition-all"
-              title="Eliminar del itinerario"
-            >
-              <Trash2 className="w-4 h-4" />
-            </motion.button>
-            
-            {/* Drag Handle mejorado para móviles */}
+        {/* hora + duración con edición - Desktop only */}
+        {!isMobile && (
+          <div className="flex items-center mb-2">
             <motion.div 
-              {...attributes} 
-              {...listeners}
-              className={`${
-                isMobile ? 'p-3' : 'p-2'
-              } rounded-lg cursor-grab active:cursor-grabbing transition-all touch-manipulation ${
-                isDragging 
-                  ? 'bg-gray-200 shadow-inner' 
-                  : 'hover:bg-gray-100 hover:shadow-md'
-              } ${
-                isMobile ? 'min-w-[44px] min-h-[44px]' : ''
-              }`}
+              className={`w-8 h-8 ${c.primary} rounded-full flex items-center justify-center shadow-md`}
               whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.95 }}
-              title="Arrastra para reordenar o mover a otro día"
-              onDragStart={() => vibrate(20)}
             >
-              <GripVertical className={`${
-                isMobile ? 'w-5 h-5' : 'w-4 h-4'
-              } ${isDragging ? 'text-gray-600' : 'text-gray-400'}`} />
+              <Clock className="w-4 h-4 text-white" />
             </motion.div>
+            
+            {editingTime ? (
+              <div className="ml-3 relative">
+                <TimeEditor
+                  time={stop.startTime}
+                  onSave={onTimeSave}
+                  onCancel={onTimeEdit}
+                  minTime={minTime}
+                  maxTime={maxTime}
+                  stopName={stop.name}
+                  isFirstStop={index === 0}
+                />
+              </div>
+            ) : (
+              <motion.button
+                onClick={onTimeEdit}
+                whileHover={{ scale: 1.05 }}
+                className={`${c.text} font-semibold ml-3 flex items-center gap-1 hover:bg-gray-100 px-2 py-1 rounded-lg transition-all group`}
+              >
+                {formatTime(stop.startTime)}
+                <Edit3 className="w-3 h-3 opacity-0 group-hover:opacity-50 transition-opacity" />
+              </motion.button>
+            )}
+            
+            {editingDuration ? (
+              <div className="ml-2 relative">
+                <DurationEditor
+                  duration={stop.durationMinutes}
+                  onSave={onDurationSave}
+                  onCancel={onDurationEdit}
+                  stopName={stop.name}
+                />
+              </div>
+            ) : (
+              <motion.button
+                onClick={onDurationEdit}
+                whileHover={{ scale: 1.05 }}
+                className="ml-2 px-2 py-0.5 bg-gray-100 rounded-full text-xs text-gray-600 hover:bg-gray-200 transition-all group flex items-center gap-1"
+              >
+                {stop.durationMinutes} min
+                <Edit3 className="w-3 h-3 opacity-0 group-hover:opacity-50 transition-opacity" />
+              </motion.button>
+            )}
+            
+            {/* Acciones Desktop */}
+            <div className="ml-auto flex items-center gap-2">
+              <motion.button
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
+                onClick={onRemove}
+                className="p-2 rounded-lg text-red-600 hover:bg-red-50 transition-all"
+                title="Eliminar del itinerario"
+              >
+                <Trash2 className="w-4 h-4" />
+              </motion.button>
+              
+              <motion.div 
+                {...attributes} 
+                {...listeners}
+                className="p-2 rounded-lg cursor-grab active:cursor-grabbing transition-all hover:bg-gray-100 hover:shadow-md"
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.95 }}
+                title="Arrastra para reordenar o mover a otro día"
+              >
+                <GripVertical className="w-4 h-4 text-gray-400" />
+              </motion.div>
+            </div>
           </div>
-        </div>
+        )}
+
+        {/* Mobile Timeline indicator */}
+        {isMobile && (
+          <div className="flex items-center mb-2">
+            <motion.div 
+              className={`w-8 h-8 ${c.primary} rounded-full flex items-center justify-center shadow-md`}
+            >
+              <Clock className="w-4 h-4 text-white" />
+            </motion.div>
+            <div className="ml-3 flex items-center gap-2">
+              <span className={`${c.text} font-semibold text-sm`}>
+                {formatTime(stop.startTime)}
+              </span>
+              <span className="text-gray-500 text-xs">
+                · {stop.durationMinutes} min
+              </span>
+            </div>
+          </div>
+        )}
 
         {/* tarjeta mejorada */}
         <motion.div 
-          className={`ml-10 rounded-2xl shadow-lg border ${c.border} bg-white overflow-hidden relative transition-all ${
+          className={`${isMobile ? 'ml-10' : 'ml-10'} rounded-2xl shadow-lg border ${c.border} bg-white overflow-hidden relative transition-all ${
             isDragging ? 'shadow-2xl ring-4 ring-gray-300 ring-opacity-50' : ''
           } ${
             isReorderMode || isLongPressed ? 'ring-2 ring-red-400' : ''
@@ -797,66 +1362,142 @@ function SortableStop({
             scale: isDragging ? 1.05 : 1,
             opacity: isDragging ? 0.9 : 1,
           }}
-          whileHover={{ scale: isDragging ? 1.05 : 1.02 }}
+          whileHover={{ scale: isDragging ? 1.05 : (isMobile ? 1 : 1.02) }}
           transition={{ type: "spring", stiffness: 300 }}
           onTouchStart={handleTouchStart}
           onTouchEnd={handleTouchEnd}
         >
           <div className="cursor-pointer" onClick={toggleExpand}>
+            {/* Vista colapsada */}
             {!expanded && (
-              <div className="flex flex-col sm:flex-row">
-                {stop.imageUrl && (
-                  <div
-                    className="w-full sm:w-24 h-32 sm:h-24 bg-cover bg-center flex-shrink-0"
-                    style={{ backgroundImage: `url(${stop.imageUrl})` }}
-                  />
+              <>
+                {/* Desktop view */}
+                {!isMobile && (
+                  <div className="flex">
+                    {stop.imageUrl && (
+                      <div
+                        className="w-24 h-24 bg-cover bg-center flex-shrink-0"
+                        style={{ backgroundImage: `url(${stop.imageUrl})` }}
+                      />
+                    )}
+                    <div className="flex-1 p-4 min-w-0">
+                      <div className="flex items-start justify-between">
+                        <h3 className="font-bold text-gray-800 pr-2 line-clamp-1">
+                          {stop.name}
+                        </h3>
+                        <ChevronDown className="w-5 h-5 text-gray-400 flex-shrink-0" />
+                      </div>
+
+                      <div className="mt-1 flex items-center text-xs text-gray-500 gap-3">
+                        {stop.municipality && (
+                          <span className="flex items-center">
+                            <MapPin className="w-3 h-3 mr-1" />
+                            {stop.municipality}
+                          </span>
+                        )}
+                        {stop.distance && (
+                          <span>{Math.round(stop.distance)} km</span>
+                        )}
+                      </div>
+
+                      <div className="mt-2 flex flex-wrap gap-1">
+                        <span
+                          className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs ${c.light} ${c.text}`}
+                        >
+                          {stop.type === "destination" ? "Destino" : "Experiencia"}
+                        </span>
+                        {stop.category && (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-gray-100 text-gray-700">
+                            {getCategoryIcon(stop.category)}
+                            <span className="ml-1">{stop.category}</span>
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
                 )}
-                <div className="flex-1 p-4 min-w-0">
-                  <div className="flex items-start justify-between">
-                    <h3 className="font-bold text-gray-800 pr-2 line-clamp-1">
-                      {stop.name}
-                    </h3>
-                    <ChevronDown className="w-5 h-5 text-gray-400 flex-shrink-0" />
-                  </div>
 
-                  <div className="mt-1 flex items-center text-xs text-gray-500 gap-3">
-                    {stop.municipality && (
-                      <span className="flex items-center">
-                        <MapPin className="w-3 h-3 mr-1" />
-                        {stop.municipality}
-                      </span>
-                    )}
-                    {stop.distance && (
-                      <span>{Math.round(stop.distance)} km</span>
-                    )}
-                  </div>
+                {/* Mobile view - vertical layout */}
+                {isMobile && (
+                  <div className="p-3">
+                    <div className="flex items-start gap-3">
+                      {/* Thumbnail pequeño */}
+                      {stop.imageUrl && (
+                        <div
+                          className="w-[60px] h-[60px] rounded-lg bg-cover bg-center flex-shrink-0"
+                          style={{ backgroundImage: `url(${stop.imageUrl})` }}
+                        />
+                      )}
+                      
+                      {/* Contenido */}
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-bold text-gray-800 text-sm line-clamp-1">
+                          {stop.name}
+                        </h3>
+                        
+                        {stop.municipality && (
+                          <div className="mt-1 flex items-center text-xs text-gray-500">
+                            <MapPin className="w-3 h-3 mr-1" />
+                            {stop.municipality}
+                            {stop.distance && (
+                              <span className="ml-2">· {Math.round(stop.distance)} km</span>
+                            )}
+                          </div>
+                        )}
+                        
+                        <div className="mt-2 flex items-center gap-1">
+                          <span
+                            className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs ${c.light} ${c.text}`}
+                          >
+                            {stop.type === "destination" ? "Destino" : "Experiencia"}
+                          </span>
+                          {stop.category && (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-gray-100 text-gray-700">
+                              {getCategoryIcon(stop.category)}
+                            </span>
+                          )}
+                        </div>
+                      </div>
 
-                  <div className="mt-2 flex flex-wrap gap-1">
-                    <span
-                      className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs ${c.light} ${c.text}`}
-                    >
-                      {stop.type === "destination" ? "Destino" : "Experiencia"}
-                    </span>
-                    {stop.category && (
-                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-gray-100 text-gray-700">
-                        {getCategoryIcon(stop.category)}
-                        <span className="ml-1">{stop.category}</span>
-                      </span>
-                    )}
+                      {/* Actions button for mobile */}
+                      <div className="flex items-start gap-1">
+                        <motion.button
+                          whileTap={{ scale: 0.9 }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setShowActionSheet(true);
+                            vibrate(10);
+                          }}
+                          className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
+                        >
+                          <MoreVertical className="w-5 h-5 text-gray-400" />
+                        </motion.button>
+                        
+                        <motion.div 
+                          {...attributes} 
+                          {...listeners}
+                          className="p-2 rounded-lg cursor-grab active:cursor-grabbing transition-all touch-manipulation hover:bg-gray-100"
+                          onDragStart={() => vibrate(20)}
+                        >
+                          <GripVertical className="w-5 h-5 text-gray-400" />
+                        </motion.div>
+                      </div>
+                    </div>
                   </div>
-                </div>
-              </div>
+                )}
+              </>
             )}
 
+            {/* Vista expandida - Header */}
             {expanded && (
-              <div className="p-4">
+              <div className={`${isMobile ? 'p-3' : 'p-4'}`}>
                 <div className="flex items-start justify-between mb-3">
                   <h3 className="font-bold text-lg text-gray-800">
                     {stop.name}
                   </h3>
                   <ChevronUp className="w-5 h-5 text-gray-400" />
                 </div>
-                <div className="flex items-center text-sm text-gray-500 gap-3 mb-3">
+                <div className="flex items-center text-sm text-gray-500 gap-3">
                   {stop.municipality && (
                     <span className="flex items-center">
                       <MapPin className="w-4 h-4 mr-1" />
@@ -930,9 +1571,9 @@ function SortableStop({
                 exit={{ opacity: 0, height: 0 }}
                 transition={{ duration: 0.3 }}
               >
-                {/* galería */}
+                {/* galería - Mobile: fullwidth */}
                 {photos.length > 0 && (
-                  <div className="relative aspect-video w-full overflow-hidden">
+                  <div className={`relative aspect-video ${isMobile ? 'w-full' : 'w-full'} overflow-hidden`}>
                     <div
                       className="w-full h-full bg-cover bg-center transition-all duration-500"
                       style={{ backgroundImage: `url(${photos[photoIndex]})` }}
@@ -959,7 +1600,7 @@ function SortableStop({
                 )}
 
                 {/* desc & acciones */}
-                <div className="p-5 space-y-4">
+                <div className={`${isMobile ? 'p-4' : 'p-5'} space-y-4`}>
                   {stop.description && (
                     <p className="text-gray-700 leading-relaxed">{stop.description}</p>
                   )}
@@ -993,9 +1634,7 @@ function SortableStop({
                     <motion.a
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
-                      href={`/${
-                        stop.type === "destination" ? "destinations" : "experiences"
-                      }/${stop.id}`}
+                      href={detailsUrl}
                       target="_blank"
                       rel="noopener noreferrer"
                       className={`flex items-center justify-center gap-2 px-4 py-3 rounded-lg text-white hover:opacity-90 transition font-medium ${c.primary}`}
@@ -1010,6 +1649,46 @@ function SortableStop({
           </AnimatePresence>
         </motion.div>
       </div>
+
+      {/* Mobile Action Sheet */}
+      {isMobile && (
+        <AnimatePresence>
+          {(showActionSheet || editingTime || editingDuration) && (
+            <>
+              {showActionSheet && (
+                <MobileActionSheet
+                  stop={stop}
+                  onClose={() => setShowActionSheet(false)}
+                  onRemove={onRemove}
+                  onTimeEdit={onTimeEdit}
+                  onDurationEdit={onDurationEdit}
+                  mapsUrl={mapsUrl}
+                  detailsUrl={detailsUrl}
+                />
+              )}
+              {editingTime && (
+                <MobileTimeEditor
+                  time={stop.startTime}
+                  onSave={onTimeSave}
+                  onCancel={onTimeEdit}
+                  minTime={minTime}
+                  maxTime={maxTime}
+                  stopName={stop.name}
+                  isFirstStop={index === 0}
+                />
+              )}
+              {editingDuration && (
+                <MobileDurationEditor
+                  duration={stop.durationMinutes}
+                  onSave={onDurationSave}
+                  onCancel={onDurationEdit}
+                  stopName={stop.name}
+                />
+              )}
+            </>
+          )}
+        </AnimatePresence>
+      )}
     </motion.div>
   );
 }
