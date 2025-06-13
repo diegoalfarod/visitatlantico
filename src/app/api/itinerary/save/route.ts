@@ -144,15 +144,15 @@ export async function GET(request: NextRequest) {
     });
 
     // Función helper para convertir timestamps
-    const convertTimestamp = (timestamp: any): string | null => {
+    const convertTimestamp = (timestamp: unknown): string | null => {
       if (!timestamp) return null;
       
       if (timestamp.toDate && typeof timestamp.toDate === 'function') {
         return timestamp.toDate().toISOString();
-      } else if (timestamp._seconds) {
-        return new Date(timestamp._seconds * 1000).toISOString();
-      } else if (timestamp.seconds) {
-        return new Date(timestamp.seconds * 1000).toISOString();
+      } else if ((timestamp as any)._seconds) {
+        return new Date((timestamp as any)._seconds * 1000).toISOString();
+      } else if ((timestamp as any).seconds) {
+        return new Date((timestamp as any).seconds * 1000).toISOString();
       } else if (typeof timestamp === 'string') {
         return timestamp;
       } else {
