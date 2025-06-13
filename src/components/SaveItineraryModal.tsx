@@ -1,33 +1,38 @@
-// src/components/SaveItineraryModal.tsx
 "use client";
 
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import QRCode from 'react-qr-code';
 import { 
-  Save, 
-  Share2, 
-  Copy, 
-  Check, 
   X, 
-  Loader2, 
-  Wifi, 
+  Copy, 
+  Download, 
+  Share2, 
+  Mail, 
+  Check,
+  Loader2,
   WifiOff,
-  QrCode,
-  Mail,
-  Clock,
-  Eye
+  Sparkles
 } from 'lucide-react';
-import { useItineraryStorage } from '@/utils/itinerary-storage';
-import QRCode from 'qrcode';
-import type { Stop } from '@/components/ItineraryStopCard';
+import { SavedItinerary, Stop } from '@/types/itinerary';
+import { ItineraryStorage } from '@/utils/itinerary-storage';
+import { OfflineManager } from '@/utils/offline-manager';
 
 interface SaveItineraryModalProps {
   isOpen: boolean;
   onClose: () => void;
   days: number;
-  answers: any;
+  answers: {
+    motivos?: string[];
+    otros?: boolean;
+    email?: string;
+  };
   itinerary: Stop[];
-  locationData?: any;
+  locationData: {
+    lat: number;
+    lng: number;
+    address?: string;
+  } | null;
 }
 
 export default function SaveItineraryModal({
@@ -38,112 +43,152 @@ export default function SaveItineraryModal({
   itinerary,
   locationData
 }: SaveItineraryModalProps) {
-  const { saveItinerary, saving, error, isOnline } = useItineraryStorage();
-  const [shareUrl, setShareUrl] = useState('');
-  const [shortId, setShortId] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [savedData, setSavedData] = useState<SavedItinerary | null>(null);
   const [copied, setCopied] = useState(false);
-  const [qrCodeUrl, setQrCodeUrl] = useState('');
-  const [savedSuccessfully, setSavedSuccessfully] = useState(false);
-  const [sendingEmail, setSendingEmail] = useState(false);
+  const [isOnline, setIsOnline] = useState(OfflineManager.getStatus());
+  const [customTitle, setCustomTitle] = useState('');
+  const [wantsEmail, setWantsEmail] = useState(false);
+  const [userEmail, setUserEmail] = useState(answers.email || '');
+
+  useEffect(() => {
+    const unsubscribe = OfflineManager.addListener(setIsOnline);
+    return unsubscribe;
+  }, []);
+
+  useEffect(() => {
+    if (isOpen && !customTitle) {
+      const generatedTitle = ItineraryStorage.generateTitle(answers, days);
+      setCustomTitle(generatedTitle);
+    }
+  }, [isOpen, answers, days]);
 
   const handleSave = async () => {
+    if (saving || saved) return;
+
+    setSaving(true);
+    setError(null);
+
     try {
-      const result = await saveItinerary(days, answers, itinerary, locationData);
-      setShareUrl(result.shareUrl);
-      setShortId(result.shortId);
-      setSavedSuccessfully(true);
-      
-      // Generar código QR
-      const qr = await QRCode.toDataURL(result.shareUrl, {
-        width: 200,
-        margin: 2,
-        color: {
-          dark: '#000000',
-          light: '#FFFFFF'
+      const shortId = ItineraryStorage.generateShortId();
+      const now = new Date();
+      const expiresAt = wantsEmail && userEmail ? null : new Date(
+        now.getTime() + (180 * 24 * 60 * 60 * 1000) // 6 meses
+      ).toISOString();
+
+      const savedItinerary: SavedItinerary = {
+        id: `itinerary_${Date.now()}`,
+        shortId,
+        title: customTitle || ItineraryStorage.generateTitle(answers, days),
+        days,
+        stops: itinerary,
+        profile: {
+          ...answers,
+          email: wantsEmail ? userEmail : undefined
+        },
+        location: locationData || undefined,
+        createdAt: now.toISOString(),
+        expiresAt: expiresAt || undefined,
+        views: 0,
+        isOffline: !isOnline
+      };
+
+      // Guardar localmente siempre
+      ItineraryStorage.saveLocal(savedItinerary);
+
+      // Intentar guardar en Firebase si está online
+      if (isOnline) {
+        try {
+          const response = await fetch('/api/itinerary/save', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(savedItinerary)
+          });
+
+          if (!response.ok) {
+            console.warn('No se pudo guardar en el servidor, pero está guardado localmente');
+          }
+        } catch (error) {
+          console.warn('Error al guardar en servidor:', error);
         }
-      });
-      setQrCodeUrl(qr);
-      
-      // Guardar en el historial del navegador
-      if (typeof window !== 'undefined') {
-        window.history.replaceState(
-          { itinerary: true },
-          '',
-          `/itinerary/${result.shortId}`
-        );
       }
-    } catch (err) {
-      console.error('Error guardando:', err);
+
+      setSavedData(savedItinerary);
+      setSaved(true);
+    } catch (error) {
+      console.error('Error guardando:', error);
+      setError('Error al guardar el itinerario. Por favor intenta de nuevo.');
+    } finally {
+      setSaving(false);
     }
   };
 
   const handleCopyLink = async () => {
+    if (!savedData) return;
+
+    const url = `${window.location.origin}/itinerary/${savedData.shortId}`;
+    
     try {
-      await navigator.clipboard.writeText(shareUrl);
+      await navigator.clipboard.writeText(url);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
-    } catch (err) {
-      console.error('Error copiando:', err);
+    } catch (error) {
+      console.error('Error copiando:', error);
     }
   };
 
-  const handleShareNative = async () => {
-    if (typeof navigator !== 'undefined' && navigator.share) {
+  const handleShare = async () => {
+    if (!savedData) return;
+
+    const url = `${window.location.origin}/itinerary/${savedData.shortId}`;
+    const text = `¡Mira mi itinerario de ${days} día${days > 1 ? 's' : ''} por el Atlántico!`;
+
+    if (navigator.share) {
       try {
         await navigator.share({
-          title: 'Mi itinerario en Atlántico',
-          text: `Mira mi plan de viaje de ${days} día${days > 1 ? 's' : ''} por el Atlántico`,
-          url: shareUrl
+          title: savedData.title,
+          text,
+          url
         });
-      } catch (err) {
-        console.error('Error compartiendo:', err);
+      } catch (error) {
+        console.error('Error compartiendo:', error);
       }
+    } else {
+      handleCopyLink();
     }
   };
 
-  const handleSendEmail = async () => {
-    if (!answers.email) return;
+  const handleDownloadQR = () => {
+    if (!savedData) return;
+
+    const svg = document.querySelector('#qr-code svg') as SVGElement;
+    if (!svg) return;
+
+    // Convertir SVG a canvas
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    const data = new XMLSerializer().serializeToString(svg);
+    const img = new Image();
     
-    setSendingEmail(true);
-    try {
-      // Aquí implementarías el envío de email con tu API
-      const response = await fetch('/api/send-itinerary-email', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email: answers.email,
-          itineraryUrl: shareUrl,
-          shortId,
-          days
-        })
-      });
+    img.onload = () => {
+      canvas.width = img.width;
+      canvas.height = img.height;
+      ctx?.drawImage(img, 0, 0);
       
-      if (response.ok) {
-        alert('¡Email enviado exitosamente!');
-      }
-    } catch (err) {
-      console.error('Error enviando email:', err);
-    } finally {
-      setSendingEmail(false);
-    }
+      // Descargar como PNG
+      const url = canvas.toDataURL('image/png');
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `itinerario-${savedData.shortId}.png`;
+      a.click();
+    };
+    
+    img.src = 'data:image/svg+xml;base64,' + btoa(data);
   };
 
-  useEffect(() => {
-    if (isOpen && !savedSuccessfully) {
-      handleSave();
-    }
-  }, [isOpen]);
-
-  // Reset state when modal closes
-  useEffect(() => {
-    if (!isOpen) {
-      setSavedSuccessfully(false);
-      setShareUrl('');
-      setShortId('');
-      setQrCodeUrl('');
-      setCopied(false);
-    }
-  }, [isOpen]);
+  const shareUrl = savedData ? `${window.location.origin}/itinerary/${savedData.shortId}` : '';
 
   return (
     <AnimatePresence>
@@ -152,186 +197,193 @@ export default function SaveItineraryModal({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+          className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50"
           onClick={onClose}
         >
           <motion.div
             initial={{ scale: 0.9, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0.9, opacity: 0 }}
-            className="bg-white rounded-2xl p-6 max-w-md w-full shadow-xl max-h-[90vh] overflow-y-auto"
+            className="bg-white rounded-2xl p-6 max-w-md w-full max-h-[90vh] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-2xl font-bold text-gray-900">
-                {savedSuccessfully ? '¡Itinerario Guardado!' : 'Guardando Itinerario...'}
-              </h3>
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-bold">
+                {saved ? '¡Itinerario Guardado!' : 'Guardar Itinerario'}
+              </h2>
               <button
                 onClick={onClose}
-                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                className="p-2 hover:bg-gray-100 rounded-lg transition"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            {/* Estado de conexión */}
-            <div className={`flex items-center gap-2 mb-4 text-sm ${
-              isOnline ? 'text-green-600' : 'text-amber-600'
-            }`}>
-              {isOnline ? (
-                <>
-                  <Wifi className="w-4 h-4" />
-                  <span>Guardado en la nube</span>
-                </>
-              ) : (
-                <>
-                  <WifiOff className="w-4 h-4" />
-                  <span>Guardado localmente (se sincronizará cuando vuelva la conexión)</span>
-                </>
-              )}
-            </div>
-
-            {/* Contenido */}
-            {saving ? (
-              <div className="text-center py-8">
-                <Loader2 className="w-12 h-12 text-red-600 animate-spin mx-auto mb-4" />
-                <p className="text-gray-600">Guardando tu aventura...</p>
+            {/* Estado offline */}
+            {!isOnline && (
+              <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg flex items-center gap-2">
+                <WifiOff className="w-4 h-4 text-amber-600" />
+                <p className="text-sm text-amber-800">
+                  Sin conexión - Se guardará localmente y sincronizará cuando vuelvas a estar online
+                </p>
               </div>
-            ) : error ? (
-              <div className="text-center py-8">
-                <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <X className="w-6 h-6 text-red-600" />
+            )}
+
+            {!saved ? (
+              <div className="space-y-4">
+                {/* Título personalizable */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Nombre del itinerario
+                  </label>
+                  <input
+                    type="text"
+                    value={customTitle}
+                    onChange={(e) => setCustomTitle(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
+                    placeholder="Mi aventura por el Atlántico..."
+                  />
                 </div>
-                <p className="text-red-600 mb-4">{error}</p>
+
+                {/* Opción de email */}
+                <div className="space-y-3">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={wantsEmail}
+                      onChange={(e) => setWantsEmail(e.target.checked)}
+                      className="w-4 h-4 text-red-600 rounded focus:ring-red-500"
+                    />
+                    <span className="text-sm">
+                      Guardar permanentemente con mi email (opcional)
+                    </span>
+                  </label>
+
+                  {wantsEmail && (
+                    <input
+                      type="email"
+                      value={userEmail}
+                      onChange={(e) => setUserEmail(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
+                      placeholder="tu@email.com"
+                    />
+                  )}
+                </div>
+
+                {/* Info sobre duración */}
+                <div className="p-3 bg-blue-50 rounded-lg">
+                  <p className="text-sm text-blue-800">
+                    {wantsEmail && userEmail ? (
+                      <>
+                        <strong>Guardado permanente:</strong> Tu itinerario se guardará 
+                        permanentemente y podrás acceder a él en cualquier momento.
+                      </>
+                    ) : (
+                      <>
+                        <strong>Guardado temporal:</strong> Tu itinerario se guardará por 
+                        6 meses. Puedes agregar tu email para guardarlo permanentemente.
+                      </>
+                    )}
+                  </p>
+                </div>
+
+                {/* Botón guardar */}
                 <button
                   onClick={handleSave}
-                  className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                  disabled={saving || (wantsEmail && !userEmail)}
+                  className="w-full bg-gradient-to-r from-red-600 to-red-700 text-white px-6 py-3 rounded-full font-semibold disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-lg transition-all flex items-center justify-center gap-2"
                 >
-                  Reintentar
+                  {saving ? (
+                    <>
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                      Guardando...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="w-5 h-5" />
+                      Guardar Itinerario
+                    </>
+                  )}
                 </button>
+
+                {error && (
+                  <p className="text-sm text-red-600 text-center">{error}</p>
+                )}
               </div>
-            ) : savedSuccessfully && (
-              <div className="space-y-6">
-                {/* Código QR */}
-                {qrCodeUrl && (
-                  <div className="text-center">
-                    <img src={qrCodeUrl} alt="QR Code" className="mx-auto mb-2" />
-                    <p className="text-sm text-gray-600">
-                      Escanea para acceder desde cualquier dispositivo
+            ) : (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="space-y-6"
+              >
+                {/* Success message */}
+                <div className="flex items-center gap-3 text-green-600 bg-green-50 p-4 rounded-lg">
+                  <Check className="w-6 h-6" />
+                  <div>
+                    <p className="font-semibold">¡Guardado exitosamente!</p>
+                    <p className="text-sm text-green-700">
+                      Código: <strong>{savedData?.shortId}</strong>
                     </p>
                   </div>
-                )}
+                </div>
 
-                {/* URL para compartir */}
-                <div className="bg-gray-50 rounded-lg p-4">
-                  <p className="text-sm font-medium text-gray-700 mb-2">
-                    Link de tu itinerario:
-                  </p>
-                  <div className="flex items-center gap-2">
+                {/* QR Code */}
+                <div className="flex flex-col items-center gap-4">
+                  <div id="qr-code" className="p-4 bg-white rounded-lg shadow-md">
+                    <QRCode
+                      value={shareUrl}
+                      size={200}
+                      level="H"
+                      includeMargin={true}
+                    />
+                  </div>
+                  <button
+                    onClick={handleDownloadQR}
+                    className="text-sm text-gray-600 hover:text-gray-800 flex items-center gap-1"
+                  >
+                    <Download className="w-4 h-4" />
+                    Descargar QR
+                  </button>
+                </div>
+
+                {/* Share options */}
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg">
                     <input
                       type="text"
                       value={shareUrl}
                       readOnly
-                      className="flex-1 px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm"
+                      className="flex-1 bg-transparent text-sm"
                     />
-                    <motion.button
-                      whileTap={{ scale: 0.95 }}
+                    <button
                       onClick={handleCopyLink}
-                      className="p-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                      className="p-2 hover:bg-gray-200 rounded transition"
                     >
                       {copied ? (
-                        <Check className="w-4 h-4" />
+                        <Check className="w-4 h-4 text-green-600" />
                       ) : (
                         <Copy className="w-4 h-4" />
                       )}
-                    </motion.button>
+                    </button>
                   </div>
-                </div>
 
-                {/* Características */}
-                <div className="space-y-3">
-                  <div className="flex items-start gap-3">
-                    <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
-                      <Check className="w-4 h-4 text-green-600" />
-                    </div>
-                    <div>
-                      <p className="font-medium text-gray-900">Acceso sin cuenta</p>
-                      <p className="text-sm text-gray-600">
-                        No necesitas crear una cuenta para ver tu itinerario
-                      </p>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-start gap-3">
-                    <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
-                      <WifiOff className="w-4 h-4 text-blue-600" />
-                    </div>
-                    <div>
-                      <p className="font-medium text-gray-900">Disponible offline</p>
-                      <p className="text-sm text-gray-600">
-                        Una vez cargado, funciona sin conexión a internet
-                      </p>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-start gap-3">
-                    <div className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center flex-shrink-0">
-                      <Clock className="w-4 h-4 text-purple-600" />
-                    </div>
-                    <div>
-                      <p className="font-medium text-gray-900">
-                        Guardado por {answers.email ? 'tiempo ilimitado' : '6 meses'}
-                      </p>
-                      <p className="text-sm text-gray-600">
-                        {answers.email 
-                          ? 'Tu itinerario se guardará permanentemente'
-                          : 'Los itinerarios anónimos se eliminan después de 6 meses'
-                        }
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Acciones */}
-                <div className="space-y-3">
-                  {typeof navigator !== 'undefined' && navigator.share && (
-                    <motion.button
-                      whileTap={{ scale: 0.95 }}
-                      onClick={handleShareNative}
-                      className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium"
-                    >
-                      <Share2 className="w-5 h-5" />
-                      Compartir itinerario
-                    </motion.button>
-                  )}
-                  
-                  {answers.email && (
-                    <motion.button
-                      whileTap={{ scale: 0.95 }}
-                      onClick={handleSendEmail}
-                      disabled={sendingEmail}
-                      className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
-                    >
-                      {sendingEmail ? (
-                        <Loader2 className="w-5 h-5 animate-spin" />
-                      ) : (
-                        <Mail className="w-5 h-5" />
-                      )}
-                      Enviar por email
-                    </motion.button>
-                  )}
-                  
-                  <motion.button
-                    whileTap={{ scale: 0.95 }}
-                    onClick={() => window.open(shareUrl, '_blank')}
-                    className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+                  <button
+                    onClick={handleShare}
+                    className="w-full bg-blue-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-blue-700 transition flex items-center justify-center gap-2"
                   >
-                    <Eye className="w-5 h-5" />
-                    Ver itinerario
-                  </motion.button>
+                    <Share2 className="w-4 h-4" />
+                    Compartir Itinerario
+                  </button>
                 </div>
-              </div>
+
+                {/* Info adicional */}
+                <div className="text-sm text-gray-600 space-y-1">
+                  <p>✓ Acceso sin crear cuenta</p>
+                  <p>✓ Disponible offline una vez cargado</p>
+                  <p>✓ {savedData?.expiresAt ? 'Válido por 6 meses' : 'Guardado permanentemente'}</p>
+                </div>
+              </motion.div>
             )}
           </motion.div>
         </motion.div>

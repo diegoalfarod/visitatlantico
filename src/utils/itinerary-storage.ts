@@ -1,313 +1,139 @@
-// src/utils/itinerary-storage.ts
-import { collection, doc, setDoc, getDoc, updateDoc } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { SavedItinerary, ItineraryMetadata } from '@/types/itinerary';
 import { nanoid } from 'nanoid';
-import { useState, useEffect } from 'react';
-import type { Stop } from '@/components/ItineraryStopCard';
 
-interface SavedItinerary {
-  id: string;
-  shortId: string;
-  days: number;
-  answers: {
-    days?: number;
-    motivos?: string[];
-    otros?: boolean;
-    email?: string;
-  };
-  itinerary: Stop[];
-  locationData?: {
-    lat: number;
-    lng: number;
-    address: string;
-  };
-  createdAt: string;
-  updatedAt: string;
-  viewCount: number;
-  lastViewedAt?: string;
-  expiresAt?: string;
-}
+const STORAGE_KEY = 'visitatlantico_itineraries';
+const MAX_ITINERARIES = 50;
+const EXPIRY_DAYS = 180; // 6 meses
 
-const STORAGE_KEY = 'visitatlantico_saved_itineraries';
-const OFFLINE_QUEUE_KEY = 'visitatlantico_sync_queue';
-
-export class ItineraryStorageService {
+export class ItineraryStorage {
+  // Generar ID corto único
   static generateShortId(): string {
-    return nanoid(10);
+    return nanoid(10); // Genera IDs como "V1StGXR8_Z"
   }
 
-  static async saveItinerary(
-    days: number,
-    answers: any,
-    itinerary: Stop[],
-    locationData?: any
-  ): Promise<{ id: string; shortId: string; shareUrl: string }> {
-    const shortId = this.generateShortId();
-    const id = `itinerary_${Date.now()}_${shortId}`;
-    
-    const savedItinerary: SavedItinerary = {
-      id,
-      shortId,
-      days,
-      answers,
-      itinerary,
-      locationData,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      viewCount: 0
-    };
-
-    this.saveToLocalStorage(savedItinerary);
-
+  // Guardar en localStorage
+  static saveLocal(itinerary: SavedItinerary): void {
     try {
-      await this.saveToFirebase(savedItinerary);
-    } catch (error) {
-      console.error('Error guardando en Firebase:', error);
-      this.addToSyncQueue(savedItinerary);
-    }
-
-    const shareUrl = `${window.location.origin}/itinerary/${shortId}`;
-    
-    return { id, shortId, shareUrl };
-  }
-
-  private static saveToLocalStorage(itinerary: SavedItinerary): void {
-    try {
-      const saved = this.getLocalItineraries();
-      saved[itinerary.shortId] = itinerary;
+      const stored = this.getAllLocal();
       
-      const entries = Object.entries(saved);
-      if (entries.length > 50) {
-        entries
-          .sort(([, a], [, b]) => 
-            new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
-          )
-          .slice(50)
-          .forEach(([key]) => delete saved[key]);
-      }
+      // Remover si ya existe
+      const filtered = stored.filter(it => it.shortId !== itinerary.shortId);
       
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(saved));
+      // Agregar al inicio
+      const updated = [itinerary, ...filtered];
+      
+      // Limitar a MAX_ITINERARIES
+      const limited = updated.slice(0, MAX_ITINERARIES);
+      
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(limited));
     } catch (error) {
       console.error('Error guardando en localStorage:', error);
     }
   }
 
-  private static getLocalItineraries(): Record<string, SavedItinerary> {
+  // Obtener todos los itinerarios locales
+  static getAllLocal(): SavedItinerary[] {
     try {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      return saved ? JSON.parse(saved) : {};
-    } catch {
-      return {};
+      const stored = localStorage.getItem(STORAGE_KEY);
+      if (!stored) return [];
+      
+      const itineraries = JSON.parse(stored) as SavedItinerary[];
+      
+      // Filtrar expirados
+      const now = new Date().toISOString();
+      return itineraries.filter(it => !it.expiresAt || it.expiresAt > now);
+    } catch (error) {
+      console.error('Error leyendo localStorage:', error);
+      return [];
     }
   }
 
-  private static async saveToFirebase(itinerary: SavedItinerary): Promise<void> {
-    const docRef = doc(db, 'saved_itineraries', itinerary.shortId);
-    await setDoc(docRef, {
-      ...itinerary,
-      serverTimestamp: new Date(),
-      userAgent: navigator.userAgent,
-      expiresAt: itinerary.answers.email 
-        ? null 
-        : new Date(Date.now() + 180 * 24 * 60 * 60 * 1000).toISOString()
+  // Obtener metadatos para lista
+  static getMetadataList(): ItineraryMetadata[] {
+    const itineraries = this.getAllLocal();
+    return itineraries.map(it => ({
+      id: it.id,
+      shortId: it.shortId,
+      title: it.title,
+      days: it.days,
+      totalStops: it.stops.length,
+      createdAt: it.createdAt,
+      thumbnail: it.stops[0]?.imageUrl
+    }));
+  }
+
+  // Obtener un itinerario por shortId
+  static getByShortId(shortId: string): SavedItinerary | null {
+    const itineraries = this.getAllLocal();
+    return itineraries.find(it => it.shortId === shortId) || null;
+  }
+
+  // Actualizar última vista
+  static updateLastViewed(shortId: string): void {
+    const itinerary = this.getByShortId(shortId);
+    if (itinerary) {
+      itinerary.lastViewedAt = new Date().toISOString();
+      itinerary.views = (itinerary.views || 0) + 1;
+      this.saveLocal(itinerary);
+    }
+  }
+
+  // Eliminar itinerario
+  static delete(shortId: string): void {
+    const stored = this.getAllLocal();
+    const filtered = stored.filter(it => it.shortId !== shortId);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(filtered));
+  }
+
+  // Limpiar caché viejo
+  static cleanupOld(): void {
+    const stored = this.getAllLocal();
+    const now = new Date().toISOString();
+    const valid = stored.filter(it => !it.expiresAt || it.expiresAt > now);
+    
+    if (valid.length < stored.length) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(valid));
+    }
+  }
+
+  // Generar título automático
+  static generateTitle(profile: any, days: number): string {
+    const motivos = profile.motivos || [];
+    const fecha = new Date().toLocaleDateString('es-CO', { 
+      day: 'numeric', 
+      month: 'short' 
     });
-  }
-
-  static async loadItinerary(shortId: string): Promise<SavedItinerary | null> {
-    const localItineraries = this.getLocalItineraries();
-    const localItinerary = localItineraries[shortId];
     
-    if (localItinerary) {
-      localItinerary.viewCount++;
-      localItinerary.lastViewedAt = new Date().toISOString();
-      this.saveToLocalStorage(localItinerary);
-    }
-
-    try {
-      const docRef = doc(db, 'saved_itineraries', shortId);
-      const docSnap = await getDoc(docRef);
-      
-      if (docSnap.exists()) {
-        const firebaseData = docSnap.data() as SavedItinerary;
-        
-        await updateDoc(docRef, {
-          viewCount: (firebaseData.viewCount || 0) + 1,
-          lastViewedAt: new Date().toISOString()
-        });
-        
-        this.saveToLocalStorage(firebaseData);
-        
-        return firebaseData;
-      }
-    } catch (error) {
-      console.error('Error cargando de Firebase:', error);
-      if (localItinerary) {
-        return localItinerary;
-      }
+    if (motivos.length > 0) {
+      const motivoLabel = this.getMotivosLabel(motivos[0]);
+      return `${motivoLabel} - ${days} día${days > 1 ? 's' : ''} (${fecha})`;
     }
     
-    return localItinerary || null;
+    return `Aventura ${days} día${days > 1 ? 's' : ''} - ${fecha}`;
   }
 
-  static async getUserItineraries(email?: string): Promise<SavedItinerary[]> {
-    const localItineraries = Object.values(this.getLocalItineraries());
-    
-    if (email) {
-      return localItineraries
-        .filter(it => it.answers.email === email)
-        .sort((a, b) => 
-          new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
-        );
-    }
-    
-    return localItineraries.sort((a, b) => 
-      new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
-    );
-  }
-
-  private static addToSyncQueue(itinerary: SavedItinerary): void {
-    try {
-      const queue = localStorage.getItem(OFFLINE_QUEUE_KEY);
-      const items = queue ? JSON.parse(queue) : [];
-      items.push({
-        type: 'save_itinerary',
-        data: itinerary,
-        timestamp: new Date().toISOString()
-      });
-      localStorage.setItem(OFFLINE_QUEUE_KEY, JSON.stringify(items));
-    } catch (error) {
-      console.error('Error agregando a cola de sincronización:', error);
-    }
-  }
-
-  static async syncOfflineQueue(): Promise<void> {
-    try {
-      const queue = localStorage.getItem(OFFLINE_QUEUE_KEY);
-      if (!queue) return;
-      
-      const items = JSON.parse(queue);
-      const failedItems = [];
-      
-      for (const item of items) {
-        try {
-          if (item.type === 'save_itinerary') {
-            await this.saveToFirebase(item.data);
-          }
-        } catch (error) {
-          console.error('Error sincronizando item:', error);
-          failedItems.push(item);
-        }
-      }
-      
-      if (failedItems.length > 0) {
-        localStorage.setItem(OFFLINE_QUEUE_KEY, JSON.stringify(failedItems));
-      } else {
-        localStorage.removeItem(OFFLINE_QUEUE_KEY);
-      }
-    } catch (error) {
-      console.error('Error sincronizando cola offline:', error);
-    }
-  }
-
-  static async deleteItinerary(shortId: string): Promise<void> {
-    const saved = this.getLocalItineraries();
-    delete saved[shortId];
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(saved));
-    
-    try {
-      const docRef = doc(db, 'saved_itineraries', shortId);
-      await updateDoc(docRef, {
-        deleted: true,
-        deletedAt: new Date().toISOString()
-      });
-    } catch (error) {
-      console.error('Error eliminando de Firebase:', error);
-    }
-  }
-
-  static hasUnsyncedItineraries(): boolean {
-    const queue = localStorage.getItem(OFFLINE_QUEUE_KEY);
-    return queue ? JSON.parse(queue).length > 0 : false;
-  }
-}
-
-export function useOnlineStatus() {
-  const [isOnline, setIsOnline] = useState(
-    typeof window !== 'undefined' ? navigator.onLine : true
-  );
-
-  useEffect(() => {
-    const handleOnline = () => {
-      setIsOnline(true);
-      ItineraryStorageService.syncOfflineQueue();
+  private static getMotivosLabel(motivo: string): string {
+    const labels: Record<string, string> = {
+      "relax": "Relax Total",
+      "cultura": "Tour Cultural",
+      "aventura": "Aventura Activa",
+      "gastronomia": "Ruta Gastronómica",
+      "artesanias": "Artesanías Locales",
+      "ritmos": "Ritmos y Baile",
+      "festivales": "Festivales",
+      "deportes-acuaticos": "Deportes Acuáticos",
+      "avistamiento": "Avistamiento de Aves",
+      "ecoturismo": "Ecoturismo",
+      "malecon": "Ruta del Malecón",
+      "playas-urbanas": "Playas Urbanas",
+      "historia-portuaria": "Historia Portuaria",
+      "arte-urbano": "Arte Urbano",
+      "sabores-marinos": "Sabores Marinos",
+      "vida-nocturna": "Vida Nocturna",
+      "bienestar": "Bienestar & Spa",
+      "mixto": "Experiencia Mixta"
     };
     
-    const handleOffline = () => setIsOnline(false);
-
-    window.addEventListener('online', handleOnline);
-    window.addEventListener('offline', handleOffline);
-
-    return () => {
-      window.removeEventListener('online', handleOnline);
-      window.removeEventListener('offline', handleOffline);
-    };
-  }, []);
-
-  return isOnline;
-}
-
-export function useItineraryStorage() {
-  const [saving, setSaving] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const isOnline = useOnlineStatus();
-
-  const saveItinerary = async (
-    days: number,
-    answers: any,
-    itinerary: Stop[],
-    locationData?: any
-  ) => {
-    setSaving(true);
-    setError(null);
-    
-    try {
-      const result = await ItineraryStorageService.saveItinerary(
-        days,
-        answers,
-        itinerary,
-        locationData
-      );
-      return result;
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error guardando itinerario');
-      throw err;
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const loadItinerary = async (shortId: string) => {
-    setLoading(true);
-    setError(null);
-    
-    try {
-      const itinerary = await ItineraryStorageService.loadItinerary(shortId);
-      return itinerary;
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error cargando itinerario');
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return {
-    saveItinerary,
-    loadItinerary,
-    saving,
-    loading,
-    error,
-    isOnline
-  };
+    return labels[motivo] || "Aventura";
+  }
 }

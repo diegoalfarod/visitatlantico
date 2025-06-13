@@ -13,6 +13,7 @@ interface Props {
   onItineraryUpdate: (newItinerary: Stop[]) => void;
   days: number;
   userLocation?: { lat: number; lng: number } | null;
+  readOnly?: boolean; // Agregar esta línea
 }
 
 // Resumen del día
@@ -58,7 +59,7 @@ const DaySummaryCard = ({ day, stops }: { day: number; stops: Stop[] }) => {
   );
 };
 
-export default function MultiDayItinerary({ itinerary, onItineraryUpdate, days, userLocation }: Props) {
+export default function MultiDayItinerary({ itinerary, onItineraryUpdate, days, userLocation, readOnly = false }: Props) {
   // Dividir itinerario por días y crear estructura de datos para el nuevo ItineraryTimeline
   const createDaysData = () => {
     const stopsPerDay = Math.ceil(itinerary.length / days);
@@ -93,6 +94,9 @@ export default function MultiDayItinerary({ itinerary, onItineraryUpdate, days, 
 
   // Manejar actualizaciones del itinerario
   const handleDaysUpdate = (updatedDays: any[]) => {
+    // Solo actualizar si no es readOnly
+    if (readOnly) return;
+    
     // Reconstruir el itinerario plano desde los días actualizados
     const newItinerary: Stop[] = [];
     updatedDays.forEach(day => {
@@ -137,10 +141,12 @@ export default function MultiDayItinerary({ itinerary, onItineraryUpdate, days, 
           </div>
         </div>
 
-        <div className="mt-4 flex items-center gap-2 text-sm text-red-100">
-          <Sparkles className="w-4 h-4 text-white" />
-          <p>Arrastra las actividades entre días para personalizar tu aventura</p>
-        </div>
+        {!readOnly && (
+          <div className="mt-4 flex items-center gap-2 text-sm text-red-100">
+            <Sparkles className="w-4 h-4 text-white" />
+            <p>Arrastra las actividades entre días para personalizar tu aventura</p>
+          </div>
+        )}
       </motion.div>
 
       {/* Renderizar el nuevo ItineraryTimeline con soporte multi-día */}
@@ -148,6 +154,7 @@ export default function MultiDayItinerary({ itinerary, onItineraryUpdate, days, 
         days={daysData}
         onDaysUpdate={handleDaysUpdate}
         userLocation={userLocation}
+        readOnly={readOnly}
       />
 
       {/* Estadísticas por día */}
@@ -188,21 +195,23 @@ export default function MultiDayItinerary({ itinerary, onItineraryUpdate, days, 
         </div>
       </motion.div>
 
-      {/* Tips finales */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.7 }}
-        className="bg-amber-50 border border-amber-200 rounded-2xl p-6"
-      >
-        <h3 className="text-lg font-semibold text-amber-800 mb-3">💡 Tips para tu viaje</h3>
-        <ul className="space-y-2 text-sm text-amber-700">
-          <li>• Puedes reorganizar las actividades arrastrándolas entre días</li>
-          <li>• Haz clic en los horarios para editarlos según tus preferencias</li>
-          <li>• Las duraciones también son editables para ajustar tu itinerario</li>
-          <li>• El sistema agregará sugerencias de descanso cuando sea necesario</li>
-        </ul>
-      </motion.div>
+      {/* Tips finales - solo mostrar si no es readOnly */}
+      {!readOnly && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.7 }}
+          className="bg-amber-50 border border-amber-200 rounded-2xl p-6"
+        >
+          <h3 className="text-lg font-semibold text-amber-800 mb-3">💡 Tips para tu viaje</h3>
+          <ul className="space-y-2 text-sm text-amber-700">
+            <li>• Puedes reorganizar las actividades arrastrándolas entre días</li>
+            <li>• Haz clic en los horarios para editarlos según tus preferencias</li>
+            <li>• Las duraciones también son editables para ajustar tu itinerario</li>
+            <li>• El sistema agregará sugerencias de descanso cuando sea necesario</li>
+          </ul>
+        </motion.div>
+      )}
     </div>
   );
 }

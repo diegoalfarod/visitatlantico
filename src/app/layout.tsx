@@ -5,6 +5,7 @@ import "../styles/planner.css";
 import { Poppins, Merriweather_Sans } from "next/font/google";
 import { ReactNode } from "react";
 import type { Metadata } from "next";
+import ClientInitializer from "@/components/ClientInitializer";
 
 const poppins = Poppins({
   subsets: ["latin"],
@@ -94,7 +95,10 @@ export default function RootLayout({ children }: { children: ReactNode }) {
           }}
         />
       </head>
-      <body className="font-sans">{children}</body>
+      <body className="font-sans">
+        <ClientInitializer />
+        {children}
+      </body>
     </html>
   );
 }

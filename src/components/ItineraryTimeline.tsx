@@ -91,6 +91,7 @@ interface Props {
   days: DayData[];
   onDaysUpdate?: (days: DayData[]) => void;
   userLocation?: { lat: number; lng: number } | null;
+  readOnly?: boolean; // Agregar esta línea
 }
 
 // Hook para detectar si es móvil
@@ -2177,8 +2178,7 @@ function DayTimeline({
 }
 
 // Componente principal con soporte para múltiples días y móviles
-export default function ItineraryTimeline({ days: initialDays = [], onDaysUpdate, userLocation }: Props) {
-  const [days, setDays] = useState<DayData[]>(initialDays);
+export default function ItineraryTimeline({ days: initialDays = [], onDaysUpdate, userLocation, readOnly = false }: Props) {  const [days, setDays] = useState<DayData[]>(initialDays);
   const [activeId, setActiveId] = useState<UniqueIdentifier | null>(null);
   const [overId, setOverId] = useState<UniqueIdentifier | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
