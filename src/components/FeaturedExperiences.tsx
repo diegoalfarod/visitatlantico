@@ -127,7 +127,7 @@ export default function FeaturedDestinations() {
     "Náutica":              { icon: FaShip,          color: brandColors.lightBlue },
     "Acuáticos":            { icon: FaSwimmer,       color: brandColors.lightTeal },
     "Arte":                 { icon: FaPaintBrush,    color: brandColors.light },
-    "Spots Instagrameables": { icon: FaInstagram,    color: brandColors.secondary },
+    "Spots instagrameables": { icon: FaInstagram,    color: brandColors.secondary },
     "Artesanías":           { icon: FaHandHoldingHeart, color: brandColors.gold },
     "EcoTurismo":           { icon: FaTree,          color: brandColors.green },
   };
