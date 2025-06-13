@@ -1,19 +1,28 @@
 export interface Stop {
     id: string;
     name: string;
-    description: string;
-    lat: number;
-    lng: number;
-    durationMinutes: number;
-    tip?: string;
-    municipality: string;
-    startTime: string;
-    category?: string; // Opcional
-    imageUrl?: string;
-    photos?: string[];
-    distance?: number;
-    type: "destination" | "experience";
+    category: string; // CAMBIO: Asegúrate de que NO sea opcional
+    description?: string;
+    location: {
+      lat: number;
+      lng: number;
+      address?: string;
+    };
+    duration: number;
+    day: number;
+    order: number;
+    time?: string;
+    tips?: string[];
+    images?: string[];
+    rating?: number;
+    priceLevel?: number;
+    openingHours?: string[];
+    contact?: {
+      phone?: string;
+      website?: string;
+    };
   }
+  
   
   export interface SavedItinerary {
     id: string;

@@ -1,12 +1,12 @@
-// tailwind.config.ts
-import lineClamp from '@tailwindcss/line-clamp'
-
-const config = {
+/** @type {import('tailwindcss').Config} */
+module.exports = {
   content: [
-    './src/app/**/*.{js,ts,jsx,tsx}',
-    './src/components/**/*.{js,ts,jsx,tsx}',
+    './src/app/**/*.{js,ts,jsx,tsx,mdx}',
+    './src/components/**/*.{js,ts,jsx,tsx,mdx}',
+    './src/pages/**/*.{js,ts,jsx,tsx,mdx}',
+    './src/**/*.{js,ts,jsx,tsx,mdx}',
   ],
-  safelist: ['bg-white'], // ahora TypeScript no lo valida contra UserConfig
+  safelist: ['bg-white'],
   theme: {
     extend: {
       fontFamily: {
@@ -39,7 +39,7 @@ const config = {
       },
     },
   },
-  plugins: [lineClamp],
+  plugins: [
+    require('@tailwindcss/line-clamp'),
+  ],
 }
-
-export default config

@@ -587,11 +587,11 @@ export default function PremiumPlannerPage() {
 
           {/* USAR EL NUEVO COMPONENTE MULTI-DAY */}
           <MultiDayItinerary
-            itinerary={itinerary}
-            onItineraryUpdate={setItinerary}
-            days={days}
-            userLocation={locationData ? { lat: locationData.lat, lng: locationData.lng } : null}
-          />
+  itinerary={itinerary as any}
+  onItineraryUpdate={(newItinerary: any) => setItinerary(newItinerary)}
+  days={days}
+  userLocation={locationData ? { lat: locationData.lat, lng: locationData.lng } : null}
+/>
         </div>
 
         {/* Panel de ajustes rápidos flotante */}
