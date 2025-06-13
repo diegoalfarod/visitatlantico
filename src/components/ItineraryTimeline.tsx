@@ -33,12 +33,29 @@ import {
   Trash2,
   Search,
   Sparkles,
+  ArrowRight,
+  CalendarDays,
 } from "lucide-react";
 import Image from "next/image";
 
-// Importaciones de @dnd-kit - NO importamos DndContext aquí
+// Importaciones de @dnd-kit
 import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+  DragOverEvent,
+  DragStartEvent,
+  DragOverlay,
+  UniqueIdentifier,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
   SortableContext,
+  sortableKeyboardCoordinates,
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import {
@@ -55,40 +72,52 @@ import { db, storage } from "@/lib/firebase";
 import AddDestinationModal from "./AddDestinationModal";
 import { getCategoryIcon, toMin, toHHMM, formatTime } from "@/utils/itinerary-helpers";
 
-interface Props {
+// Tipos extendidos para manejar múltiples días
+interface DayData {
+  id: string;
+  date: string;
+  title: string;
   stops: Stop[];
-  onStopsReorder?: (newStops: Stop[]) => void;
-  userLocation?: { lat: number; lng: number } | null;
-  dayId?: string; // Para identificar el día cuando tengamos múltiples días
 }
 
-// Función mejorada para recalcular tiempos con duraciones editables
+interface Props {
+  days: DayData[];
+  onDaysUpdate?: (days: DayData[]) => void;
+  userLocation?: { lat: number; lng: number } | null;
+}
+
+// Función mejorada para recalcular tiempos sin reordenar
 const recalculateTimings = (stops: Stop[], startIndex: number = 0, baseTime?: string): Stop[] => {
   if (stops.length === 0) return stops;
   
-  let current = baseTime ? toMin(baseTime) : toMin(stops[startIndex].startTime);
+  let current = baseTime ? toMin(baseTime) : toMin(stops[0].startTime || "09:00");
   
   return stops.map((stop, idx) => {
-    if (idx < startIndex) return stop;
-    
-    if (idx === startIndex) {
-      return { ...stop, startTime: toHHMM(current) };
+    if (idx === 0 && !baseTime) {
+      // Mantener el primer horario si no se especifica uno base
+      current = toMin(stop.startTime || "09:00");
+      const newStop = { ...stop, startTime: stop.startTime || "09:00" };
+      current += stop.durationMinutes;
+      return newStop;
     }
     
-    // Para stops siguientes, agregar tiempo de viaje + duración del anterior
-    const prevStop = stops[idx - 1];
-    current = toMin(prevStop.startTime) + prevStop.durationMinutes + 30; // 30 min de viaje
-    const startTime = toHHMM(current);
+    if (idx > 0) {
+      // Agregar tiempo de viaje entre paradas
+      current += 30;
+    }
     
+    const startTime = toHHMM(current);
+    current += stop.durationMinutes;
+    
+    // Solo actualizar el startTime, mantener todo lo demás
     return { ...stop, startTime };
   });
 };
 
-// Función para detectar espacios para descansos - VERSIÓN MEJORADA
+// Función para detectar espacios para descansos
 const detectBreakOpportunities = (stops: Stop[]): { afterIndex: number; duration: number; suggestedTime: string }[] => {
   const opportunities: { afterIndex: number; duration: number; suggestedTime: string }[] = [];
   
-  // No sugerir descansos si hay muy pocas paradas
   if (stops.length < 3) return opportunities;
   
   let lastBreakIndex = -1;
@@ -98,10 +127,8 @@ const detectBreakOpportunities = (stops: Stop[]): { afterIndex: number; duration
     const currentStop = stops[i];
     const nextStop = stops[i + 1];
     
-    // Acumular tiempo de actividad
     accumulatedActivityTime += currentStop.durationMinutes;
     
-    // Verificar si la parada actual ya es un descanso
     const isCurrentBreak = currentStop.category?.toLowerCase().includes('descanso') || 
                           currentStop.category?.toLowerCase().includes('comida') ||
                           currentStop.category?.toLowerCase().includes('almuerzo') ||
@@ -110,41 +137,37 @@ const detectBreakOpportunities = (stops: Stop[]): { afterIndex: number; duration
     
     if (isCurrentBreak) {
       lastBreakIndex = i;
-      accumulatedActivityTime = 0; // Resetear contador
+      accumulatedActivityTime = 0;
       continue;
     }
     
     const currentEnd = toMin(currentStop.startTime) + currentStop.durationMinutes;
     const nextStart = toMin(nextStop.startTime);
-    const gap = nextStart - currentEnd - 30; // Restamos 30 min de viaje
+    const gap = nextStart - currentEnd - 30;
     
-    // Condiciones más estrictas para sugerir descanso:
     const conditions = {
-      hasEnoughGap: gap >= 45, // Mínimo 45 minutos libres
-      hasBeenLongEnough: accumulatedActivityTime >= 180, // Han pasado al menos 3 horas
-      notTooSoon: i - lastBreakIndex >= 2, // Al menos 2 paradas desde el último descanso
-      notNearEnd: i < stops.length - 2, // No sugerir en las últimas paradas
-      isGoodTiming: isGoodTimeForBreak(currentEnd), // Verificar si es buen momento del día
-      notTooManyBreaks: countExistingBreaks(stops) < 2 // Máximo 2 descansos sugeridos
+      hasEnoughGap: gap >= 45,
+      hasBeenLongEnough: accumulatedActivityTime >= 180,
+      notTooSoon: i - lastBreakIndex >= 2,
+      notNearEnd: i < stops.length - 2,
+      isGoodTiming: isGoodTimeForBreak(currentEnd),
+      notTooManyBreaks: countExistingBreaks(stops) < 2
     };
     
-    // Solo sugerir si se cumplen TODAS las condiciones
     if (Object.values(conditions).every(condition => condition)) {
       opportunities.push({
         afterIndex: i,
-        duration: Math.min(gap, 60), // Máximo 60 minutos de descanso
-        suggestedTime: toHHMM(currentEnd + 30) // Después del viaje
+        duration: Math.min(gap, 60),
+        suggestedTime: toHHMM(currentEnd + 30)
       });
       
-      lastBreakIndex = i; // Actualizar índice del último descanso sugerido
-      accumulatedActivityTime = 0; // Resetear contador
+      lastBreakIndex = i;
+      accumulatedActivityTime = 0;
     }
   }
   
-  // Limitar a máximo 2 sugerencias, priorizando las mejores ubicaciones
   return opportunities
     .sort((a, b) => {
-      // Priorizar descansos alrededor del mediodía
       const aTime = toMin(a.suggestedTime);
       const bTime = toMin(b.suggestedTime);
       const noon = 12 * 60;
@@ -152,17 +175,14 @@ const detectBreakOpportunities = (stops: Stop[]): { afterIndex: number; duration
       const bDiff = Math.abs(bTime - noon);
       return aDiff - bDiff;
     })
-    .slice(0, 2); // Máximo 2 sugerencias
+    .slice(0, 2);
 };
 
-// Función auxiliar para verificar si es buen momento para un descanso
 const isGoodTimeForBreak = (timeInMinutes: number): boolean => {
   const hour = Math.floor(timeInMinutes / 60);
-  // Buenos momentos: media mañana (10-11am), almuerzo (12-2pm), media tarde (3-4pm)
   return (hour >= 10 && hour <= 11) || (hour >= 12 && hour <= 14) || (hour >= 15 && hour <= 16);
 };
 
-// Función auxiliar para contar descansos existentes
 const countExistingBreaks = (stops: Stop[]): number => {
   return stops.filter(stop => 
     stop.category?.toLowerCase().includes('descanso') ||
@@ -254,7 +274,7 @@ const DurationEditor = ({
   );
 };
 
-// Componente de edición de horario inline mejorado
+// Componente de edición de horario inline
 const TimeEditor = ({ 
   time, 
   onSave, 
@@ -426,205 +446,7 @@ const BreakSuggestion = ({
   );
 };
 
-/* ───────── Componente Card View (Mobile-first) ───────── */
-const CardsView = ({ stops, onReorder, userLocation }: { 
-  stops: Stop[]; 
-  onReorder?: (newStops: Stop[]) => void;
-  userLocation?: { lat: number; lng: number } | null;
-}) => {
-  const [selectedStop, setSelectedStop] = useState<Stop | null>(null);
-
-  const handleRemove = (stopId: string) => {
-    if (confirm("¿Estás seguro de eliminar esta parada del itinerario?")) {
-      const newStops = stops.filter(s => s.id !== stopId);
-      onReorder?.(recalculateTimings(newStops));
-    }
-  };
-
-  return (
-    <>
-      <div className="grid gap-4">
-        {stops.map((stop, index) => (
-          <motion.div
-            key={stop.id}
-            layout
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: index * 0.1 }}
-            className="bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow"
-            whileHover={{ y: -4 }}
-          >
-            <div className="flex flex-col md:flex-row">
-              {/* Imagen - Stack vertical en móvil */}
-              <div className="w-full md:w-1/3 relative h-48 md:h-auto md:min-h-[200px]">
-                {stop.imageUrl ? (
-                  <Image
-                    src={stop.imageUrl}
-                    alt={stop.name}
-                    fill
-                    className="object-cover"
-                    unoptimized
-                  />
-                ) : (
-                  <div className="w-full h-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center">
-                    <MapPin className="w-12 h-12 text-gray-400" />
-                  </div>
-                )}
-                <div className="absolute top-2 left-2 bg-black/70 text-white px-3 py-1 rounded-full text-sm font-semibold">
-                  {formatTime(stop.startTime)}
-                </div>
-                <div className={`absolute bottom-2 right-2 px-2 py-1 rounded-full text-xs font-semibold ${
-                  stop.type === "destination" 
-                    ? "bg-blue-600 text-white" 
-                    : "bg-green-600 text-white"
-                }`}>
-                  {stop.type === "destination" ? "Destino" : "Experiencia"}
-                </div>
-              </div>
-
-              {/* Contenido */}
-              <div className="flex-1 p-4 md:p-6">
-                <div className="flex justify-between items-start mb-2">
-                  <div className="flex-1">
-                    <h3 className="text-lg md:text-xl font-bold mb-1">{stop.name}</h3>
-                    <p className="text-sm text-gray-500 flex items-center gap-1">
-                      <MapPin className="w-3 h-3" />
-                      {stop.municipality}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm bg-gray-100 px-3 py-1 rounded-full font-medium">
-                      {stop.durationMinutes} min
-                    </span>
-                    <motion.button
-                      whileHover={{ scale: 1.1 }}
-                      whileTap={{ scale: 0.9 }}
-                      onClick={() => handleRemove(stop.id)}
-                      className="p-2 text-red-600 hover:bg-red-50 rounded-full transition-colors"
-                      title="Eliminar del itinerario"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </motion.button>
-                  </div>
-                </div>
-                
-                <p className="text-gray-600 mb-4 line-clamp-2 text-sm md:text-base">
-                  {stop.description}
-                </p>
-
-                {/* Tags */}
-                <div className="flex flex-wrap gap-2 mb-4">
-                  {stop.category && (
-                    <span className="inline-flex items-center gap-1 px-3 py-1 bg-gray-100 rounded-full text-xs">
-                      {getCategoryIcon(stop.category)}
-                      {stop.category}
-                    </span>
-                  )}
-                  {userLocation && stop.distance && (
-                    <span className="px-3 py-1 bg-gray-100 rounded-full text-xs">
-                      {Math.round(stop.distance)} km
-                    </span>
-                  )}
-                </div>
-
-                {/* Acciones rápidas - Stack vertical en móvil */}
-                <div className="flex flex-col sm:flex-row gap-2">
-                  <motion.button 
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    className="flex-1 py-2 bg-gray-100 rounded-lg text-sm hover:bg-gray-200 transition-colors flex items-center justify-center gap-1"
-                    onClick={() => {
-                      const mapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${stop.lat},${stop.lng}`;
-                      window.open(mapsUrl, "_blank");
-                    }}
-                  >
-                    <Navigation className="w-4 h-4" />
-                    Cómo llegar
-                  </motion.button>
-                  <motion.button 
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    className="px-3 py-2 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
-                    onClick={() => setSelectedStop(stop)}
-                  >
-                    <MoreVertical className="w-4 h-4" />
-                  </motion.button>
-                </div>
-              </div>
-            </div>
-          </motion.div>
-        ))}
-      </div>
-
-      {/* Modal de detalles - Adaptado para móvil */}
-      <AnimatePresence>
-        {selectedStop && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50"
-            onClick={() => setSelectedStop(null)}
-          >
-            <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto"
-              onClick={(e) => e.stopPropagation()}
-            >
-              {/* Contenido del modal */}
-              <div className="relative">
-                {selectedStop.imageUrl && (
-                  <div className="relative h-48 md:h-64">
-                    <Image
-                      src={selectedStop.imageUrl}
-                      alt={selectedStop.name}
-                      fill
-                      className="object-cover"
-                      unoptimized
-                    />
-                    <button
-                      onClick={() => setSelectedStop(null)}
-                      className="absolute top-4 right-4 bg-white/90 p-2 rounded-full"
-                    >
-                      ✕
-                    </button>
-                  </div>
-                )}
-                <div className="p-4 md:p-6">
-                  <h2 className="text-xl md:text-2xl font-bold mb-4">{selectedStop.name}</h2>
-                  <p className="text-gray-600 mb-6 text-sm md:text-base">{selectedStop.description}</p>
-                  
-                  {selectedStop.tip && (
-                    <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6">
-                      <p className="font-semibold text-amber-800 mb-1">💡 Consejo local</p>
-                      <p className="text-sm text-amber-700">{selectedStop.tip}</p>
-                    </div>
-                  )}
-                  
-                  <div className="flex flex-col sm:flex-row gap-3">
-                    <button
-                      onClick={() => {
-                        const url = `/${selectedStop.type === "destination" ? "destinations" : "experiences"}/${selectedStop.id}`;
-                        window.open(url, "_blank");
-                      }}
-                      className="flex-1 bg-red-600 text-white py-3 rounded-lg font-semibold hover:bg-red-700 transition-colors"
-                    >
-                      Ver detalles completos
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </>
-  );
-};
-
-/* ───────── Componente Sortable mejorado con edición de duraciones ───────── */
+// Componente Sortable mejorado con soporte para drag entre días
 function SortableStop({ 
   stop, 
   index,
@@ -640,7 +462,9 @@ function SortableStop({
   onRemove,
   stops,
   onStopsUpdate,
-  autoAdjust
+  autoAdjust,
+  dayId,
+  isDragging: parentIsDragging
 }: {
   stop: Stop;
   index: number;
@@ -657,6 +481,8 @@ function SortableStop({
   stops: Stop[];
   onStopsUpdate: (stops: Stop[]) => void;
   autoAdjust: boolean;
+  dayId: string;
+  isDragging?: boolean;
 }) {
   const {
     attributes,
@@ -665,12 +491,20 @@ function SortableStop({
     transform,
     transition,
     isDragging,
-  } = useSortable({ id: stop.id });
+  } = useSortable({ 
+    id: `${dayId}-${stop.id}`,
+    data: {
+      type: 'stop',
+      stop,
+      dayId,
+      index
+    }
+  });
 
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
-    opacity: isDragging ? 0.3 : 1,
+    opacity: isDragging || parentIsDragging ? 0.3 : 1,
   };
 
   const [photoIndex, setPhotoIndex] = useState(0);
@@ -696,7 +530,6 @@ function SortableStop({
 
   const c = colors[stop.type];
 
-  // Calcular min y max time para validación
   const prevStop = index > 0 ? stops[index - 1] : null;
   const nextStop = index < stops.length - 1 ? stops[index + 1] : null;
   
@@ -787,7 +620,7 @@ function SortableStop({
               <Trash2 className="w-4 h-4" />
             </motion.button>
             
-            {/* Drag Handle mejorado con efecto visual */}
+            {/* Drag Handle con indicador visual de que se puede mover entre días */}
             <motion.div 
               {...attributes} 
               {...listeners}
@@ -798,14 +631,14 @@ function SortableStop({
               }`}
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.95 }}
-              title="Arrastra para reordenar"
+              title="Arrastra para reordenar o mover a otro día"
             >
               <GripVertical className={`w-4 h-4 ${isDragging ? 'text-gray-600' : 'text-gray-400'}`} />
             </motion.div>
           </div>
         </div>
 
-        {/* tarjeta mejorada con efecto de elevación al arrastrar */}
+        {/* tarjeta mejorada */}
         <motion.div 
           className={`ml-10 rounded-2xl shadow-lg border ${c.border} bg-white overflow-hidden relative transition-all ${
             isDragging ? 'shadow-2xl transform scale-98' : ''
@@ -886,7 +719,7 @@ function SortableStop({
             )}
           </div>
 
-          {/* contenido expandido mejorado */}
+          {/* contenido expandido */}
           <AnimatePresence>
             {expanded && (
               <motion.div
@@ -895,7 +728,7 @@ function SortableStop({
                 exit={{ opacity: 0, height: 0 }}
                 transition={{ duration: 0.3 }}
               >
-                {/* galería mejorada */}
+                {/* galería */}
                 {photos.length > 0 && (
                   <div className="relative aspect-video w-full overflow-hidden">
                     <div
@@ -923,7 +756,7 @@ function SortableStop({
                   </div>
                 )}
 
-                {/* desc & acciones mejoradas */}
+                {/* desc & acciones */}
                 <div className="p-5 space-y-4">
                   {stop.description && (
                     <p className="text-gray-700 leading-relaxed">{stop.description}</p>
@@ -979,35 +812,101 @@ function SortableStop({
   );
 }
 
-/* ───────── componente principal mejorado con edición de duraciones ───────── */
-export default function ItineraryTimeline({ stops, onStopsReorder, userLocation, dayId }: Props) {
-  // Estados principales
+// Componente DragOverlay para mostrar el elemento que se está arrastrando
+function DragOverlayContent({ stop }: { stop: Stop }) {
+  const colors = {
+    destination: {
+      primary: "bg-blue-600",
+      border: "border-blue-200",
+      text: "text-blue-700",
+      light: "bg-blue-50",
+    },
+    experience: {
+      primary: "bg-green-600",
+      border: "border-green-200",
+      text: "text-green-700",
+      light: "bg-green-50",
+    },
+  } as const;
+
+  const c = colors[stop.type];
+
+  return (
+    <div className="w-96 opacity-90">
+      <div className={`rounded-2xl shadow-2xl border-2 ${c.border} bg-white overflow-hidden transform rotate-3`}>
+        <div className="flex">
+          {stop.imageUrl && (
+            <div
+              className="w-24 h-24 bg-cover bg-center flex-shrink-0"
+              style={{ backgroundImage: `url(${stop.imageUrl})` }}
+            />
+          )}
+          <div className="flex-1 p-4 min-w-0">
+            <h3 className="font-bold text-gray-800 line-clamp-1">{stop.name}</h3>
+            <div className="mt-1 flex items-center text-xs text-gray-500 gap-3">
+              {stop.municipality && (
+                <span className="flex items-center">
+                  <MapPin className="w-3 h-3 mr-1" />
+                  {stop.municipality}
+                </span>
+              )}
+            </div>
+            <div className="mt-2 flex flex-wrap gap-1">
+              <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs ${c.light} ${c.text}`}>
+                {stop.type === "destination" ? "Destino" : "Experiencia"}
+              </span>
+              {stop.category && (
+                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-gray-100 text-gray-700">
+                  {getCategoryIcon(stop.category)}
+                  <span className="ml-1">{stop.category}</span>
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Componente de día individual
+function DayTimeline({ 
+  day,
+  onStopsUpdate,
+  userLocation,
+  isOver,
+  canDrop
+}: {
+  day: DayData;
+  onStopsUpdate: (stops: Stop[]) => void;
+  userLocation?: { lat: number; lng: number } | null;
+  isOver?: boolean;
+  canDrop?: boolean;
+}) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [editingTimeId, setEditingTimeId] = useState<string | null>(null);
   const [editingDurationId, setEditingDurationId] = useState<string | null>(null);
-  const [view, setView] = useState<"timeline" | "cards">("timeline");
   const [autoAdjust, setAutoAdjust] = useState(true);
   const [breakOpportunities, setBreakOpportunities] = useState<{ afterIndex: number; duration: number; suggestedTime: string }[]>([]);
   const [dismissedBreaks, setDismissedBreaks] = useState<Set<number>>(new Set());
-  const [showAddModal, setShowAddModal] = useState(false);
 
-  // Detectar oportunidades de descanso cuando cambian los stops
+  // Detectar oportunidades de descanso
   React.useEffect(() => {
-    const opportunities = detectBreakOpportunities(stops);
+    const opportunities = detectBreakOpportunities(day.stops);
     setBreakOpportunities(opportunities.filter(o => !dismissedBreaks.has(o.afterIndex)));
-  }, [stops, dismissedBreaks]);
+  }, [day.stops, dismissedBreaks]);
 
   // Manejar edición de tiempo
   const handleTimeEdit = (stopId: string) => {
     setEditingTimeId(editingTimeId === stopId ? null : stopId);
-    setEditingDurationId(null); // Cerrar editor de duración si está abierto
+    setEditingDurationId(null);
   };
 
   const handleTimeSave = (stopId: string, newTime: string) => {
-    const index = stops.findIndex(s => s.id === stopId);
+    const index = day.stops.findIndex(s => s.id === stopId);
     if (index === -1) return;
 
-    let updatedStops = [...stops];
+    let updatedStops = [...day.stops];
     
     if (autoAdjust) {
       updatedStops = recalculateTimings(updatedStops, index, newTime);
@@ -1015,29 +914,28 @@ export default function ItineraryTimeline({ stops, onStopsReorder, userLocation,
       updatedStops[index] = { ...updatedStops[index], startTime: newTime };
     }
 
-    onStopsReorder?.(updatedStops);
+    onStopsUpdate(updatedStops);
     setEditingTimeId(null);
   };
 
   // Manejar edición de duración
   const handleDurationEdit = (stopId: string) => {
     setEditingDurationId(editingDurationId === stopId ? null : stopId);
-    setEditingTimeId(null); // Cerrar editor de tiempo si está abierto
+    setEditingTimeId(null);
   };
 
   const handleDurationSave = (stopId: string, newDuration: number) => {
-    const index = stops.findIndex(s => s.id === stopId);
+    const index = day.stops.findIndex(s => s.id === stopId);
     if (index === -1) return;
 
-    let updatedStops = [...stops];
+    let updatedStops = [...day.stops];
     updatedStops[index] = { ...updatedStops[index], durationMinutes: newDuration };
     
-    // Recalcular tiempos subsecuentes si el ajuste automático está activado
     if (autoAdjust && index < updatedStops.length - 1) {
       updatedStops = recalculateTimings(updatedStops, index + 1);
     }
 
-    onStopsReorder?.(updatedStops);
+    onStopsUpdate(updatedStops);
     setEditingDurationId(null);
   };
 
@@ -1047,12 +945,12 @@ export default function ItineraryTimeline({ stops, onStopsReorder, userLocation,
       id: `break-${Date.now()}`,
       name: "Descanso y refrigerio",
       description: "Tiempo para descansar, tomar un café o un snack",
-      lat: stops[afterIndex].lat,
-      lng: stops[afterIndex].lng,
+      lat: day.stops[afterIndex].lat,
+      lng: day.stops[afterIndex].lng,
       startTime: suggestedTime,
       durationMinutes: duration,
       category: "Descanso",
-      municipality: stops[afterIndex].municipality,
+      municipality: day.stops[afterIndex].municipality,
       distance: 0,
       type: "experience",
       imageUrl: "/images/rest-placeholder.jpg",
@@ -1060,86 +958,56 @@ export default function ItineraryTimeline({ stops, onStopsReorder, userLocation,
     };
 
     const updatedStops = [
-      ...stops.slice(0, afterIndex + 1),
+      ...day.stops.slice(0, afterIndex + 1),
       breakStop,
-      ...stops.slice(afterIndex + 1)
+      ...day.stops.slice(afterIndex + 1)
     ];
 
     const recalculated = recalculateTimings(updatedStops);
-    onStopsReorder?.(recalculated);
+    onStopsUpdate(recalculated);
   };
 
   // Eliminar parada
   const handleRemoveStop = (stopId: string) => {
     if (confirm("¿Estás seguro de eliminar esta parada del itinerario?")) {
-      const newStops = stops.filter(s => s.id !== stopId);
+      const newStops = day.stops.filter(s => s.id !== stopId);
       const recalculated = recalculateTimings(newStops);
-      onStopsReorder?.(recalculated);
+      onStopsUpdate(recalculated);
     }
   };
 
-  // Agregar nuevo destino
-  const handleAddDestination = (newStop: Stop) => {
-    // Calcular el tiempo de inicio basado en la última parada
-    const lastStop = stops[stops.length - 1];
-    const startMin = lastStop 
-      ? toMin(lastStop.startTime) + lastStop.durationMinutes + 30
-      : 9 * 60; // 9:00 AM si no hay paradas
-
-    const stopWithTime = {
-      ...newStop,
-      startTime: toHHMM(startMin),
-      durationMinutes: newStop.durationMinutes || 60
-    };
-
-    const updatedStops = [...stops, stopWithTime];
-    onStopsReorder?.(updatedStops);
-  };
-
-  /* filtros */
-  const categories = Array.from(new Set(stops.map((s) => s.category).filter(Boolean)));
-  const [activeCategory, setActiveCategory] = useState<string | null>(null);
-
-  const filteredStops = activeCategory
-    ? stops.filter((s) => s.category === activeCategory)
-    : stops;
-
-  /* resumen */
-  const totalMin = filteredStops.reduce((sum, s) => sum + s.durationMinutes, 0);
+  // Calcular resumen
+  const totalMin = day.stops.reduce((sum, s) => sum + s.durationMinutes, 0);
   const h = Math.floor(totalMin / 60);
   const min = totalMin % 60;
 
-  const startTime =
-    filteredStops.length > 0 ? formatTime(filteredStops[0].startTime) : "";
-  const endTime =
-    filteredStops.length > 0
-      ? formatTime(
-          toHHMM(toMin(filteredStops[filteredStops.length - 1].startTime) +
-            (filteredStops[filteredStops.length - 1].durationMinutes || 0))
-        )
-      : "";
-
-  // Check if we're on mobile
-  const [isMobile, setIsMobile] = useState(false);
-  useEffect(() => {
-    const checkMobile = () => setIsMobile(window.innerWidth < 768);
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
-  }, []);
+  const startTime = day.stops.length > 0 ? formatTime(day.stops[0].startTime) : "";
+  const endTime = day.stops.length > 0
+    ? formatTime(
+        toHHMM(toMin(day.stops[day.stops.length - 1].startTime) +
+          (day.stops[day.stops.length - 1].durationMinutes || 0))
+      )
+    : "";
 
   return (
-    <div className="relative">
-      {/* encabezado mejorado con toggle de ajuste automático */}
+    <motion.div 
+      className={`bg-white rounded-2xl shadow-lg p-6 transition-all ${
+        isOver ? 'ring-4 ring-red-400 ring-opacity-50 bg-red-50' : ''
+      }`}
+      animate={{
+        scale: isOver ? 1.02 : 1,
+      }}
+    >
+      {/* Encabezado del día */}
       <div className="bg-gradient-to-r from-red-600 to-red-800 rounded-xl shadow-lg p-4 md:p-5 mb-6">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
           <div className="text-white">
             <h3 className="text-lg md:text-xl font-bold flex items-center">
-              <Calendar className="w-5 h-5 mr-2" />
-              Aventura del día
+              <CalendarDays className="w-5 h-5 mr-2" />
+              {day.title}
             </h3>
             <p className="text-red-100 text-sm mt-1">
-              {filteredStops.length} actividades • {h} h {min > 0 ? `${min} min` : ""}
+              {day.date} • {day.stops.length} actividades • {h} h {min > 0 ? `${min} min` : ""}
             </p>
           </div>
           <div className="bg-white/20 backdrop-blur-sm px-3 py-1.5 rounded-lg text-white text-xs md:text-sm font-medium">
@@ -1150,10 +1018,9 @@ export default function ItineraryTimeline({ stops, onStopsReorder, userLocation,
         <div className="mt-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
           <p className="text-red-100 text-xs flex items-center gap-1">
             <GripVertical className="w-3 h-3" />
-            {isMobile ? "Toca y arrastra" : "Arrastra para reordenar"} • Click en horarios/duraciones para editar
+            Arrastra entre días para reorganizar
           </p>
           
-          {/* Toggle de ajuste automático */}
           <label className="flex items-center gap-2 text-xs text-white cursor-pointer">
             <input
               type="checkbox"
@@ -1170,86 +1037,45 @@ export default function ItineraryTimeline({ stops, onStopsReorder, userLocation,
             </div>
             <span className="hidden sm:inline">Ajuste automático</span>
             <span className="sm:hidden">Auto</span>
-            <span title="Cuando está activado, cambiar un horario ajustará automáticamente los siguientes">
-              <Info className="w-3 h-3 opacity-60" />
-            </span>
           </label>
         </div>
       </div>
 
-      {/* Toggle de vista */}
-      <div className="flex flex-col sm:flex-row justify-between items-center gap-3 mb-4">
-        <div className="flex gap-2 w-full sm:w-auto">
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={() => setView("timeline")}
-            className={`flex-1 sm:flex-initial px-4 py-2 rounded-lg flex items-center justify-center gap-2 transition-all ${
-              view === "timeline" 
-                ? "bg-red-600 text-white shadow-md" 
-                : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-            }`}
+      {/* Timeline del día */}
+      {day.stops.length === 0 ? (
+        <motion.div 
+          className={`text-center py-12 px-8 border-2 border-dashed rounded-xl transition-all ${
+            isOver ? 'border-red-400 bg-red-50' : 'border-gray-300'
+          }`}
+        >
+          <motion.div
+            animate={{
+              y: isOver ? -10 : 0,
+            }}
+            transition={{ type: "spring", stiffness: 300 }}
           >
-            <List className="w-4 h-4" /> 
-            <span className="hidden sm:inline">Línea de tiempo</span>
-            <span className="sm:hidden">Timeline</span>
-          </motion.button>
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={() => setView("cards")}
-            className={`flex-1 sm:flex-initial px-4 py-2 rounded-lg flex items-center justify-center gap-2 transition-all ${
-              view === "cards" 
-                ? "bg-red-600 text-white shadow-md" 
-                : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-            }`}
-          >
-            <Grid className="w-4 h-4" /> 
-            <span className="hidden sm:inline">Tarjetas</span>
-            <span className="sm:hidden">Cards</span>
-          </motion.button>
-        </div>
-
-        {/* Filtros de categoría - Scroll horizontal en móvil */}
-        {categories.length > 1 && (
-          <div className="flex gap-1.5 overflow-x-auto pb-2 w-full sm:w-auto">
-            <button
-              onClick={() => setActiveCategory(null)}
-              className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all whitespace-nowrap ${
-                !activeCategory
-                  ? "bg-red-600 text-white"
-                  : "bg-white border border-gray-200 text-gray-700 hover:bg-gray-50"
-              }`}
-            >
-              Todas
-            </button>
-            {categories.map((cat) => (
-              <button
-                key={cat}
-                onClick={() => setActiveCategory(cat)}
-                className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all flex items-center gap-1 whitespace-nowrap ${
-                  activeCategory === cat
-                    ? "bg-red-600 text-white"
-                    : "bg-white border border-gray-200 text-gray-700 hover:bg-gray-50"
-                }`}
-              >
-                {getCategoryIcon(cat)}
-                {cat}
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* Vista condicional */}
-      {view === "timeline" ? (
+            <CalendarDays className={`w-12 h-12 mx-auto mb-3 ${
+              isOver ? 'text-red-400' : 'text-gray-400'
+            }`} />
+            <p className={`font-medium mb-1 ${
+              isOver ? 'text-red-700' : 'text-gray-600'
+            }`}>
+              {isOver ? '¡Suelta aquí!' : 'No hay actividades para este día'}
+            </p>
+            <p className={`text-sm ${
+              isOver ? 'text-red-600' : 'text-gray-500'
+            }`}>
+              {isOver ? 'La actividad se agregará a este día' : 'Arrastra actividades desde otros días'}
+            </p>
+          </motion.div>
+        </motion.div>
+      ) : (
         <div className="relative pt-4 pb-8">
           <SortableContext 
-            items={filteredStops.map(s => s.id)} 
+            items={day.stops.map(s => `${day.id}-${s.id}`)} 
             strategy={verticalListSortingStrategy}
           >
-            {filteredStops.map((s, i) => {
-              // Encontrar oportunidad de descanso después de esta parada
+            {day.stops.map((s, i) => {
               const breakOpp = breakOpportunities.find(o => o.afterIndex === i);
               
               return (
@@ -1259,7 +1085,7 @@ export default function ItineraryTimeline({ stops, onStopsReorder, userLocation,
                     index={i}
                     expanded={expandedId === s.id}
                     toggleExpand={() => setExpandedId(expandedId === s.id ? null : s.id)}
-                    isLast={i === filteredStops.length - 1}
+                    isLast={i === day.stops.length - 1}
                     editingTime={editingTimeId === s.id}
                     editingDuration={editingDurationId === s.id}
                     onTimeEdit={() => handleTimeEdit(s.id)}
@@ -1267,12 +1093,12 @@ export default function ItineraryTimeline({ stops, onStopsReorder, userLocation,
                     onTimeSave={(newTime) => handleTimeSave(s.id, newTime)}
                     onDurationSave={(newDuration) => handleDurationSave(s.id, newDuration)}
                     onRemove={() => handleRemoveStop(s.id)}
-                    stops={filteredStops}
-                    onStopsUpdate={onStopsReorder || (() => {})}
+                    stops={day.stops}
+                    onStopsUpdate={onStopsUpdate}
                     autoAdjust={autoAdjust}
+                    dayId={day.id}
                   />
                   
-                  {/* Sugerencia de descanso */}
                   {breakOpp && !dismissedBreaks.has(i) && (
                     <BreakSuggestion
                       opportunity={breakOpp}
@@ -1287,6 +1113,20 @@ export default function ItineraryTimeline({ stops, onStopsReorder, userLocation,
             })}
           </SortableContext>
 
+          {/* Indicador de drop cuando se está arrastrando sobre un día con contenido */}
+          {isOver && canDrop && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.8 }}
+              className="absolute inset-0 bg-red-100/20 rounded-xl flex items-center justify-center pointer-events-none"
+            >
+              <div className="bg-red-600 text-white px-6 py-3 rounded-full font-semibold shadow-lg">
+                Soltar para agregar a este día
+              </div>
+            </motion.div>
+          )}
+
           {/* fin del día */}
           <motion.div 
             initial={{ opacity: 0 }}
@@ -1299,21 +1139,251 @@ export default function ItineraryTimeline({ stops, onStopsReorder, userLocation,
             </div>
           </motion.div>
         </div>
-      ) : (
-        <CardsView stops={filteredStops} onReorder={onStopsReorder} userLocation={userLocation} />
       )}
+    </motion.div>
+  );
+}
+
+// Componente principal con soporte para múltiples días
+export default function ItineraryTimeline({ days: initialDays, onDaysUpdate, userLocation }: Props) {
+  const [days, setDays] = useState<DayData[]>(initialDays);
+  const [activeId, setActiveId] = useState<UniqueIdentifier | null>(null);
+  const [overId, setOverId] = useState<UniqueIdentifier | null>(null);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [selectedDayId, setSelectedDayId] = useState<string | null>(null);
+
+  // Configurar sensores para drag & drop
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  // Encontrar la parada activa
+  const activeStop = useMemo(() => {
+    if (!activeId) return null;
+    
+    for (const day of days) {
+      const stop = day.stops.find(s => `${day.id}-${s.id}` === activeId);
+      if (stop) return stop;
+    }
+    return null;
+  }, [activeId, days]);
+
+  // Manejar inicio del drag
+  const handleDragStart = (event: DragStartEvent) => {
+    setActiveId(event.active.id);
+  };
+
+  // Manejar drag over
+  const handleDragOver = (event: DragOverEvent) => {
+    setOverId(event.over?.id || null);
+  };
+
+  // Manejar fin del drag
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    
+    if (!over) {
+      setActiveId(null);
+      setOverId(null);
+      return;
+    }
+
+    const activeData = active.data.current;
+    const overData = over.data.current;
+
+    // Extraer información del drag
+    const sourceDayId = activeData?.dayId;
+    const sourceStop = activeData?.stop;
+    const sourceIndex = activeData?.index;
+
+    // Determinar el día destino
+    let targetDayId: string;
+    let targetIndex: number;
+
+    if (overData?.type === 'stop') {
+      // Soltado sobre otra parada
+      targetDayId = overData.dayId;
+      targetIndex = overData.index;
+    } else {
+      // Soltado sobre un día vacío o contenedor
+      const dayIdMatch = over.id.toString().match(/^day-(.+)$/);
+      if (dayIdMatch) {
+        targetDayId = dayIdMatch[1];
+        targetIndex = 0; // Agregar al principio si el día está vacío
+      } else {
+        setActiveId(null);
+        setOverId(null);
+        return;
+      }
+    }
+
+    // Actualizar los días
+    const newDays = [...days];
+    const sourceDayIndex = newDays.findIndex(d => d.id === sourceDayId);
+    const targetDayIndex = newDays.findIndex(d => d.id === targetDayId);
+
+    if (sourceDayIndex === -1 || targetDayIndex === -1) {
+      setActiveId(null);
+      setOverId(null);
+      return;
+    }
+
+    // Remover de la fuente
+    const [removedStop] = newDays[sourceDayIndex].stops.splice(sourceIndex, 1);
+
+    // Si es el mismo día, ajustar el índice objetivo si es necesario
+    if (sourceDayId === targetDayId && targetIndex > sourceIndex) {
+      targetIndex--;
+    }
+
+    // Insertar en el destino
+    newDays[targetDayIndex].stops.splice(targetIndex, 0, removedStop);
+
+    // Recalcular tiempos para ambos días
+    newDays[sourceDayIndex].stops = recalculateTimings(newDays[sourceDayIndex].stops);
+    newDays[targetDayIndex].stops = recalculateTimings(newDays[targetDayIndex].stops);
+
+    setDays(newDays);
+    onDaysUpdate?.(newDays);
+
+    setActiveId(null);
+    setOverId(null);
+  };
+
+  // Actualizar stops de un día específico
+  const handleDayStopsUpdate = (dayId: string, newStops: Stop[]) => {
+    const newDays = days.map(day => 
+      day.id === dayId ? { ...day, stops: newStops } : day
+    );
+    setDays(newDays);
+    onDaysUpdate?.(newDays);
+  };
+
+  // Agregar nuevo destino
+  const handleAddDestination = (newStop: Stop) => {
+    if (!selectedDayId) return;
+
+    const dayIndex = days.findIndex(d => d.id === selectedDayId);
+    if (dayIndex === -1) return;
+
+    const targetDay = days[dayIndex];
+    const lastStop = targetDay.stops[targetDay.stops.length - 1];
+    const startMin = lastStop 
+      ? toMin(lastStop.startTime) + lastStop.durationMinutes + 30
+      : 9 * 60;
+
+    const stopWithTime = {
+      ...newStop,
+      startTime: toHHMM(startMin),
+      durationMinutes: newStop.durationMinutes || 60
+    };
+
+    const newDays = [...days];
+    newDays[dayIndex].stops = [...newDays[dayIndex].stops, stopWithTime];
+    
+    setDays(newDays);
+    onDaysUpdate?.(newDays);
+    setShowAddModal(false);
+    setSelectedDayId(null);
+  };
+
+  // Check if we're on mobile
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  return (
+    <DndContext
+      sensors={sensors}
+      collisionDetection={closestCenter}
+      onDragStart={handleDragStart}
+      onDragOver={handleDragOver}
+      onDragEnd={handleDragEnd}
+    >
+      <div className="space-y-8">
+        {/* Indicador de múltiples días */}
+        {days.length > 1 && (
+          <div className="flex items-center justify-center gap-2 text-sm text-gray-600">
+            <CalendarDays className="w-4 h-4" />
+            <span>Itinerario de {days.length} días</span>
+            <span className="text-xs text-gray-500 ml-2">
+              • Arrastra actividades entre días para reorganizar
+            </span>
+          </div>
+        )}
+
+        {/* Días del itinerario */}
+        {days.map((day, index) => {
+          const isDroppable = !!(overId === `day-${day.id}` || 
+                            (overId && overId.toString().startsWith(`${day.id}-`)));
+          
+          return (
+            <div key={day.id} className="relative">
+              {/* Indicador de día */}
+              {index > 0 && (
+                <div className="flex items-center justify-center my-6">
+                  <div className="flex-1 h-px bg-gray-300" />
+                  <ArrowRight className="w-5 h-5 text-gray-400 mx-4" />
+                  <div className="flex-1 h-px bg-gray-300" />
+                </div>
+              )}
+
+              <DayTimeline
+                day={day}
+                onStopsUpdate={(stops) => handleDayStopsUpdate(day.id, stops)}
+                userLocation={userLocation}
+                isOver={isDroppable}
+                canDrop={!!activeId}
+              />
+
+              {/* Botón para agregar actividad */}
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => {
+                  setSelectedDayId(day.id);
+                  setShowAddModal(true);
+                }}
+                className="mt-4 mx-auto flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-full hover:bg-red-700 transition-colors font-medium text-sm"
+              >
+                <PlusCircle className="w-4 h-4" />
+                Agregar actividad al {day.title.toLowerCase()}
+              </motion.button>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* DragOverlay para mostrar el elemento que se está arrastrando */}
+      <DragOverlay>
+        {activeStop ? <DragOverlayContent stop={activeStop} /> : null}
+      </DragOverlay>
 
       {/* Modal para agregar destinos */}
       <AnimatePresence>
         {showAddModal && (
           <AddDestinationModal
-            onClose={() => setShowAddModal(false)}
+            onClose={() => {
+              setShowAddModal(false);
+              setSelectedDayId(null);
+            }}
             onAdd={handleAddDestination}
-            currentStops={stops}
+            currentStops={selectedDayId ? days.find(d => d.id === selectedDayId)?.stops || [] : []}
             userLocation={userLocation}
           />
         )}
       </AnimatePresence>
-    </div>
+    </DndContext>
   );
 }
