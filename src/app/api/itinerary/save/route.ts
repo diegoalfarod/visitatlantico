@@ -147,20 +147,26 @@ export async function GET(request: NextRequest) {
     const convertTimestamp = (timestamp: unknown): string | null => {
       if (!timestamp) return null;
       
-      if (timestamp.toDate && typeof timestamp.toDate === 'function') {
-        return timestamp.toDate().toISOString();
-      } else if ((timestamp as any)._seconds) {
-        return new Date((timestamp as any)._seconds * 1000).toISOString();
-      } else if ((timestamp as any).seconds) {
-        return new Date((timestamp as any).seconds * 1000).toISOString();
-      } else if (typeof timestamp === 'string') {
-        return timestamp;
-      } else {
-        try {
-          return new Date(timestamp).toISOString();
-        } catch {
-          return null;
+      // Type guard para Firestore Timestamp
+      if (typeof timestamp === 'object' && timestamp !== null) {
+        const ts = timestamp as any;
+        if (ts.toDate && typeof ts.toDate === 'function') {
+          return ts.toDate().toISOString();
+        } else if (ts._seconds) {
+          return new Date(ts._seconds * 1000).toISOString();
+        } else if (ts.seconds) {
+          return new Date(ts.seconds * 1000).toISOString();
         }
+      }
+      
+      if (typeof timestamp === 'string') {
+        return timestamp;
+      }
+      
+      try {
+        return new Date(timestamp as any).toISOString();
+      } catch {
+        return null;
       }
     };
 
