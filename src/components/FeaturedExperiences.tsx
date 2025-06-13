@@ -1,4 +1,4 @@
-// src/components/FeaturedDestinations.tsx
+// src/components/FeaturedExperiences.tsx
 "use client";
 
 /* -------------------------------------------------- */
@@ -12,7 +12,7 @@ import { db, storage } from "@/lib/firebase";
 import Image from "next/image";
 import Link from "next/link";
 import dynamic from "next/dynamic";
-import { MapPin, Grid3X3, Map as MapIcon, Loader2 } from "lucide-react";
+import { Calendar, Clock, Grid3X3, Map as MapIcon, Loader2 } from "lucide-react";
 
 import {
   FaUmbrellaBeach, FaLeaf, FaUtensils, FaMountain, FaLandmark, FaUsers,
@@ -23,7 +23,7 @@ import {
 } from "react-icons/fa";
 
 // Dynamic import para el mapa (mejora el performance inicial)
-const MapView = dynamic(() => import('./MapView'), {
+const MapWrapper = dynamic(() => import('./MapWrapper'), {
   ssr: false,
   loading: () => (
     <div className="w-full h-[600px] rounded-2xl bg-gray-50 flex items-center justify-center">
@@ -35,14 +35,16 @@ const MapView = dynamic(() => import('./MapView'), {
 /* -------------------------------------------------- */
 /* Types                                              */
 /* -------------------------------------------------- */
-type Destination = {
+type Experience = {
   id: string;
   name: string;
   tagline: string;
   description: string;
-  address: string;
+  duration: string;
+  schedule: string;
   image: string;
   categories: string[];
+  price?: number;
   coordinates?: {
     lat: number;
     lng: number;
@@ -62,7 +64,7 @@ const IconWrap = ({
 /* -------------------------------------------------- */
 /* Main Component                                     */
 /* -------------------------------------------------- */
-export default function FeaturedDestinations() {
+export default function FeaturedExperiences() {
   /* ---------------- Brand Colors ------------------ */
   const brandColors = {
     primary: "#E40E20",
@@ -79,11 +81,13 @@ export default function FeaturedDestinations() {
     green: "#00B4B1",
   };
 
-  /* -------------- Category List (Same as DestinationsClient) -------------- */
+  /* -------------- Category List (EXACTLY SAME AS DESTINATIONS) -------------- */
   const CATEGORIES = [
     "Playas",
-    "Eco",
+    "Museos",
     "Gastronomía",
+    "Artesanías",
+    "EcoTurismo",
     "Aventura",
     "Cultura",
     "Historia",
@@ -99,12 +103,8 @@ export default function FeaturedDestinations() {
     "Fotografía",
     "Náutica",
     "Acuáticos",
-    "Pesca",
-    "Cine",
     "Arte",
-    "Spots Instagrameables",
-    "Artesanías",
-    "EcoTurismo",
+    "Spots instagrameables",
   ];
 
   /* -------------- Category Config ----------------- */
@@ -113,10 +113,10 @@ export default function FeaturedDestinations() {
     color: string;
   }> = {
     "Playas":               { icon: FaUmbrellaBeach, color: brandColors.lightBlue },
-    "Eco":                  { icon: FaLeaf,          color: brandColors.green },
     "Gastronomía":          { icon: FaUtensils,      color: brandColors.gold },
     "Aventura":             { icon: FaMountain,      color: brandColors.teal },
     "Cultura":              { icon: FaMusic,         color: brandColors.darkBlue },
+    "Museos":              { icon: FaMusic,         color: brandColors.darkBlue },
     "Historia":             { icon: FaLandmark,      color: brandColors.medium },
     "Familia":              { icon: FaUsers,         color: brandColors.yellow },
     "Deportes":             { icon: FaRunning,       color: brandColors.lightTeal },
@@ -130,17 +130,15 @@ export default function FeaturedDestinations() {
     "Fotografía":           { icon: FaCamera,        color: brandColors.gold },
     "Náutica":              { icon: FaShip,          color: brandColors.lightBlue },
     "Acuáticos":            { icon: FaSwimmer,       color: brandColors.lightTeal },
-    "Pesca":                { icon: FaFish,          color: brandColors.primary },
-    "Cine":                 { icon: FaVideo,         color: brandColors.yellow },
     "Arte":                 { icon: FaPaintBrush,    color: brandColors.light },
-    "Spots Instagrameables": { icon: FaInstagram,    color: brandColors.secondary },
+    "Spots instagrameables": { icon: FaInstagram,    color: brandColors.secondary },
     "Artesanías":           { icon: FaHandHoldingHeart, color: brandColors.gold },
     "EcoTurismo":           { icon: FaTree,          color: brandColors.green },
   };
   const defaultCfg = { icon: FaStar, color: brandColors.primary };
 
   /* -------------------- State --------------------- */
-  const [destinations, setDestinations] = useState<Destination[]>([]);
+  const [experiences, setExperiences] = useState<Experience[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeCat, setActiveCat] = useState<string[]>([]);
   const [showCatCount, setShowCatCount] = useState(6);
@@ -149,9 +147,9 @@ export default function FeaturedDestinations() {
 
   /* --------------- Fetch Firestore ---------------- */
   useEffect(() => {
-    async function fetchDestinations() {
+    async function fetchExperiences() {
       try {
-        const snap = await getDocs(collection(db, "destinations"));
+        const snap = await getDocs(collection(db, "experiences"));
         const data = await Promise.all(
           snap.docs.map(async (doc) => {
             const d = doc.data();
@@ -163,7 +161,7 @@ export default function FeaturedDestinations() {
               (Array.isArray(d.imagePaths) && d.imagePaths[0]) ||
               d.imagePath ||
               "";
-            let img = "/placeholder-destination.jpg";
+            let img = "/placeholder-experience.jpg";
             if (rawImg.startsWith("http")) img = rawImg;
             else if (rawImg) {
               try {
@@ -176,31 +174,33 @@ export default function FeaturedDestinations() {
               name: d.name || "Sin nombre",
               tagline: d.tagline || "",
               description: d.description || "",
-              address: d.address || "",
+              duration: d.duration || "2 horas",
+              schedule: d.schedule || "Todos los días",
+              price: d.price || 0,
               image: img,
               categories: cats.length ? cats : ["Otros"],
               coordinates: d.coordinates || null,
-            } as Destination;
+            } as Experience;
           })
         );
-        setDestinations(data);
+        setExperiences(data);
       } catch (err) {
         console.error("fetch error:", err);
       } finally {
         setLoading(false);
       }
     }
-    fetchDestinations();
+    fetchExperiences();
   }, []);
 
   /* ------------- Filtering Logic ------------------ */
   const visibleCats = CATEGORIES.slice(0, showCatCount);
 
   const filtered = activeCat.length
-    ? destinations.filter((d) =>
-        d.categories.some((c) => activeCat.includes(c))
+    ? experiences.filter((e) =>
+        e.categories.some((c) => activeCat.includes(c))
       )
-    : destinations;
+    : experiences;
 
   /* ------------- Toggle Categories ---------------- */
   const toggleCategory = useCallback((cat: string) => {
@@ -223,16 +223,16 @@ export default function FeaturedDestinations() {
   /* ------------------------------------------------ */
   /* Helper Card Component                            */
   /* ------------------------------------------------ */
-  const Card = ({ d }: { d: Destination }) => {
+  const Card = ({ e }: { e: Experience }) => {
     return (
       <Link
-        href={`/destinations/${d.id}`}
+        href={`/experiencias/${e.id}`}
         className="block rounded-2xl shadow-lg overflow-hidden hover:shadow-2xl transition-all duration-300 relative group bg-white"
       >
         {/* Badge categorías - mismo diseño que DestinationsClient */}
-        {d.categories.length > 0 && (
+        {e.categories.length > 0 && (
           <div className="absolute top-4 right-4 z-20 flex flex-wrap gap-1 max-w-[60%] justify-end">
-            {d.categories.slice(0, 2).map((cat, idx) => {
+            {e.categories.slice(0, 2).map((cat, idx) => {
               const cfg = categoryConfig[cat] || defaultCfg;
               return (
                 <span
@@ -244,22 +244,31 @@ export default function FeaturedDestinations() {
                 </span>
               );
             })}
-            {d.categories.length > 2 && (
+            {e.categories.length > 2 && (
               <span
                 className="text-white text-xs px-3 py-1 rounded-full shadow-lg"
                 style={{ backgroundColor: `${brandColors.primary}CC` }}
               >
-                +{d.categories.length - 2}
+                +{e.categories.length - 2}
               </span>
             )}
+          </div>
+        )}
+
+        {/* Precio badge */}
+        {e.price && e.price > 0 && (
+          <div className="absolute top-4 left-4 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full shadow-lg z-20">
+            <span className="text-sm font-semibold text-gray-900">
+              ${e.price.toLocaleString('es-CO')}
+            </span>
           </div>
         )}
 
         {/* Imagen */}
         <div className="relative w-full h-56">
           <Image
-            src={d.image}
-            alt={d.name}
+            src={e.image}
+            alt={e.name}
             fill
             sizes="(max-width:768px)100vw,33vw"
             className="object-cover group-hover:scale-110 transition-transform duration-500"
@@ -270,17 +279,25 @@ export default function FeaturedDestinations() {
 
         {/* Cuerpo */}
         <div className="p-6">
-          <h3 className="text-lg font-bold mb-1">{d.name}</h3>
-          <p className="text-sm text-gray-600 line-clamp-2">
-            {d.tagline || d.description.slice(0, 120)}
+          <h3 className="text-lg font-bold mb-1">{e.name}</h3>
+          <p className="text-sm text-gray-600 line-clamp-2 mb-4">
+            {e.tagline || e.description.slice(0, 120)}
           </p>
 
-          {d.address && (
-            <div className="mt-4 flex items-center text-sm text-gray-500">
-              <MapPin className="h-4 w-4 mr-1 flex-shrink-0" />
-              <span className="truncate">{d.address}</span>
-            </div>
-          )}
+          <div className="flex items-center gap-4 text-sm text-gray-500">
+            {e.duration && (
+              <div className="flex items-center gap-1">
+                <Clock className="h-4 w-4" />
+                <span>{e.duration}</span>
+              </div>
+            )}
+            {e.schedule && (
+              <div className="flex items-center gap-1">
+                <Calendar className="h-4 w-4" />
+                <span>{e.schedule}</span>
+              </div>
+            )}
+          </div>
         </div>
       </Link>
     );
@@ -293,9 +310,9 @@ export default function FeaturedDestinations() {
     <section className="max-w-7xl mx-auto px-6 py-20">
       {/* Título */}
       <div className="text-center mb-12">
-        <h2 className="text-4xl font-bold">Destinos Destacados</h2>
+        <h2 className="text-4xl font-bold">Experiencias Únicas</h2>
         <p className="text-gray-600 mt-2">
-          Explora los lugares imperdibles del Atlántico.
+          Vive aventuras inolvidables en el Atlántico.
         </p>
       </div>
 
@@ -327,7 +344,7 @@ export default function FeaturedDestinations() {
         </div>
       </div>
 
-      {/* Filtros */}
+      {/* Filtros - EXACTAMENTE IGUAL QUE FeaturedDestinations */}
       <motion.div
         className="flex flex-wrap justify-center gap-2 mb-10"
         initial={{ opacity: 0, y: 20 }}
@@ -394,15 +411,15 @@ export default function FeaturedDestinations() {
           >
             {/* Grid View */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-              {filtered.slice(0, showCardCount).map((d, i) => (
+              {filtered.slice(0, showCardCount).map((e, i) => (
                 <motion.div
-                  key={d.id}
+                  key={e.id}
                   initial={{ opacity: 0, y: 25 }}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
                   transition={{ duration: 0.4, delay: i * 0.05 }}
                 >
-                  <Card d={d} />
+                  <Card e={e} />
                 </motion.div>
               ))}
             </div>
@@ -411,7 +428,7 @@ export default function FeaturedDestinations() {
             {filtered.length === 0 && (
               <div className="text-center py-12">
                 <p className="text-lg text-gray-500">
-                  No se encontraron destinos con las categorías seleccionadas.
+                  No se encontraron experiencias con las categorías seleccionadas.
                 </p>
               </div>
             )}
@@ -423,7 +440,7 @@ export default function FeaturedDestinations() {
                   onClick={() => setShowCardCount((c) => c + 9)}
                   className="px-6 py-3 bg-primary text-white rounded-xl hover:bg-primary/90 transition-colors"
                 >
-                  Ver más destinos
+                  Ver más experiencias
                 </button>
               </div>
             )}
@@ -437,7 +454,7 @@ export default function FeaturedDestinations() {
             transition={{ duration: 0.3 }}
           >
             {/* Map View */}
-            <MapView 
+            <MapWrapper 
               destinations={filtered} 
               categoryConfig={categoryConfig}
               brandColors={brandColors}

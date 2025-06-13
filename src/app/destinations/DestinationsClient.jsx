@@ -18,7 +18,6 @@ import { useSearchParams } from "next/navigation";
 const CATEGORIES = [
   "Todos",
   "Playas",
-  "Eco",
   "Gastronomía",
   "Aventura",
   "Cultura",
@@ -36,9 +35,8 @@ const CATEGORIES = [
   "Náutica",
   "Acuáticos",
   "Pesca",
-  "Cine",
   "Arte",
-  "Spots instagrameables",
+  "Spots Instagrameables",
   "Artesanías",
   "EcoTurismo",
 ];
