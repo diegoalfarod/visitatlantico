@@ -88,7 +88,7 @@ export default function SaveItineraryModal({
   };
 
   const handleShareNative = async () => {
-    if (navigator.share) {
+    if (typeof navigator !== 'undefined' && navigator.share) {
       try {
         await navigator.share({
           title: 'Mi itinerario en Atlántico',
@@ -295,7 +295,7 @@ export default function SaveItineraryModal({
 
                 {/* Acciones */}
                 <div className="space-y-3">
-                  {navigator.share && (
+                  {typeof navigator !== 'undefined' && navigator.share && (
                     <motion.button
                       whileTap={{ scale: 0.95 }}
                       onClick={handleShareNative}
@@ -303,6 +303,22 @@ export default function SaveItineraryModal({
                     >
                       <Share2 className="w-5 h-5" />
                       Compartir itinerario
+                    </motion.button>
+                  )}
+                  
+                  {answers.email && (
+                    <motion.button
+                      whileTap={{ scale: 0.95 }}
+                      onClick={handleSendEmail}
+                      disabled={sendingEmail}
+                      className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+                    >
+                      {sendingEmail ? (
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                      ) : (
+                        <Mail className="w-5 h-5" />
+                      )}
+                      Enviar por email
                     </motion.button>
                   )}
                   

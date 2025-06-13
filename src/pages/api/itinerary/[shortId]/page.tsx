@@ -82,7 +82,7 @@ export default function SavedItineraryPage() {
 
   // Función para compartir nativo
   const handleShare = async () => {
-    if (navigator.share) {
+    if (typeof navigator !== 'undefined' && navigator.share) {
       try {
         await navigator.share({
           title: 'Mi itinerario en Atlántico',
