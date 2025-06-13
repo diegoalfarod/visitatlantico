@@ -25,7 +25,8 @@ import MultiDayItinerary from '@/components/MultiDayItinerary';
 export default function SharedItineraryPage() {
   const params = useParams();
   const router = useRouter();
-  const shortId = params.shortId as string;
+  // Manejo seguro de params - pueden ser null
+  const shortId = params?.shortId as string || params?.shortID as string || '';
 
   const [itinerary, setItinerary] = useState<SavedItinerary | null>(null);
   const [loading, setLoading] = useState(true);
@@ -39,7 +40,12 @@ export default function SharedItineraryPage() {
   }, []);
 
   useEffect(() => {
-    loadItinerary();
+    if (shortId) {
+      loadItinerary();
+    } else {
+      setError('ID de itinerario no válido');
+      setLoading(false);
+    }
   }, [shortId]);
 
   const loadItinerary = async () => {
