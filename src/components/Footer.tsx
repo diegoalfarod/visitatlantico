@@ -9,9 +9,6 @@ import {
   Phone,
   MapPin,
   Send,
-  Facebook,
-  Twitter,
-  Youtube,
   ArrowUpRight,
 } from "lucide-react";
 
@@ -46,21 +43,6 @@ export default function Footer() {
       icon: <Instagram size={18} />,
       label: "Instagram",
       href: "https://instagram.com/turismoatlantico_",
-    },
-    {
-      icon: <Facebook size={18} />,
-      label: "Facebook",
-      href: "https://facebook.com/gobatlantico",
-    },
-    {
-      icon: <Twitter size={18} />,
-      label: "Twitter",
-      href: "https://twitter.com/gobatlantico",
-    },
-    {
-      icon: <Youtube size={18} />,
-      label: "YouTube",
-      href: "https://youtube.com/@gobatlantico",
     },
   ];
 

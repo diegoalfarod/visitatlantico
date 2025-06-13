@@ -11,7 +11,6 @@ import { toMin, toHHMM } from "@/utils/itinerary-helpers";
 import LocationSelector from "@/components/LocationSelector";
 import MultiDayItinerary from "@/components/MultiDayItinerary";
 
-
 import {
   Loader2,
   MapPin,
@@ -176,13 +175,13 @@ export default function PremiumPlannerPage() {
                 onClick={() => setAnswers({ ...answers, motivos: [] })}
                 className="text-sm text-red-600 hover:text-red-700"
               >
-                Limpiar selección
+                Limpiar
               </button>
             )}
           </div>
           
           {/* Grid de opciones */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-[60vh] overflow-y-auto">
             {[
               // Opciones originales
               { id: "relax", emoji: "🏖️", title: "Relax total", desc: "Playas, spa y descanso" },
@@ -307,6 +306,8 @@ export default function PremiumPlannerPage() {
             onChange={(e) => setAnswers({ ...answers, email: e.target.value })}
             placeholder="tu@email.com"
             className="w-full px-4 sm:px-6 py-3 sm:py-4 text-base sm:text-lg border-2 border-gray-300 rounded-2xl focus:border-red-500 focus:outline-none transition-all"
+            autoComplete="email"
+            inputMode="email"
           />
           <p className="text-xs sm:text-sm text-gray-500 mt-2 text-center">
             No spam, solo tu itinerario 🎉
@@ -587,19 +588,160 @@ export default function PremiumPlannerPage() {
   }
 
   /* ═════ vista itinerario mejorada para móvil ════ */
-if (view === "itinerary" && itinerary) {
-  const totalH = Math.round(
-    itinerary.reduce((s, t) => s + t.durationMinutes, 0) / 60
-  );
-  const days = answers.days ?? 1;
+  if (view === "itinerary" && itinerary) {
+    const totalH = Math.round(
+      itinerary.reduce((s, t) => s + t.durationMinutes, 0) / 60
+    );
+    const days = answers.days ?? 1;
 
+    return (
+      <main ref={pdfRef} className="min-h-screen bg-gradient-to-br from-blue-50 to-red-50 pb-16">
+        {/* HERO móvil-first - OPTIMIZADO */}
+        <div className="bg-gradient-to-r from-red-600 to-red-800 text-white">
+          <div className="max-w-4xl mx-auto px-4 sm:px-6">
+            {/* Botones de navegación - ahora en su propia fila */}
+            <div className="flex justify-between items-center pt-4 pb-2">
+              <div className="flex gap-2">
+                <button
+                  onClick={() => window.location.href = 'https://visitatlantico.com'}
+                  className="p-2 rounded-full bg-white/20 backdrop-blur-sm hover:bg-white/30 transition-colors"
+                  title="Ir a la página principal"
+                >
+                  <Home className="w-5 h-5" />
+                </button>
+                <button
+                  onClick={() => {
+                    if (confirm("¿Regresar al inicio? Se perderá el itinerario actual.")) {
+                      setView("questions");
+                      setQIndex(0);
+                      setItinerary(null);
+                    }
+                  }}
+                  className="p-2 rounded-full bg-white/20 backdrop-blur-sm hover:bg-white/30 transition-colors"
+                  title="Crear nuevo itinerario"
+                >
+                  <ArrowLeft className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+            
+            {/* Contenido del header con padding apropiado */}
+            <div className="text-center py-6 sm:py-10">
+              <motion.h1 
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="text-2xl sm:text-5xl font-extrabold px-2"
+              >
+                Tu Aventura Generada
+              </motion.h1>
+              {locationData?.address && (
+                <motion.p 
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.2 }}
+                  className="mt-2 text-sm sm:text-lg"
+                >
+                  📍 {locationData.address}
+                </motion.p>
+              )}
+              <motion.div 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.4 }}
+                className="mt-4 flex items-center justify-center gap-2 text-xs sm:text-sm bg-white/20 rounded-full px-3 sm:px-4 py-2 backdrop-blur-sm mx-auto max-w-fit"
+              >
+                <Shuffle className="w-3 h-3 sm:w-4 sm:h-4" />
+                <span className="hidden sm:inline">Arrastra las actividades para personalizar tu itinerario</span>
+                <span className="sm:hidden">Personaliza arrastrando</span>
+              </motion.div>
+            </div>
+          </div>
+        </div>
+
+        <div className="max-w-4xl mx-auto px-4 -mt-4 sm:-mt-8 space-y-6 sm:space-y-10">
+          {/* resumen mejorado móvil */}
+          <motion.section 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-white p-5 sm:p-8 rounded-2xl sm:rounded-3xl shadow-2xl space-y-4 sm:space-y-6"
+          >
+            <h2 className="text-xl sm:text-3xl font-bold">Resumen de tu aventura</h2>
+            <div className="grid grid-cols-3 gap-3 sm:gap-6 text-center">
+              <div className="space-y-1 sm:space-y-2">
+                <Calendar className="w-6 h-6 sm:w-8 sm:h-8 mx-auto text-red-600" />
+                <p className="text-lg sm:text-2xl font-bold">{days}</p>
+                <p className="text-xs sm:text-sm text-gray-500">día{days > 1 ? "s" : ""}</p>
+              </div>
+              <div className="space-y-1 sm:space-y-2">
+                <MapPin className="w-6 h-6 sm:w-8 sm:h-8 mx-auto text-red-600" />
+                <p className="text-lg sm:text-2xl font-bold">{itinerary.length}</p>
+                <p className="text-xs sm:text-sm text-gray-500">paradas</p>
+              </div>
+              <div className="space-y-1 sm:space-y-2">
+                <Clock className="w-6 h-6 sm:w-8 sm:h-8 mx-auto text-red-600" />
+                <p className="text-lg sm:text-2xl font-bold">{totalH}</p>
+                <p className="text-xs sm:text-sm text-gray-500">horas</p>
+              </div>
+            </div>
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 pt-2 sm:pt-4">
+              <motion.button
+                whileHover={!isMobile ? { scale: 1.02 } : {}}
+                whileTap={{ scale: 0.98 }}
+                onClick={downloadPDF}
+                className="flex-1 bg-green-600 text-white px-4 sm:px-5 py-2.5 sm:py-3 rounded-full inline-flex items-center justify-center shadow hover:shadow-lg transition text-sm sm:text-base font-medium"
+              >
+                <Download className="mr-2 w-4 h-4 sm:w-5 sm:h-5" /> Guardar PDF
+              </motion.button>
+              <motion.button
+                whileHover={!isMobile ? { scale: 1.02 } : {}}
+                whileTap={{ scale: 0.98 }}
+                onClick={handleShare} 
+                className="flex-1 bg-purple-600 text-white px-4 sm:px-5 py-2.5 sm:py-3 rounded-full inline-flex items-center justify-center shadow hover:shadow-lg transition text-sm sm:text-base font-medium"
+              >
+                <Share2 className="mr-2 w-4 h-4 sm:w-5 sm:h-5" /> Compartir
+              </motion.button>
+            </div>
+          </motion.section>
+
+          {/* mapa - altura reducida en móvil */}
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="bg-white rounded-2xl sm:rounded-3xl shadow-2xl overflow-hidden h-64 sm:h-96 map-container"
+          >
+            <ItineraryMap stops={itinerary} userLocation={locationData ? { lat: locationData.lat, lng: locationData.lng } : null} />
+          </motion.div>
+
+          {/* USAR EL NUEVO COMPONENTE MULTI-DAY */}
+          <MultiDayItinerary
+            itinerary={itinerary}
+            onItineraryUpdate={setItinerary}
+            days={days}
+            userLocation={locationData ? { lat: locationData.lat, lng: locationData.lng } : null}
+          />
+        </div>
+
+        {/* Panel de ajustes rápidos flotante */}
+        <QuickCustomize 
+          itinerary={itinerary} 
+          onUpdate={setItinerary} 
+          isMobile={isMobile} 
+          location={locationData ? { lat: locationData.lat, lng: locationData.lng } : null}
+        />
+      </main>
+    );
+  }
+
+  /* ═════ wizard mejorado móvil ════ */
+  const step = steps[qIndex];
   return (
-    <main ref={pdfRef} className="min-h-screen bg-gradient-to-br from-blue-50 to-red-50 pb-16">
-      {/* HERO móvil-first */}
-      <div className="bg-gradient-to-r from-red-600 to-red-800 text-white py-12 sm:py-16">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 text-center relative">
-          {/* Botones de navegación */}
-          <div className="absolute top-4 left-4 flex gap-2">
+    <main className="min-h-screen bg-gradient-to-br from-blue-50 to-red-50 pb-safe">
+      {/* hero móvil - OPTIMIZADO */}
+      <div className="bg-gradient-to-r from-red-600 to-red-800 text-white">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6">
+          {/* Botón de Home en su propia fila */}
+          <div className="pt-4 pb-2">
             <button
               onClick={() => window.location.href = 'https://visitatlantico.com'}
               className="p-2 rounded-full bg-white/20 backdrop-blur-sm hover:bg-white/30 transition-colors"
@@ -607,161 +749,31 @@ if (view === "itinerary" && itinerary) {
             >
               <Home className="w-5 h-5" />
             </button>
-            <button
-              onClick={() => {
-                if (confirm("¿Regresar al inicio? Se perderá el itinerario actual.")) {
-                  setView("questions");
-                  setQIndex(0);
-                  setItinerary(null);
-                }
-              }}
-              className="p-2 rounded-full bg-white/20 backdrop-blur-sm hover:bg-white/30 transition-colors"
-              title="Crear nuevo itinerario"
-            >
-              <ArrowLeft className="w-5 h-5" />
-            </button>
           </div>
           
-          <motion.h1 
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="text-3xl sm:text-5xl font-extrabold"
-          >
-          -
-          </motion.h1>
-          {locationData?.address && (
-            <motion.p 
+          {/* Contenido del header */}
+          <div className="text-center py-6 sm:py-10">
+            <motion.h1 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="text-3xl sm:text-6xl font-extrabold px-2"
+            >
+              Descubre el Atlántico
+            </motion.h1>
+            <motion.p
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.2 }}
-              className="mt-2 text-base sm:text-lg"
+              className="mt-3 sm:mt-4 text-base sm:text-xl text-red-100"
             >
-              📍 {locationData.address}
+              Creamos tu itinerario perfecto con IA ✨
             </motion.p>
-          )}
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.4 }}
-            className="mt-4 flex items-center justify-center gap-2 text-xs sm:text-sm bg-white/20 rounded-full px-3 sm:px-4 py-2 backdrop-blur-sm mx-auto max-w-fit"
-          >
-            <Shuffle className="w-3 h-3 sm:w-4 sm:h-4" />
-            <span className="hidden sm:inline">Arrastra las actividades para personalizar tu itinerario</span>
-            <span className="sm:hidden">Personaliza arrastrando</span>
-          </motion.div>
-        </div>
-      </div>
-
-      <div className="max-w-4xl mx-auto px-4 -mt-8 sm:-mt-12 space-y-6 sm:space-y-10">
-        {/* resumen mejorado móvil */}
-        <motion.section 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="bg-white p-6 sm:p-8 rounded-3xl shadow-2xl space-y-4 sm:space-y-6"
-        >
-          <h2 className="text-2xl sm:text-3xl font-bold">Resumen de tu aventura</h2>
-          <div className="grid grid-cols-3 gap-4 sm:gap-6 text-center">
-            <div className="space-y-1 sm:space-y-2">
-              <Calendar className="w-6 h-6 sm:w-8 sm:h-8 mx-auto text-red-600" />
-              <p className="text-xl sm:text-2xl font-bold">{days}</p>
-              <p className="text-xs sm:text-sm text-gray-500">día{days > 1 ? "s" : ""}</p>
-            </div>
-            <div className="space-y-1 sm:space-y-2">
-              <MapPin className="w-6 h-6 sm:w-8 sm:h-8 mx-auto text-red-600" />
-              <p className="text-xl sm:text-2xl font-bold">{itinerary.length}</p>
-              <p className="text-xs sm:text-sm text-gray-500">paradas</p>
-            </div>
-            <div className="space-y-1 sm:space-y-2">
-              <Clock className="w-6 h-6 sm:w-8 sm:h-8 mx-auto text-red-600" />
-              <p className="text-xl sm:text-2xl font-bold">{totalH}</p>
-              <p className="text-xs sm:text-sm text-gray-500">horas</p>
-            </div>
           </div>
-          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 pt-2 sm:pt-4">
-            <motion.button
-              whileHover={!isMobile ? { scale: 1.02 } : {}}
-              whileTap={{ scale: 0.98 }}
-              onClick={downloadPDF}
-              className="flex-1 bg-green-600 text-white px-4 sm:px-5 py-2.5 sm:py-3 rounded-full inline-flex items-center justify-center shadow hover:shadow-lg transition text-sm sm:text-base"
-            >
-              <Download className="mr-2 w-4 h-4 sm:w-5 sm:h-5" /> Guardar PDF
-            </motion.button>
-            <motion.button
-              whileHover={!isMobile ? { scale: 1.02 } : {}}
-              whileTap={{ scale: 0.98 }}
-              onClick={handleShare} 
-              className="flex-1 bg-purple-600 text-white px-4 sm:px-5 py-2.5 sm:py-3 rounded-full inline-flex items-center justify-center shadow hover:shadow-lg transition text-sm sm:text-base"
-            >
-              <Share2 className="mr-2 w-4 h-4 sm:w-5 sm:h-5" /> Compartir
-            </motion.button>
-          </div>
-        </motion.section>
-
-        {/* mapa - altura reducida en móvil */}
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className="bg-white rounded-3xl shadow-2xl overflow-hidden h-64 sm:h-96 map-container"
-        >
-          <ItineraryMap stops={itinerary} userLocation={locationData ? { lat: locationData.lat, lng: locationData.lng } : null} />
-        </motion.div>
-
-        {/* USAR EL NUEVO COMPONENTE MULTI-DAY */}
-        <MultiDayItinerary
-          itinerary={itinerary}
-          onItineraryUpdate={setItinerary}
-          days={days}
-          userLocation={locationData ? { lat: locationData.lat, lng: locationData.lng } : null}
-        />
-      </div>
-
-      {/* Panel de ajustes rápidos flotante */}
-      <QuickCustomize 
-        itinerary={itinerary} 
-        onUpdate={setItinerary} 
-        isMobile={isMobile} 
-        location={locationData ? { lat: locationData.lat, lng: locationData.lng } : null}
-      />
-    </main>
-  );
-}
-  /* ═════ wizard mejorado móvil ════ */
-  const step = steps[qIndex];
-  return (
-    <main className="min-h-screen bg-gradient-to-br from-blue-50 to-red-50 pb-16">
-      {/* hero móvil */}
-      <div className="bg-gradient-to-r from-red-600 to-red-800 text-white py-12 sm:py-16">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 text-center relative">
-          {/* Botón de Home */}
-          <button
-            onClick={() => window.location.href = 'https://visitatlantico.com'}
-            className="absolute top-4 left-4 p-2 rounded-full bg-white/20 backdrop-blur-sm hover:bg-white/30 transition-colors"
-            title="Ir a la página principal"
-          >
-            <Home className="w-5 h-5" />
-          </button>
-          
-          <motion.h1 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="text-4xl sm:text-6xl font-extrabold"
-          >
-            Descubre el Atlántico
-          </motion.h1>
-          <motion.p
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.2 }}
-            className="mt-3 sm:mt-4 text-lg sm:text-xl text-red-100"
-          >
-            Creamos tu itinerario perfecto con IA ✨
-          </motion.p>
         </div>
       </div>
 
       {/* progress móvil mejorado */}
-      <div className="max-w-4xl mx-auto px-4 -mt-6 sm:-mt-8">
+      <div className="max-w-4xl mx-auto px-4 -mt-4 sm:-mt-6">
         <div className="bg-white rounded-full p-1.5 sm:p-2 shadow-lg">
           <div className="flex items-center justify-between">
             {steps.map((_, idx) => (
@@ -770,7 +782,7 @@ if (view === "itinerary" && itinerary) {
                   initial={{ scale: 0 }}
                   animate={{ scale: 1 }}
                   transition={{ delay: idx * 0.1 }}
-                  className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center transition-all text-xs sm:text-sm ${
+                  className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center transition-all text-xs sm:text-sm font-medium ${
                     idx <= qIndex
                       ? "bg-red-600 text-white scale-105 sm:scale-110"
                       : "bg-gray-200 text-gray-400"
@@ -799,7 +811,7 @@ if (view === "itinerary" && itinerary) {
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -20 }}
-            className="bg-white p-6 sm:p-12 rounded-3xl shadow-2xl space-y-6 sm:space-y-10"
+            className="bg-white p-5 sm:p-12 rounded-2xl sm:rounded-3xl shadow-2xl space-y-5 sm:space-y-10"
           >
             {/* Smart suggestions basadas en preferencias anteriores */}
             {preferences.lastItineraries?.length > 0 && qIndex === 1 && (
@@ -819,7 +831,7 @@ if (view === "itinerary" && itinerary) {
             )}
 
             {/* navegación móvil mejorada */}
-            <div className="flex justify-between items-center">
+            <div className="flex justify-between items-center pt-2">
               <motion.button
                 whileHover={!isMobile ? { scale: 1.05 } : {}}
                 whileTap={{ scale: 0.95 }}
@@ -829,6 +841,7 @@ if (view === "itinerary" && itinerary) {
               >
                 <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5" />
                 <span className="hidden sm:inline">Anterior</span>
+                <span className="sm:hidden">Atrás</span>
               </motion.button>
 
               {qIndex < steps.length - 1 ? (
@@ -837,7 +850,7 @@ if (view === "itinerary" && itinerary) {
                   whileTap={{ scale: 0.95 }}
                   onClick={next}
                   disabled={!step.valid}
-                  className="bg-red-600 text-white px-6 sm:px-8 py-2.5 sm:py-3 rounded-full shadow hover:shadow-lg transition disabled:opacity-50 flex items-center gap-1 sm:gap-2 text-sm sm:text-base"
+                  className="bg-red-600 text-white px-5 sm:px-8 py-2.5 sm:py-3 rounded-full shadow hover:shadow-lg transition disabled:opacity-50 flex items-center gap-1 sm:gap-2 text-sm sm:text-base font-medium"
                 >
                   Siguiente
                   <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5" />
@@ -848,7 +861,7 @@ if (view === "itinerary" && itinerary) {
                   whileTap={{ scale: 0.95 }}
                   onClick={generateItinerary}
                   disabled={!step.valid}
-                  className="bg-gradient-to-r from-red-600 to-red-700 text-white px-6 sm:px-8 py-2.5 sm:py-3 rounded-full shadow-lg hover:shadow-xl transition disabled:opacity-50 flex items-center gap-1 sm:gap-2 text-sm sm:text-base"
+                  className="bg-gradient-to-r from-red-600 to-red-700 text-white px-5 sm:px-8 py-2.5 sm:py-3 rounded-full shadow-lg hover:shadow-xl transition disabled:opacity-50 flex items-center gap-1 sm:gap-2 text-sm sm:text-base font-medium"
                 >
                   <Sparkles className="w-4 h-4 sm:w-5 sm:h-5" />
                   <span className="hidden sm:inline">Generar mi aventura</span>
@@ -872,14 +885,14 @@ const WizardStep = ({ step, qIndex, answers }: any) => {
       initial={{ opacity: 0, x: 20 }}
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: -20 }}
-      className="space-y-6 sm:space-y-8"
+      className="space-y-5 sm:space-y-8"
     >
       <div className="text-center">
         <motion.h2
           key={step.label}
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="text-2xl sm:text-3xl font-bold mb-2"
+          className="text-xl sm:text-3xl font-bold mb-2"
         >
           {step.label}
         </motion.h2>
@@ -922,7 +935,7 @@ const SmartSuggestions = ({ preferences }: any) => {
     <motion.div 
       initial={{ opacity: 0, y: -10 }}
       animate={{ opacity: 1, y: 0 }}
-      className="mb-4 sm:mb-6 p-3 sm:p-4 bg-blue-50 rounded-xl"
+      className="mb-3 sm:mb-6 p-3 sm:p-4 bg-blue-50 rounded-xl"
     >
       <p className="text-xs sm:text-sm font-medium mb-2 text-blue-800">
         💡 Basado en tus viajes anteriores
@@ -1002,7 +1015,7 @@ const LoadingItinerary = ({ profile, isMobile }: any) => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-red-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-3xl shadow-2xl p-6 sm:p-8 max-w-md w-full">
+      <div className="bg-white rounded-2xl sm:rounded-3xl shadow-2xl p-6 sm:p-8 max-w-md w-full">
         <div className="text-center space-y-4 sm:space-y-6">
           <div className="relative w-24 h-24 sm:w-32 sm:h-32 mx-auto">
             <motion.div
@@ -1025,7 +1038,7 @@ const LoadingItinerary = ({ profile, isMobile }: any) => {
             key={currentMessage}
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="text-base sm:text-lg font-medium text-gray-700"
+            className="text-sm sm:text-lg font-medium text-gray-700"
           >
             {messages[currentMessage]}
           </motion.p>
@@ -1041,62 +1054,6 @@ const LoadingItinerary = ({ profile, isMobile }: any) => {
           </div>
         </div>
       </div>
-    </div>
-  );
-};
-
-// Resumen visual del día móvil
-const DaySummaryCard = ({ day, stops, isMobile }: { day: number; stops: Stop[]; isMobile: boolean }) => {
-  const totalMinutes = stops.reduce((sum, stop) => sum + stop.durationMinutes, 0);
-  const totalHours = Math.floor(totalMinutes / 60);
-  const minutes = totalMinutes % 60;
-  
-  const categories = Array.from(new Set(stops.map(s => s.category || "General")));
-  
-  return (
-    <div className="bg-gradient-to-r from-red-600 to-red-700 text-white rounded-2xl p-4 sm:p-6 mb-4 sm:mb-6">
-      <div className="flex justify-between items-center mb-3 sm:mb-4">
-        <h3 className="text-xl sm:text-2xl font-bold">Día {day}</h3>
-        <div className="flex gap-1 sm:gap-2">
-          {stops.map((_, i) => (
-            <motion.div
-              key={i}
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              transition={{ delay: i * 0.1 }}
-              className="w-2 h-2 sm:w-2.5 sm:h-2.5 bg-white rounded-full opacity-70"
-            />
-          ))}
-        </div>
-      </div>
-      
-      <div className="grid grid-cols-3 gap-3 sm:gap-4 text-center">
-        <div>
-          <p className="text-2xl sm:text-3xl font-bold">{stops.length}</p>
-          <p className="text-xs sm:text-sm opacity-90">Lugares</p>
-        </div>
-        <div>
-          <p className="text-2xl sm:text-3xl font-bold">{totalHours}h {minutes > 0 ? `${minutes}m` : ''}</p>
-          <p className="text-xs sm:text-sm opacity-90">Duración</p>
-        </div>
-        <div>
-          <p className="text-2xl sm:text-3xl font-bold">{categories.length}</p>
-          <p className="text-xs sm:text-sm opacity-90">Categorías</p>
-        </div>
-      </div>
-      
-      {!isMobile && (
-        <div className="flex gap-2 mt-4 flex-wrap">
-          {categories.map(cat => (
-            <span
-              key={cat}
-              className="px-3 py-1 bg-white/20 rounded-full text-xs backdrop-blur-sm"
-            >
-              {cat}
-            </span>
-          ))}
-        </div>
-      )}
     </div>
   );
 };
@@ -1248,14 +1205,14 @@ const QuickCustomize = ({ itinerary, onUpdate, isMobile, location }: {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50"
+            className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50 overflow-y-auto"
             onClick={() => setShowBreakModal(false)}
           >
             <motion.div
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-white rounded-2xl p-5 sm:p-6 max-w-md w-full"
+              className="bg-white rounded-2xl p-5 sm:p-6 max-w-md w-full my-auto"
               onClick={(e) => e.stopPropagation()}
             >
               <h3 className="text-lg sm:text-xl font-bold mb-4">Agregar Descanso o Actividad</h3>
