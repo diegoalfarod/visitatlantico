@@ -6,7 +6,7 @@ module.exports = {
     './src/pages/**/*.{js,ts,jsx,tsx,mdx}',
     './src/**/*.{js,ts,jsx,tsx,mdx}',
   ],
-  safelist: ['bg-white'],
+  safelist: ['bg-white', 'text-foreground', 'bg-background'],
   theme: {
     extend: {
       fontFamily: {
@@ -31,15 +31,7 @@ module.exports = {
       ringColor: {
         ring: '#CBD5E0',
       },
-      lineClamp: {
-        7: '7',
-        8: '8',
-        9: '9',
-        10: '10',
-      },
     },
   },
-  plugins: [
-    require('@tailwindcss/line-clamp'),
-  ],
+  plugins: [],
 }
