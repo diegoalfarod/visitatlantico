@@ -15,12 +15,13 @@ if (!admin.apps.length) {
 
 const db = admin.firestore();
 
+// Cambiar la firma de la función para Next.js 14+
 export async function GET(
   request: NextRequest,
-  context: { params: Promise<{ shortId: string }> } // CAMBIO: params es ahora Promise
+  context: { params: Promise<{ shortId: string }> } // Cambio aquí: params es ahora una Promise
 ) {
   try {
-    const { shortId } = await context.params; // CAMBIO: await necesario
+    const { shortId } = await context.params; // await aquí
 
     if (!shortId) {
       return NextResponse.json(
@@ -81,10 +82,10 @@ export async function GET(
 
 export async function DELETE(
   request: NextRequest,
-  context: { params: Promise<{ shortId: string }> } // CAMBIO: params es ahora Promise
+  context: { params: Promise<{ shortId: string }> } // Cambio aquí también
 ) {
   try {
-    const { shortId } = await context.params; // CAMBIO: await necesario
+    const { shortId } = await context.params; // await aquí
 
     // Verificar autorización (por email o token)
     const body = await request.json();
