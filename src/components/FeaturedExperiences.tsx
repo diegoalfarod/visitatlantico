@@ -82,7 +82,7 @@ export default function FeaturedDestinations() {
   /* -------------- Category List (Same as DestinationsClient) -------------- */
   const CATEGORIES = [
     "Playas",
-    "Eco",
+    "Artesanías",
     "Gastronomía",
     "Aventura",
     "Cultura",
@@ -99,11 +99,8 @@ export default function FeaturedDestinations() {
     "Fotografía",
     "Náutica",
     "Acuáticos",
-    "Pesca",
-    "Cine",
     "Arte",
-    "Spots Instagrameables",
-    "Artesanías",
+    "Spots instagrameables",
     "EcoTurismo",
   ];
 
@@ -113,7 +110,6 @@ export default function FeaturedDestinations() {
     color: string;
   }> = {
     "Playas":               { icon: FaUmbrellaBeach, color: brandColors.lightBlue },
-    "Eco":                  { icon: FaLeaf,          color: brandColors.green },
     "Gastronomía":          { icon: FaUtensils,      color: brandColors.gold },
     "Aventura":             { icon: FaMountain,      color: brandColors.teal },
     "Cultura":              { icon: FaMusic,         color: brandColors.darkBlue },
@@ -130,8 +126,6 @@ export default function FeaturedDestinations() {
     "Fotografía":           { icon: FaCamera,        color: brandColors.gold },
     "Náutica":              { icon: FaShip,          color: brandColors.lightBlue },
     "Acuáticos":            { icon: FaSwimmer,       color: brandColors.lightTeal },
-    "Pesca":                { icon: FaFish,          color: brandColors.primary },
-    "Cine":                 { icon: FaVideo,         color: brandColors.yellow },
     "Arte":                 { icon: FaPaintBrush,    color: brandColors.light },
     "Spots Instagrameables": { icon: FaInstagram,    color: brandColors.secondary },
     "Artesanías":           { icon: FaHandHoldingHeart, color: brandColors.gold },
