@@ -923,9 +923,10 @@
   border: none;
   outline: none;
   padding: 16px 20px;
-  font-size: 0.875rem;
   color: var(--brand-dark);
   font-family: var(--font-family);
+  font-size:16px !important;        /* mínimo para iOS Safari */
+  line-height: 1.4;
 }
 
 .dark .chat-input {
@@ -999,7 +1000,7 @@
     transform: translateY(10px);
   }
   to {
-    opacity: 1;
+    opacity: 1; 
     transform: translateY(0);
   }
 }
