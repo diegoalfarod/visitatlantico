@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { FaBars, FaTimes } from "react-icons/fa";
 import Image from "next/image";
@@ -9,6 +9,7 @@ import "@/styles/globals.css";
 
 export default function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false);
+  const navbarRef = useRef<HTMLElement>(null);
 
   const links = [
     { href: "/destinations", label: "Destinos" },
@@ -16,9 +17,30 @@ export default function Navbar() {
     { href: "/gastronomy", label: "Gastronomía" },
   ];
 
+  useEffect(() => {
+    const updateNavbarHeight = () => {
+      if (navbarRef.current) {
+        const height = navbarRef.current.offsetHeight;
+        // Establecer la altura como CSS custom property
+        document.documentElement.style.setProperty('--navbar-height', `${height}px`);
+      }
+    };
+
+    // Medir altura inicial
+    updateNavbarHeight();
+
+    // Medir altura cuando cambie el tamaño de ventana
+    window.addEventListener('resize', updateNavbarHeight);
+    
+    return () => window.removeEventListener('resize', updateNavbarHeight);
+  }, []);
+
   return (
     <>
-      <header className="fixed top-0 left-0 right-0 z-50 bg-[#4A4F55] border-b border-[#7A858C] shadow-sm text-white">
+      <header 
+        ref={navbarRef}
+        className="fixed top-0 left-0 right-0 z-50 bg-[#4A4F55] border-b border-[#7A858C] shadow-sm text-white"
+      >
         <div className="max-w-7xl mx-auto flex items-center justify-between px-6 py-3 md:py-4">
           {/* Logo */}
           <Link

@@ -9,23 +9,51 @@ import "@/styles/chatbot.css";
 
 type UserMessage = { role: "user"; content: string };
 type AssistantMessage = { role: "assistant"; content: string };
-type Card = {
+
+interface ConversationContext {
+  budget?: "economico" | "medio" | "alto";
+  interests?: string[];
+  travelDates?: { checkIn: string; checkOut: string };
+  groupSize?: number;
+  location?: string;
+  previousRecommendations?: string[];
+}
+
+interface DestinationCard {
   id: string;
   name: string;
   url: string;
   image?: string;
   tagline?: string;
-};
+  type: "destination";
+}
+
+interface PlaceCard {
+  id: string;
+  name: string;
+  address: string;
+  rating?: number;
+  price_level?: number;
+  photo?: string;
+  place_id: string;
+  type: "place";
+  category: "hotel" | "restaurant" | "attraction";
+}
+
+type Card = DestinationCard | PlaceCard;
+
 type CardsMessage = {
   role: "assistant";
   content: string;
   cards: Card[];
 };
+
 type ChatMessage = UserMessage | AssistantMessage | CardsMessage;
 
 interface ChatAPIResponse {
   reply?: AssistantMessage;
   cards?: Card[];
+  context?: ConversationContext;
 }
 
 const isBasicMessage = (
@@ -37,18 +65,84 @@ function detectLanguage(text: string): "es" | "en" {
   return /[áéíóúñ¿¡]/i.test(text) ? "es" : "en";
 }
 
+// Función para generar estrellas de rating con diseño premium
+function StarRating({ rating }: { rating?: number }) {
+  if (!rating) return null;
+  
+  const stars = [];
+  const fullStars = Math.floor(rating);
+  const hasHalfStar = rating % 1 >= 0.5;
+  
+  for (let i = 0; i < fullStars; i++) {
+    stars.push(
+      <span key={i} className="star-full">★</span>
+    );
+  }
+  
+  if (hasHalfStar) {
+    stars.push(
+      <span key="half" className="star-half">☆</span>
+    );
+  }
+  
+  const emptyStars = 5 - Math.ceil(rating);
+  for (let i = 0; i < emptyStars; i++) {
+    stars.push(
+      <span key={`empty-${i}`} className="star-empty">☆</span>
+    );
+  }
+  
+  return (
+    <div className="rating-container">
+      <div className="stars-wrapper">{stars}</div>
+      <span className="rating-text">({rating.toFixed(1)})</span>
+    </div>
+  );
+}
+
+// Función para mostrar nivel de precios con diseño premium
+function PriceLevel({ level }: { level?: number }) {
+  if (!level) return null;
+  
+  const symbols = [];
+  for (let i = 0; i < level; i++) {
+    symbols.push(<span key={i} className="price-active">$</span>);
+  }
+  for (let i = level; i < 4; i++) {
+    symbols.push(<span key={i} className="price-inactive">$</span>);
+  }
+  
+  return <div className="price-level">{symbols}</div>;
+}
+
 export default function ChatBot() {
   const [open, setOpen] = useState(false);
   const [input, setInput] = useState("");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [typing, setTyping] = useState(false);
   const [firstGreeting, setFirstGreeting] = useState(true);
+  const [context, setContext] = useState<ConversationContext>({});
+  const [isOnline, setIsOnline] = useState(true);
   const messagesEnd = useRef<HTMLDivElement>(null);
 
   const defaultLang =
     typeof navigator !== "undefined" && navigator.language.startsWith("en") ? "en" : "es";
 
-  /* Primer saludo */
+  // Detectar estado online/offline
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+    
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
+
+  /* Primer saludo premium */
   useEffect(() => {
     if (open && firstGreeting) {
       setTyping(true);
@@ -58,32 +152,38 @@ export default function ChatBot() {
             role: "assistant",
             content:
               defaultLang === "en"
-                ? "Hello, traveler! I'm Jimmy 🌴, your guide to the Atlántico region. How can I help?"
-                : "¡Hola, viajero! Soy Jimmy 🌴, tu guía del Atlántico. ¿En qué te ayudo?",
+                ? "¡Welcome to the magical Atlántico! 🌴✨ I'm Jimmy, your premium travel concierge. I'll help you discover hidden gems, luxury accommodations, and unforgettable experiences. What adventure shall we craft for you today? 🏖️🌅"
+                : "¡Bienvenido al mágico Atlántico! 🌴✨ Soy Jimmy, tu concierge de viajes premium. Te ayudaré a descubrir joyas ocultas, alojamientos de lujo y experiencias inolvidables. ¿Qué aventura crearemos para ti hoy? 🏖️🌅",
           },
         ]);
         setTyping(false);
         setFirstGreeting(false);
-      }, 800);
+      }, 1500);
     }
   }, [open, firstGreeting, defaultLang]);
 
-  /* Autoscroll */
+  /* Autoscroll suave */
   useEffect(() => {
-    if (open) messagesEnd.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, open]);
+    if (open) {
+      setTimeout(() => {
+        messagesEnd.current?.scrollIntoView({ 
+          behavior: "smooth", 
+          block: "end" 
+        });
+      }, 100);
+    }
+  }, [messages, open, typing]);
 
-  /* Enviar mensaje */
+  /* Enviar mensaje con loading states */
   const send = async () => {
     const text = input.trim();
-    if (!text) return;
+    if (!text || typing) return;
 
     const lang = detectLanguage(text);
     const userMsg: UserMessage = { role: "user", content: text };
 
-    // Añadir mensaje del usuario
+    // Añadir mensaje del usuario con animación
     setMessages((prev) => [...prev, userMsg]);
-
     setInput("");
     setTyping(true);
 
@@ -91,10 +191,17 @@ export default function ChatBot() {
       const { data } = await axios.post<ChatAPIResponse>("/api/chat", {
         messages: [...messages.filter(isBasicMessage), userMsg],
         language: lang,
+        context: context,
       });
 
-      await new Promise((r) => setTimeout(r, 800));
+      // Simular tiempo de procesamiento para efecto premium
+      await new Promise((r) => setTimeout(r, 1200));
       setTyping(false);
+
+      // Actualizar contexto si viene en la respuesta
+      if (data.context) {
+        setContext(data.context);
+      }
 
       if (data.cards) {
         const cardsMsg: CardsMessage = {
@@ -104,170 +211,358 @@ export default function ChatBot() {
         };
         setMessages((prev) => [...prev, cardsMsg]);
       } else if (data.reply) {
-        // data.reply existe, afirmamos con !
         setMessages((prev) => [...prev, data.reply!]);
       }
-    } catch {
+    } catch (error) {
       setTyping(false);
+      console.error('Chat error:', error);
       setMessages((prev) => [
         ...prev,
         {
           role: "assistant",
-          content: lang === "en" ? "Connection error." : "Error de conexión.",
+          content: lang === "en" 
+            ? "I'm experiencing connectivity issues. Please try again in a moment! 🌐" 
+            : "Estoy experimentando problemas de conectividad. ¡Inténtalo de nuevo en un momento! 🌐",
         },
       ]);
     }
   };
 
   const onKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter") {
+    if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       send();
     }
   };
 
-  /* Tarjeta destino */
-  function DestinationCard({
-    name,
-    url,
-    image,
-    tagline,
-  }: {
-    name: string;
-    url: string;
-    image?: string;
-    tagline?: string;
-  }) {
+  /* Tarjeta de destino premium */
+  function DestinationCard({ card }: { card: DestinationCard }) {
     return (
-      <Link href={url} target="_blank" rel="noopener noreferrer" className="block">
-        <div className="bg-white dark:bg-gray-700 rounded-lg shadow p-4 flex flex-col hover:bg-gray-50 cursor-pointer">
-          {image && (
-            <Image
-              src={image}
-              alt={name}
-              width={300}
-              height={160}
-              className="w-full h-32 object-cover rounded-md mb-2"
-              onError={() => {}}
-            />
-          )}
-          <h3 className="font-semibold">{name}</h3>
-          {tagline && <p className="text-sm text-gray-500">{tagline}</p>}
-          <span className="mt-2 text-primary hover:underline">
-            {defaultLang === "en" ? "View details" : "Ver más"}
-          </span>
+      <Link href={card.url} target="_blank" rel="noopener noreferrer" className="block">
+        <div className="destination-card group">
+          <div className="card-image-container">
+            {card.image ? (
+              <Image
+                src={card.image}
+                alt={card.name}
+                width={400}
+                height={240}
+                className="card-image"
+                onError={() => {}}
+              />
+            ) : (
+              <div className="card-image-placeholder">
+                <span>🏝️</span>
+              </div>
+            )}
+            <div className="card-overlay">
+              <span className="view-details">
+                {defaultLang === "en" ? "Explore Destination" : "Explorar Destino"}
+              </span>
+            </div>
+          </div>
+          <div className="card-content">
+            <h3 className="card-title">{card.name}</h3>
+            {card.tagline && (
+              <p className="card-subtitle">{card.tagline}</p>
+            )}
+            <div className="card-action">
+              <span className="action-text">
+                {defaultLang === "en" ? "Discover More" : "Descubrir Más"}
+              </span>
+              <span className="action-icon">→</span>
+            </div>
+          </div>
         </div>
       </Link>
     );
   }
 
+  /* Tarjeta de lugar premium */
+  function PlaceCard({ card }: { card: PlaceCard }) {
+    const getCategoryIcon = (category: string) => {
+      switch (category) {
+        case "hotel": return "🏨";
+        case "restaurant": return "🍽️";
+        case "attraction": return "🎯";
+        default: return "📍";
+      }
+    };
+
+    const getCategoryLabel = (category: string) => {
+      if (defaultLang === "en") {
+        switch (category) {
+          case "hotel": return "Accommodation";
+          case "restaurant": return "Restaurant";
+          case "attraction": return "Attraction";
+          default: return "Place";
+        }
+      } else {
+        switch (category) {
+          case "hotel": return "Alojamiento";
+          case "restaurant": return "Restaurante";
+          case "attraction": return "Atracción";
+          default: return "Lugar";
+        }
+      }
+    };
+
+    const openInMaps = () => {
+      const query = encodeURIComponent(`${card.name} ${card.address}`);
+      window.open(`https://www.google.com/maps/search/?api=1&query=${query}&query_place_id=${card.place_id}`, '_blank');
+    };
+
+    return (
+      <div className="place-card group">
+        <div className="card-header">
+          {card.photo ? (
+            <img
+              src={card.photo}
+              alt={card.name}
+              className="place-image"
+              onError={(e) => {
+                (e.target as HTMLImageElement).style.display = 'none';
+              }}
+            />
+          ) : (
+            <div className="place-image-placeholder">
+              <span className="placeholder-icon">{getCategoryIcon(card.category)}</span>
+            </div>
+          )}
+          <div className="category-badge">
+            <span className="category-icon">{getCategoryIcon(card.category)}</span>
+            <span className="category-text">{getCategoryLabel(card.category)}</span>
+          </div>
+        </div>
+        
+        <div className="place-content">
+          <h3 className="place-title">{card.name}</h3>
+          
+          <div className="place-meta">
+            <StarRating rating={card.rating} />
+            <PriceLevel level={card.price_level} />
+          </div>
+
+          <p className="place-address">{card.address}</p>
+          
+          <button
+            onClick={openInMaps}
+            className="maps-button group/btn"
+          >
+            <span className="maps-icon">🗺️</span>
+            <span className="maps-text">
+              {defaultLang === "en" ? "View on Maps" : "Ver en Maps"}
+            </span>
+            <span className="maps-arrow">→</span>
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <>
-      {/* FAB */}
-      <button
-        className="chat-fab z-50"
-        onClick={() => setOpen(true)}
-        aria-label={defaultLang === "en" ? "Open chat with Jimmy" : "Abrir chat con Jimmy"}
-      >
-        <Image
-          src="/jimmy-avatar.png"
-          alt="Avatar Jimmy"
-          width={28}
-          height={28}
-          className="rounded-full"
-        />
-      </button>
+      {/* FAB Premium */}
+      <div className="fab-container">
+        <button
+          className="chat-fab-premium"
+          onClick={() => setOpen(true)}
+          aria-label={defaultLang === "en" ? "Chat with Jimmy, your premium Atlántico guide" : "Habla con Jimmy, tu guía premium del Atlántico"}
+        >
+          <div className="fab-background"></div>
+          <div className="fab-content">
+            <Image
+              src="/jimmy-avatar.png"
+              alt="Avatar Jimmy"
+              width={36}
+              height={36}
+              className="fab-avatar"
+            />
+            {!isOnline && <div className="offline-indicator"></div>}
+          </div>
+          <div className="fab-pulse"></div>
+        </button>
+      </div>
 
       {open && (
         <>
-          {/* Backdrop */}
-          <div className="fixed inset-0 bg-black/30 z-40" onClick={() => setOpen(false)} />
+          {/* Backdrop Premium */}
+          <div 
+            className="chat-backdrop" 
+            onClick={() => setOpen(false)} 
+          />
 
-          {/* Ventana de chat */}
-          <div className="fixed bottom-20 right-4 w-full max-w-sm bg-white dark:bg-gray-800 rounded-t-xl shadow-xl z-50 flex flex-col max-h-[80vh] md:max-h-[60vh]">
-            <header className="flex items-center justify-between p-4 bg-primary dark:bg-primary-dark rounded-t-xl sticky top-0 z-10">
-              <div className="flex items-center gap-2">
-                <Image
-                  src="/jimmy-avatar.png"
-                  alt="Avatar Jimmy"
-                  width={32}
-                  height={32}
-                  className="rounded-full"
-                />
-                <h2 className="text-lg font-semibold text-white">Jimmy</h2>
+          {/* Ventana de chat premium */}
+          <div className="chat-window">
+            {/* Header Premium */}
+            <header className="chat-header">
+              <div className="header-background"></div>
+              <div className="header-content">
+                <div className="header-info">
+                  <div className="avatar-container">
+                    <Image
+                      src="/jimmy-avatar.png"
+                      alt="Avatar Jimmy"
+                      width={40}
+                      height={40}
+                      className="header-avatar"
+                    />
+                    <div className={`status-indicator ${isOnline ? 'online' : 'offline'}`}></div>
+                  </div>
+                  <div className="header-text">
+                    <h2 className="header-title">Jimmy 🌴</h2>
+                    <p className="header-subtitle">
+                      {defaultLang === "en" ? "Premium Travel Concierge" : "Concierge de Viajes Premium"}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  className="close-button"
+                  onClick={() => setOpen(false)}
+                  aria-label={defaultLang === "en" ? "Close chat" : "Cerrar chat"}
+                >
+                  <span className="close-icon">✕</span>
+                </button>
               </div>
-              <button
-                className="text-white text-xl"
-                onClick={() => setOpen(false)}
-                aria-label={defaultLang === "en" ? "Close chat" : "Cerrar chat"}
-              >
-                ✕
-              </button>
             </header>
 
-            <div className="flex-1 px-4 py-2 overflow-y-auto chat-body space-y-2">
-              {messages.map((m, i) => {
-                if ("cards" in m) {
-                  return (
-                    <Fragment key={i}>
-                      <div className="max-w-[80%] p-3 rounded-lg bg-neumo-light dark:bg-neumo-dark self-start italic">
-                        {m.content}
-                      </div>
-                      <div className="flex flex-wrap gap-3 mt-2">
-                        {m.cards.slice(0, 3).map((c) => (
-                          <div key={c.id} className="w-[45%]">
-                            <DestinationCard
-                              name={c.name}
-                              url={c.url}
-                              image={c.image}
-                              tagline={c.tagline}
+            {/* Chat Body Premium */}
+            <div className="chat-body-premium">
+              <div className="messages-container">
+                {messages.map((m, i) => {
+                  if ("cards" in m) {
+                    return (
+                      <Fragment key={i}>
+                        <div className="assistant-message-container">
+                          <div className="message-avatar">
+                            <Image
+                              src="/jimmy-avatar.png"
+                              alt="Jimmy"
+                              width={32}
+                              height={32}
+                              className="avatar-small"
                             />
                           </div>
-                        ))}
-                      </div>
-                    </Fragment>
-                  );
-                }
-                return (
-                  <div
-                    key={i}
-                    className={`max-w-[80%] p-3 rounded-lg ${
-                      m.role === "assistant"
-                        ? "bg-neumo-light dark:bg-neumo-dark self-start italic"
-                        : "bg-primary/10 dark:bg-primary/30 self-end font-medium"
-                    }`}
-                  >
-                    {m.content}
-                  </div>
-                );
-              })}
+                          <div className="assistant-message">
+                            <p className="message-text">{m.content}</p>
+                          </div>
+                        </div>
+                        <div className="cards-grid">
+                          {m.cards.slice(0, 3).map((card) => (
+                            <div key={card.id} className="card-wrapper">
+                              {card.type === "destination" ? (
+                                <DestinationCard card={card as DestinationCard} />
+                              ) : (
+                                <PlaceCard card={card as PlaceCard} />
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </Fragment>
+                    );
+                  }
 
-              {typing && (
-                <div className="flex items-center gap-1">
-                  <div className="typing-dot" />
-                  <div className="typing-dot" />
-                  <div className="typing-dot" />
+                  return (
+                    <div
+                      key={i}
+                      className={`message-wrapper ${m.role === "assistant" ? "assistant" : "user"}`}
+                    >
+                      {m.role === "assistant" && (
+                        <div className="message-avatar">
+                          <Image
+                            src="/jimmy-avatar.png"
+                            alt="Jimmy"
+                            width={32}
+                            height={32}
+                            className="avatar-small"
+                          />
+                        </div>
+                      )}
+                      <div className={`message-bubble ${m.role}`}>
+                        <p className="message-text">{m.content}</p>
+                      </div>
+                    </div>
+                  );
+                })}
+
+                {typing && (
+                  <div className="typing-container">
+                    <div className="message-avatar">
+                      <Image
+                        src="/jimmy-avatar.png"
+                        alt="Jimmy typing"
+                        width={32}
+                        height={32}
+                        className="avatar-small typing-avatar"
+                      />
+                    </div>
+                    <div className="typing-bubble">
+                      <div className="typing-dots">
+                        <div className="typing-dot"></div>
+                        <div className="typing-dot"></div>
+                        <div className="typing-dot"></div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                <div ref={messagesEnd} />
+              </div>
+            </div>
+
+            {/* Footer Premium */}
+            <footer className="chat-footer">
+              <div className="footer-background"></div>
+              
+              {/* Context Indicators */}
+              {(context.budget || context.interests?.length || context.location) && (
+                <div className="context-indicators">
+                  {context.budget && (
+                    <div className="context-chip">
+                      <span className="chip-icon">💰</span>
+                      <span className="chip-text">{context.budget}</span>
+                    </div>
+                  )}
+                  {context.location && (
+                    <div className="context-chip">
+                      <span className="chip-icon">📍</span>
+                      <span className="chip-text">{context.location}</span>
+                    </div>
+                  )}
+                  {context.interests?.slice(0, 2).map(interest => (
+                    <div key={interest} className="context-chip">
+                      <span className="chip-icon">✨</span>
+                      <span className="chip-text">{interest}</span>
+                    </div>
+                  ))}
                 </div>
               )}
 
-              <div ref={messagesEnd} />
-            </div>
-
-            <footer className="sticky bottom-0 bg-white dark:bg-gray-800 p-3 border-t border-gray-200 dark:border-gray-700 flex items-center gap-2">
-              <input
-                type="text"
-                className="flex-1 bg-neumo-light dark:bg-neumo-dark px-3 py-2 rounded-full outline-none focus:ring-2 focus:ring-primary"
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyDown={onKeyDown}
-                placeholder={defaultLang === "en" ? "Type your question..." : "Escribe tu pregunta..."}
-              />
-              <button
-                className="px-4 py-2 bg-primary text-white rounded-full hover:bg-primary/90 transition"
-                onClick={send}
-              >
-                {defaultLang === "en" ? "Send" : "Enviar"}
-              </button>
+              {/* Input Area */}
+              <div className="input-container">
+                <div className="input-wrapper">
+                  <input
+                    type="text"
+                    className="chat-input"
+                    value={input}
+                    onChange={(e) => setInput(e.target.value)}
+                    onKeyDown={onKeyDown}
+                    placeholder={
+                      defaultLang === "en" 
+                        ? "Ask me about hotels, restaurants, attractions..." 
+                        : "Pregúntame sobre hoteles, restaurantes, atracciones..."
+                    }
+                    disabled={typing || !isOnline}
+                  />
+                  <button
+                    className="send-button"
+                    onClick={send}
+                    disabled={!input.trim() || typing || !isOnline}
+                  >
+                    <span className="send-icon">→</span>
+                  </button>
+                </div>
+              </div>
             </footer>
           </div>
         </>
