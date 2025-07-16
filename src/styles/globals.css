@@ -580,3 +580,78 @@
     bottom: 0;
   }
 }
+
+/* ───────── Comportamiento de teclado optimizado ───────── */
+@media (max-width: 768px) {
+  /* Forzar altura flexible en iOS */
+  @supports (-webkit-touch-callout: none) {
+    .ios-height-fix {
+      height: -webkit-fill-available !important;
+      max-height: -webkit-fill-available !important;
+    }
+  }
+
+  /* Prevenir zoom automático */
+  input, 
+  textarea {
+    font-size: 16px !important;
+    transform: translateZ(0);
+  }
+
+  /* Animaciones optimizadas */
+  .keyboard-transition {
+    transition: transform 0.3s cubic-bezier(0.2, 0.9, 0.3, 1.2), 
+                height 0.3s cubic-bezier(0.2, 0.9, 0.3, 1.2);
+  }
+  
+  /* Corrección para Safari */
+  .safari-fix {
+    -webkit-transform: translateZ(0);
+    -webkit-backface-visibility: hidden;
+    -webkit-perspective: 1000;
+  }
+}
+
+/* ───────── Keyframe Animations Optimizadas ───────── */
+@keyframes messageSlideIn {
+  0% {
+    opacity: 0;
+    transform: translateY(12px) scale(0.98);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* ───────── Comportamiento de scroll para móviles ───────── */
+.chat-scroll-container {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+
+/* ───────── Fix para Safari ───────── */
+@supports (-webkit-touch-callout: none) {
+  /* Inputs en iOS */
+  input, textarea {
+    transform: translateZ(0);
+  }
+  
+  /* Corrección de rendimiento */
+  .ios-performance {
+    -webkit-transform: translate3d(0,0,0);
+    backface-visibility: hidden;
+    perspective: 1000;
+  }
+}
+
+/* ───────── Fix para Android ───────── */
+@supports (not (-webkit-touch-callout: none)) and (hover: none) and (pointer: coarse) {
+  .android-fix {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+  }
+}

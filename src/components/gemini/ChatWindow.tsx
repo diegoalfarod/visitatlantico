@@ -26,7 +26,6 @@ interface Props {
   suggestions: string[];
   onSend: (text: string) => void;
   onOpenChange: (v: boolean) => void;
-  isKeyboardVisible?: boolean;
 }
 
 type FontSize = "text-sm" | "text-base" | "text-lg";
@@ -40,7 +39,6 @@ export default function ChatWindow({
   suggestions,
   onSend,
   onOpenChange,
-  isKeyboardVisible = false,
 }: Props) {
   /* --------- Estado --------- */
   const [draft, setDraft] = useState("");
@@ -48,82 +46,54 @@ export default function ChatWindow({
   const [isDark, setIsDark] = useState(false);
   const [predictedText, setPredictedText] = useState("");
   const [fontSize, setFontSize] = useState<FontSize>("text-base");
-  const [scrollPosition, setScrollPosition] = useState(0);
-  const [viewportHeight, setViewportHeight] = useState('100vh');
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
+  const [viewportOffset, setViewportOffset] = useState(0);
   const isMobile = useMediaQuery({ maxWidth: 768 });
 
   /* --------- Refs --------- */
   const virtuosoRef: MutableRefObject<any> = useRef(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const formRef = useRef<HTMLFormElement>(null);
 
-  /* --------- Efecto: Guardar posición del scroll y bloquear al abrir --------- */
-  useEffect(() => {
-    if (open) {
-      // Guardar posición actual del scroll
-      setScrollPosition(window.scrollY);
-      // Bloquear scroll del body
-      document.body.style.overflow = 'hidden';
-      document.body.style.position = 'fixed';
-      document.body.style.top = `-${window.scrollY}px`;
-      document.body.style.width = '100%';
-    } else {
-      // Restaurar scroll al cerrar
-      document.body.style.overflow = '';
-      document.body.style.position = '';
-      document.body.style.top = '';
-      window.scrollTo(0, scrollPosition);
-    }
-
-    return () => {
-      document.body.style.overflow = '';
-      document.body.style.position = '';
-      document.body.style.top = '';
-    };
-  }, [open]);
-
-  /* --------- Efecto: Manejar altura del viewport y teclado --------- */
+  /* --------- Efecto: Manejo avanzado de viewport --------- */
   useEffect(() => {
     if (!open) return;
 
-    const updateHeight = () => {
-      if (window.visualViewport) {
-        setViewportHeight(`${window.visualViewport.height}px`);
-      } else {
-        setViewportHeight('100vh');
+    const vv = window.visualViewport;
+    if (!vv) return;
+
+    const updateViewport = () => {
+      const keyboardHeight = window.innerHeight - vv.height;
+      setKeyboardHeight(Math.max(0, keyboardHeight));
+      setViewportOffset(vv.offsetTop);
+      
+      // Ajustar posición del chat
+      if (containerRef.current) {
+        containerRef.current.style.transform = `translateY(${-vv.offsetTop}px)`;
+        containerRef.current.style.height = `${vv.height}px`;
       }
     };
 
-    updateHeight();
-    
-    if (window.visualViewport) {
-      window.visualViewport.addEventListener('resize', updateHeight);
-    } else {
-      window.addEventListener('resize', updateHeight);
-    }
+    vv.addEventListener('resize', updateViewport);
+    updateViewport();
 
     return () => {
-      if (window.visualViewport) {
-        window.visualViewport.removeEventListener('resize', updateHeight);
-      } else {
-        window.removeEventListener('resize', updateHeight);
-      }
+      vv.removeEventListener('resize', updateViewport);
     };
   }, [open]);
 
   /* --------- Efecto: Scroll al final cuando el teclado aparece --------- */
   useEffect(() => {
-    if (isKeyboardVisible && virtuosoRef.current) {
+    if (keyboardHeight > 0 && virtuosoRef.current) {
       setTimeout(() => {
         virtuosoRef.current.scrollToIndex({ 
           index: messages.length, 
           behavior: 'smooth',
           align: 'end'
         });
-      }, 300);
+      }, 100);
     }
-  }, [isKeyboardVisible, messages.length]);
+  }, [keyboardHeight, messages.length]);
 
   /* --------- Predicción de texto (mock) --------- */
   const predictText = (text: string) => {
@@ -146,9 +116,9 @@ export default function ChatWindow({
   /* --------- Focus al abrir sin causar saltos --------- */
   useEffect(() => {
     if (open) {
-      requestAnimationFrame(() => {
+      setTimeout(() => {
         textareaRef.current?.focus({ preventScroll: true });
-      });
+      }, 300);
     }
   }, [open]);
 
@@ -216,7 +186,11 @@ export default function ChatWindow({
           className={`fixed inset-0 z-[60] flex flex-col ${
             isDark ? "bg-gray-800 text-white" : "bg-white"
           } ${isMobile ? "rounded-none" : "rounded-lg"}`}
-          style={{ height: viewportHeight }}
+          style={{ 
+            transform: `translateY(${-viewportOffset}px)`,
+            height: `calc(100% + ${viewportOffset}px)`,
+            transition: 'transform 0.2s ease, height 0.2s ease'
+          }}
         >
           {/* Header */}
           <header
@@ -279,6 +253,10 @@ export default function ChatWindow({
           <div
             className={`flex-1 overflow-y-auto ${isDark ? "bg-gray-800" : "bg-gray-50"}`}
             onScroll={handleScroll}
+            style={{ 
+              paddingBottom: keyboardHeight > 0 ? keyboardHeight : 0,
+              maxHeight: `calc(100% - ${keyboardHeight}px)`
+            }}
           >
             <Virtuoso
               ref={virtuosoRef}
@@ -405,7 +383,6 @@ export default function ChatWindow({
 
           {/* Input bar (sticky) */}
           <form
-            ref={formRef}
             onSubmit={(e) => {
               e.preventDefault();
               send();
@@ -414,7 +391,8 @@ export default function ChatWindow({
               isDark ? "bg-gray-700 border-gray-600" : "bg-white border-gray-200"
             }`}
             style={{ 
-              paddingBottom: 'env(safe-area-inset-bottom)'
+              paddingBottom: 'env(safe-area-inset-bottom)',
+              transform: `translateY(${keyboardHeight > 0 ? -viewportOffset : 0}px)`
             }}
           >
             {predictedText && (
@@ -432,6 +410,18 @@ export default function ChatWindow({
                   predictText(e.target.value);
                 }}
                 onKeyDown={handleKey}
+                onFocus={() => {
+                  // Enfocar suavemente el último mensaje
+                  setTimeout(() => {
+                    if (virtuosoRef.current) {
+                      virtuosoRef.current.scrollToIndex({
+                        index: messages.length,
+                        behavior: 'smooth',
+                        align: 'end'
+                      });
+                    }
+                  }, 100);
+                }}
                 maxRows={6}
                 placeholder="Escribe tu consulta..."
                 className={`flex-1 resize-none bg-transparent px-3 py-3 ${fontSize} ${
