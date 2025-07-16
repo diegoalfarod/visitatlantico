@@ -8,78 +8,37 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ───────── Scrollbars Institucionales ───────── */
-.premium-scrollbar {
-  scrollbar-width: thin;
-  scrollbar-color: rgba(228, 14, 32, 0.4) transparent;
-}
-
-.premium-scrollbar::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-
-.premium-scrollbar::-webkit-scrollbar-track {
-  background: rgba(193, 197, 200, 0.1);
-  border-radius: 3px;
-}
-
-.premium-scrollbar::-webkit-scrollbar-thumb {
-  background: linear-gradient(to bottom, #E40E20, #B91C1C);
-  border-radius: 3px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.premium-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(to bottom, #B91C1C, #E40E20);
-}
-
-.premium-scrollbar-horizontal {
-  scrollbar-width: thin;
-  scrollbar-color: rgba(228, 14, 32, 0.4) transparent;
-}
-
-.premium-scrollbar-horizontal::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-
-.premium-scrollbar-horizontal::-webkit-scrollbar-track {
-  background: rgba(193, 197, 200, 0.1);
-  border-radius: 3px;
-}
-
-.premium-scrollbar-horizontal::-webkit-scrollbar-thumb {
-  background: linear-gradient(to right, #E40E20, #B91C1C);
-  border-radius: 3px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-/* Hidden scrollbar for clean look */
-.hide-scrollbar {
-  scrollbar-width: none;
-  -ms-overflow-style: none;
-}
-
-.hide-scrollbar::-webkit-scrollbar {
-  display: none;
-}
-
 /* ───────── CSS Variables - Paleta Gobernación del Atlántico ───────── */
 :root {
   --background: #ffffff;
-  --foreground: #4A4F55;        /* Gris oscuro - Encabezados, texto destacado */
-  --primary: #E40E20;           /* Rojo primario - Llamados a la acción, botones, links activos */
-  --primary-hover: #B91C1C;     /* Rojo más oscuro para hover */
-  --secondary: #7A888C;         /* Gris medio - Cuerpos de texto, iconos secundarios */
-  --accent: #1FBDBA;            /* Azul turquesa suave - Elementos náuticos o actividades acuáticas */
-  --muted: #C1C5C8;             /* Gris claro - Fondos suaves, divisores, tarjetas */
-  --border: #E5E7EB;            /* Gris muy claro para bordes */
+  --foreground: #4A4F55;
+  --primary: #E40E20;
+  --primary-hover: #B91C1C;
+  --secondary: #7A888C;
+  --accent: #1FBDBA;
+  --muted: #C1C5C8;
+  --border: #E5E7EB;
   --shadow: rgba(74, 79, 85, 0.06);
   
   /* Typography Variables */
   --font-poppins: 'Poppins', -apple-system, BlinkMacSystemFont, sans-serif;
   --font-merriweather-sans: 'Merriweather Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  
+  /* Safe area variables for mobile */
+  --safe-area-inset-top: env(safe-area-inset-top);
+  --safe-area-inset-bottom: env(safe-area-inset-bottom);
+  --safe-area-inset-left: env(safe-area-inset-left);
+  --safe-area-inset-right: env(safe-area-inset-right);
+}
+
+/* Dark mode variables */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0f0f0f;
+    --foreground: #ffffff;
+    --border: #2a2a2a;
+    --shadow: rgba(0, 0, 0, 0.3);
+  }
 }
 
 /* ───────── Base Styles ───────── */
@@ -87,11 +46,14 @@
   *, *::before, *::after {
     box-sizing: border-box;
     border-color: var(--border);
+    -webkit-tap-highlight-color: transparent;
   }
 
   html {
     scroll-behavior: smooth;
     font-feature-settings: "cv03", "cv04", "cv11";
+    -webkit-text-size-adjust: 100%;
+    -webkit-font-smoothing: antialiased;
   }
 
   body {
@@ -102,6 +64,15 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
+    overscroll-behavior: contain;
+  }
+
+  /* Prevent rubber band scrolling on iOS */
+  body.modal-open {
+    position: fixed;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
   }
 
   h1, h2, h3, h4, h5, h6 {
@@ -111,11 +82,17 @@
     color: var(--foreground);
   }
 
-  a, button {
+  /* Improved touch targets */
+  button, a, input, textarea, select {
+    min-height: 44px;
+    min-width: 44px;
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
+  /* Remove iOS input shadows */
   input, textarea {
+    appearance: none;
+    -webkit-appearance: none;
     font-family: inherit;
   }
 
@@ -129,91 +106,90 @@
   }
 }
 
-/* ───────── Component Styles ───────── */
+/* ───────── Scrollbars Premium Mobile ───────── */
 @layer components {
-  /* React Calendar - Estilo Institucional */
-  .react-calendar {
-    @apply bg-white rounded-lg shadow-md p-4 border border-gray-200;
-    font-family: var(--font-merriweather-sans);
-    color: #4A4F55;
+  .premium-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(228, 14, 32, 0.3) transparent;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
   }
 
-  .react-calendar__navigation {
-    @apply mb-4;
+  .premium-scrollbar::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
   }
 
-  .react-calendar__navigation button {
-    @apply rounded-md transition-colors duration-200 font-medium;
-    font-family: var(--font-poppins);
-    color: #7A888C;
+  .premium-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
   }
 
-  .react-calendar__navigation button:hover {
-    background-color: #F3F4F6;
-    color: #E40E20;
+  .premium-scrollbar::-webkit-scrollbar-thumb {
+    background: rgba(228, 14, 32, 0.4);
+    border-radius: 2px;
   }
 
-  .react-calendar__navigation button:disabled {
-    color: #C1C5C8;
+  .premium-scrollbar-horizontal {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(228, 14, 32, 0.3) transparent;
+    -webkit-overflow-scrolling: touch;
   }
 
-  .react-calendar__navigation button:disabled:hover {
-    background-color: transparent;
+  .premium-scrollbar-horizontal::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
   }
 
-  .react-calendar__tile {
-    @apply rounded-md transition-colors duration-200 relative;
-    color: #4A4F55;
+  /* Hidden scrollbar */
+  .hide-scrollbar {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
   }
 
-  .react-calendar__tile:hover {
-    background-color: #F3F4F6;
-    color: #E40E20;
-  }
-
-  .react-calendar__tile--active,
-  .react-calendar__tile--now:not(.gastro-day) {
-    @apply text-white rounded-md shadow-sm font-semibold;
-    background-color: #E40E20;
-  }
-
-  .react-calendar__tile--active:hover {
-    background-color: #B91C1C;
-  }
-
-  /* Gastronomy Event Days */
-  .gastro-day {
-    @apply relative font-semibold;
-    color: #E40E20;
-    background-color: rgba(228, 14, 32, 0.05);
-  }
-
-  .gastro-day::after {
-    content: "🍽️";
-    @apply absolute -top-1 right-1 text-xs;
+  .hide-scrollbar::-webkit-scrollbar {
+    display: none;
   }
 }
 
-/* ───────── Animaciones Institucionales ───────── */
+/* ───────── Mobile-First Animations ───────── */
 @layer utilities {
-  /* Message animations */
+  /* Message animations optimized for mobile */
   .animate-message-in {
-    animation: messageSlideIn 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+    animation: messageSlideIn 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
   }
 
   .animate-fade-in {
-    animation: fadeIn 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+    animation: fadeIn 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
   }
 
   .animate-slide-up {
-    animation: slideUp 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+    animation: slideUp 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
   }
 
   .animate-scale-in {
-    animation: scaleIn 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+    animation: scaleIn 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
   }
 
-  /* Utility classes institucionales */
+  /* Press effect for touch */
+  .active\:scale-95:active {
+    transform: scale(0.95);
+  }
+
+  .active\:scale-98:active {
+    transform: scale(0.98);
+  }
+
+  /* Haptic feedback simulation */
+  @keyframes haptic {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(0.98); }
+  }
+
+  .haptic-feedback {
+    animation: haptic 0.1s ease-out;
+  }
+
+  /* Gradient text effects */
   .text-gradient {
     background: linear-gradient(135deg, #E40E20 0%, #B91C1C 100%);
     -webkit-background-clip: text;
@@ -221,33 +197,44 @@
     background-clip: text;
   }
 
-  .text-gradient-accent {
-    background: linear-gradient(135deg, #1FBDBA 0%, #E40E20 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+  /* Glass morphism for mobile */
+  .glass {
+    background: rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
   }
 
-  .bg-gradient-institutional {
-    background: linear-gradient(135deg, #F9FAFB 0%, #F3F4F6 100%);
+  .glass-dark {
+    background: rgba(31, 31, 31, 0.8);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
   }
 
-  .shadow-institutional {
-    box-shadow: 0 1px 3px rgba(74, 79, 85, 0.1),
-                0 1px 2px rgba(74, 79, 85, 0.06);
+  /* Safe area padding utilities */
+  .safe-top {
+    padding-top: env(safe-area-inset-top);
   }
 
-  .shadow-institutional-lg {
-    box-shadow: 0 4px 6px -1px rgba(74, 79, 85, 0.1),
-                0 2px 4px -1px rgba(74, 79, 85, 0.06);
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  .safe-left {
+    padding-left: env(safe-area-inset-left);
+  }
+
+  .safe-right {
+    padding-right: env(safe-area-inset-right);
   }
 }
 
-/* ───────── Keyframe Animations ───────── */
+/* ───────── Keyframe Animations Optimized ───────── */
 @keyframes messageSlideIn {
   0% {
     opacity: 0;
-    transform: translateY(16px) scale(0.98);
+    transform: translateY(12px) scale(0.98);
   }
   100% {
     opacity: 1;
@@ -256,12 +243,8 @@
 }
 
 @keyframes fadeIn {
-  0% {
-    opacity: 0;
-  }
-  100% {
-    opacity: 1;
-  }
+  0% { opacity: 0; }
+  100% { opacity: 1; }
 }
 
 @keyframes slideUp {
@@ -278,7 +261,7 @@
 @keyframes scaleIn {
   0% {
     opacity: 0;
-    transform: scale(0.95);
+    transform: scale(0.96);
   }
   100% {
     opacity: 1;
@@ -286,11 +269,94 @@
   }
 }
 
-/* ───────── Responsive Breakpoints ───────── */
+/* Bounce animation optimized for mobile */
+@keyframes bounce {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-4px);
+  }
+}
+
+/* ───────── React Calendar Mobile Optimized ───────── */
+.react-calendar {
+  @apply bg-white rounded-lg shadow-md p-3 border border-gray-200;
+  font-family: var(--font-merriweather-sans);
+  color: #4A4F55;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.react-calendar__tile {
+  @apply rounded-md transition-all duration-200 relative;
+  color: #4A4F55;
+  min-height: 44px;
+  font-size: 14px;
+}
+
+.react-calendar__tile:active {
+  transform: scale(0.95);
+}
+
+/* ───────── Touch-Friendly Components ───────── */
+@layer components {
+  /* Touch-friendly buttons */
+  .btn-touch {
+    @apply min-h-[44px] min-w-[44px] flex items-center justify-center;
+    @apply active:scale-95 transition-transform duration-150;
+  }
+
+  /* Swipeable cards */
+  .swipe-card {
+    @apply transition-transform duration-300;
+    will-change: transform;
+  }
+
+  /* Bottom sheet pattern */
+  .bottom-sheet {
+    @apply fixed inset-x-0 bottom-0 z-50;
+    @apply rounded-t-[28px] shadow-2xl;
+    @apply transition-transform duration-300;
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}
+
+/* ───────── Mobile Breakpoints ───────── */
 @media (max-width: 768px) {
-  .premium-scrollbar::-webkit-scrollbar {
-    width: 4px;
-    height: 4px;
+  /* Smaller text on mobile */
+  .text-xs { font-size: 11px; }
+  .text-sm { font-size: 13px; }
+  .text-base { font-size: 15px; }
+  .text-lg { font-size: 17px; }
+  
+  /* Tighter spacing */
+  .gap-2 { gap: 0.375rem; }
+  .gap-3 { gap: 0.625rem; }
+  
+  /* Optimized shadows for performance */
+  .shadow-sm {
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  }
+  
+  .shadow {
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.06);
+  }
+  
+  .shadow-lg {
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.07);
+  }
+}
+
+/* ───────── Landscape Mode Adjustments ───────── */
+@media (orientation: landscape) and (max-height: 500px) {
+  .landscape\:max-h-\[90vh\] {
+    max-height: 90vh;
+  }
+  
+  .landscape\:py-2 {
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
   }
 }
 
@@ -306,32 +372,60 @@
   }
 }
 
-/* ───────── Focus States Mejorados ───────── */
-@layer utilities {
-  .focus-institutional:focus {
-    @apply outline-none ring-2 ring-red-500 ring-offset-2;
-  }
-
-  .focus-institutional-inset:focus {
-    @apply outline-none ring-2 ring-red-500 ring-inset;
-  }
+/* Focus visible for keyboard navigation */
+:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
 }
 
-/* ───────── Print Styles ───────── */
-@media print {
-  .no-print {
-    display: none !important;
+/* ───────── Performance Optimizations ───────── */
+@layer utilities {
+  /* GPU acceleration for animations */
+  .gpu {
+    transform: translateZ(0);
+    will-change: transform;
   }
   
-  .print-text-black {
-    color: #000 !important;
+  /* Optimize image rendering */
+  .img-optimize {
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: crisp-edges;
+    will-change: transform;
+  }
+  
+  /* Reduce paint areas */
+  .contain-paint {
+    contain: paint;
+  }
+  
+  .contain-layout {
+    contain: layout;
   }
 }
 
-/* ───────── High DPI Displays ───────── */
-@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
-  .crisp-edges {
-    image-rendering: -webkit-optimize-contrast;
-    image-rendering: crisp-edges;
+/* ───────── iOS Specific Fixes ───────── */
+@supports (-webkit-touch-callout: none) {
+  /* iOS rubber band fix */
+  .ios-scroll-fix {
+    position: fixed;
+    width: 100%;
+    height: 100%;
+    overflow-y: scroll;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  /* Fix iOS button styles */
+  button, input, textarea {
+    -webkit-appearance: none;
+    border-radius: 0;
+  }
+}
+
+/* ───────── Android Specific ───────── */
+@media (hover: none) and (pointer: coarse) {
+  /* Larger touch targets on Android */
+  .touch-target {
+    min-height: 48px;
+    min-width: 48px;
   }
 }
