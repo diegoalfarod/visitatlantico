@@ -29,34 +29,30 @@ export default function ChatWindow({
   onOpenChange,
 }: Props) {
   const [draft, setDraft] = useState("");
-  const [isScrolledToBottom, setIsScrolledToBottom] = useState(true);
+  const [isBottom, setIsBottom] = useState(true);
   const virtuosoRef = useRef<any>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  /* ─── Auto scroll ─── */
+  /* ---------- Auto-scroll ---------- */
   useEffect(() => {
-    if (isScrolledToBottom) {
-      virtuosoRef.current?.scrollToIndex({
-        index: messages.length,
-        behavior: "smooth",
-      });
+    if (isBottom) {
+      virtuosoRef.current?.scrollToIndex({ index: messages.length, behavior: "smooth" });
     }
-  }, [messages, typing, isScrolledToBottom]);
+  }, [messages, typing, isBottom]);
 
-  /* ─── Focus textarea ─── */
+  /* ---------- Focus al abrir ---------- */
   useEffect(() => {
     if (open) setTimeout(() => textareaRef.current?.focus(), 300);
   }, [open]);
 
-  /* ─── Send ─── */
+  /* ---------- Enviar ---------- */
   const send = () => {
     if (!draft.trim() || typing) return;
     onSend(draft.trim());
     setDraft("");
-    setIsScrolledToBottom(true);
+    setIsBottom(true);
   };
 
-  /* ─── Key handler ─── */
   const handleKey = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
       e.preventDefault();
@@ -64,66 +60,48 @@ export default function ChatWindow({
     }
   };
 
-  /* ─── Scroll detector ─── */
   const handleScroll = (e: any) => {
     const el = e.target;
-    const atBottom = el.scrollHeight - el.scrollTop <= el.clientHeight + 50;
-    setIsScrolledToBottom(atBottom);
+    const atBottom = el.scrollHeight - el.scrollTop <= el.clientHeight + 48;
+    setIsBottom(atBottom);
   };
 
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-[58] bg-black/50 backdrop-blur-sm animate-in fade-in-0 duration-300" />
-
-        <Dialog.Content className="fixed inset-0 z-[60] flex flex-col bg-white animate-in fade-in-0 zoom-in-95 duration-300">
-          {/* Header */}
-          <header className="relative bg-white border-b-2 border-gray-100 shadow-sm">
+        <Dialog.Overlay className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm" />
+        <Dialog.Content className="fixed inset-0 z-[60] flex flex-col bg-white">
+          {/* ---------- Header (sin cambios) ---------- */}
+          <header className="bg-white border-b-2 border-gray-100 shadow-sm">
             <div className="flex items-center justify-between gap-4 px-6 py-4">
               <div className="flex items-center gap-4">
                 <div className="relative">
                   <div className="w-12 h-12 rounded-full bg-gradient-to-br from-gray-50 to-gray-100 border-2 border-gray-200 flex items-center justify-center">
-                    <Image
-                      src="/jimmy-avatar.png"
-                      alt="Jimmy - Asistente Virtual"
-                      width={32}
-                      height={32}
-                      className="rounded-full"
-                    />
+                    <Image src="/jimmy-avatar.png" alt="Jimmy" width={32} height={32} className="rounded-full" />
                   </div>
                   <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 border-2 border-white rounded-full" />
                 </div>
-
                 <div className="flex flex-col">
                   <Dialog.Title asChild>
                     <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2 font-poppins">
-                      Jimmy
-                      <Shield size={16} className="text-red-600" />
+                      Jimmy <Shield size={16} className="text-red-600" />
                     </h2>
                   </Dialog.Title>
-                  <p className="text-sm text-gray-600 font-medium font-merriweather-sans">
-                    Asistente Virtual • Gobernación del Atlántico
-                  </p>
+                  <p className="text-sm text-gray-600 font-medium font-merriweather-sans">Asistente Virtual • Gobernación del Atlántico</p>
                 </div>
               </div>
-
-              <div className="flex items-center gap-3">
-                <Dialog.Close
-                  aria-label="Cerrar chat"
-                  className="group h-10 w-10 rounded-lg bg-gray-100 hover:bg-gray-200 transition-all duration-200 flex items-center justify-center"
-                >
-                  <X size={18} className="text-gray-600 group-hover:text-gray-800" />
-                </Dialog.Close>
-              </div>
+              <Dialog.Close className="group h-10 w-10 rounded-lg bg-gray-100 hover:bg-gray-200 flex items-center justify-center">
+                <X size={18} className="text-gray-600 group-hover:text-gray-800" />
+              </Dialog.Close>
             </div>
           </header>
 
-          {/* Messages Area */}
+          {/* ---------- Zona de mensajes ---------- */}
           <div className="relative flex-1 overflow-hidden bg-gray-50">
             <Virtuoso
               ref={virtuosoRef}
               totalCount={messages.length}
-              className="px-4 sm:px-6 py-4 premium-scrollbar overflow-x-hidden"
+              className="px-3 sm:px-4 py-4 overflow-x-hidden premium-scrollbar"
               onScroll={handleScroll}
               itemContent={(index) => {
                 const m = messages[index];
@@ -132,45 +110,40 @@ export default function ChatWindow({
 
                 return (
                   <div className={`mb-6 flex ${isUser ? "justify-end" : "justify-start"}`}>
-                    <div
-                      className={`group flex items-end gap-3 max-w-full sm:max-w-[85%] md:max-w-[75%] ${
-                        isUser ? "flex-row-reverse" : "flex-row"
-                      }`}
-                    >
+                    <div className={`flex items-end gap-2 w-full ${isUser ? "flex-row-reverse" : "flex-row"}`}>
                       {!isUser && (
-                        <div className="relative flex-shrink-0 mb-1">
-                          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-gray-100 to-gray-200 border border-gray-300 flex items-center justify-center">
-                            <Image
-                              src="/jimmy-avatar.png"
-                              alt="Jimmy"
-                              width={24}
-                              height={24}
-                              className="rounded-full"
-                            />
-                          </div>
-                        </div>
+                        <Image
+                          src="/jimmy-avatar.png"
+                          alt="Jimmy"
+                          width={32}
+                          height={32}
+                          className="rounded-full flex-shrink-0"
+                        />
                       )}
 
-                      <div
-                        className={`flex flex-col gap-2 ${
-                          isUser ? "items-end" : "items-start"
-                        }`}
-                      >
-                        {/* Bubble */}
+                      <div className={`flex flex-col gap-2 flex-1 ${isUser && "items-end"}`}>
+                        {/* ------------ Bubble ------------ */}
                         <div
-                          className={`relative group/bubble max-w-full break-words whitespace-pre-line rounded-2xl px-5 py-4 text-sm shadow-sm transition-all duration-200 hover:shadow-md font-merriweather-sans ${
-                            isUser
-                              ? "bg-red-600 text-white rounded-br-md border border-red-700"
-                              : "bg-white border border-gray-200 rounded-bl-md text-gray-800"
-                          } ${isLast && !isUser ? "animate-message-in" : ""}`}
-                          dangerouslySetInnerHTML={{
-                            __html: m.text.replace(/\n/g, "<br />"),
-                          }}
+                          className={`
+                            break-words whitespace-pre-line w-fit
+                            max-w-[90vw] sm:max-w-[80%] md:max-w-[60%]
+                            rounded-2xl px-5 py-4 text-sm shadow-sm border
+                            ${isUser ? "bg-red-600 text-white border-red-700 rounded-br-md" : "bg-white text-gray-800 border-gray-200 rounded-bl-md"}
+                            ${isLast && !isUser ? "animate-message-in" : ""}
+                          `}
+                          dangerouslySetInnerHTML={{ __html: m.text.replace(/\n/g, "<br />") }}
                         />
 
-                        {/* Place cards */}
+                        {/* ------------ Carrusel de lugares ------------ */}
                         {"places" in m && (
-                          <div className="mt-2 flex gap-3 overflow-x-auto snap-x premium-scrollbar-horizontal pb-2">
+                          <div
+                            className="
+                              mt-2 flex gap-3 pb-2
+                              overflow-x-auto snap-x snap-mandatory
+                              premium-scrollbar-horizontal
+                              [touch-action:pan-x] [overscroll-behavior-x:contain]
+                            "
+                          >
                             {(m as any).places.map((p: Place) => (
                               <PlaceCard key={p.id} place={p} />
                             ))}
@@ -183,41 +156,29 @@ export default function ChatWindow({
               }}
             />
 
+            {/* ---------- Indicador escribiendo + botón scroll (sin cambios) ---------- */}
             {typing && (
-              <div className="px-6 pb-4">
-                <div className="flex items-start gap-3">
-                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-gray-100 to-gray-200 border border-gray-300 flex items-center justify-center">
-                    <Image
-                      src="/jimmy-avatar.png"
-                      alt="Jimmy"
-                      width={24}
-                      height={24}
-                      className="rounded-full"
-                    />
-                  </div>
-                  <TypingIndicator />
-                </div>
+              <div className="px-4 sm:px-6 pb-4 flex items-start gap-2">
+                <Image src="/jimmy-avatar.png" alt="Jimmy" width={32} height={32} className="rounded-full flex-shrink-0" />
+                <TypingIndicator />
               </div>
             )}
-
-            {!isScrolledToBottom && (
+            {!isBottom && (
               <button
                 onClick={() => {
-                  setIsScrolledToBottom(true);
-                  virtuosoRef.current?.scrollToIndex({
-                    index: messages.length,
-                    behavior: "smooth",
-                  });
+                  setIsBottom(true);
+                  virtuosoRef.current?.scrollToIndex({ index: messages.length, behavior: "smooth" });
                 }}
-                className="absolute bottom-4 right-6 h-10 w-10 rounded-full bg-white shadow-lg border border-gray-200 hover:bg-gray-50 hover:border-gray-300 transition-all duration-200 flex items-center justify-center group"
+                className="absolute bottom-4 right-4 h-10 w-10 rounded-full bg-white border border-gray-200 shadow hover:bg-gray-50 flex items-center justify-center"
               >
-                <ChevronDown size={16} className="text-gray-600 group-hover:text-gray-800" />
+                <ChevronDown size={18} className="text-gray-600" />
               </button>
             )}
           </div>
 
+          {/* ---------- Sugerencias + Input (sin cambios) ---------- */}
           {suggestions.length > 0 && (
-            <div className="px-6 py-4 bg-white border-t border-gray-200">
+            <div className="px-4 py-3 bg-white border-t border-gray-200">
               <div className="flex flex-wrap gap-2">
                 {suggestions.map((s) => (
                   <SuggestionChip key={s} label={s} onClick={() => onSend(s)} />
@@ -226,43 +187,37 @@ export default function ChatWindow({
             </div>
           )}
 
-          {/* Input */}
-          <div className="bg-white border-t border-gray-200 shadow-sm">
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                send();
-              }}
-              className="p-4"
-            >
-              <div className="relative">
-                <div className="relative flex items-end gap-3 rounded-xl bg-gray-50 border border-gray-200 focus-within:border-red-500 focus-within:bg-white transition-all duration-200">
-                  <TextareaAutosize
-                    ref={textareaRef}
-                    value={draft}
-                    onChange={(e) => setDraft(e.target.value)}
-                    onKeyDown={handleKey}
-                    maxRows={6}
-                    placeholder="Escribe tu consulta sobre el Atlántico..."
-                    className="flex-1 resize-none bg-transparent px-4 py-3 text-gray-800 placeholder-gray-500 outline-none font-merriweather-sans"
-                    disabled={typing}
-                  />
-
-                  <button
-                    type="submit"
-                    disabled={!draft.trim() || typing}
-                    className="m-2 h-10 w-10 rounded-lg bg-red-600 hover:bg-red-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-all duration-200 flex items-center justify-center group"
-                  >
-                    {typing ? (
-                      <div className="w-4 h-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
-                    ) : (
-                      <Send size={16} className="text-white group-hover:translate-x-0.5 transition-transform" />
-                    )}
-                  </button>
-                </div>
-              </div>
-            </form>
-          </div>
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              send();
+            }}
+            className="p-3 bg-white border-t border-gray-200"
+          >
+            <div className="flex items-end gap-2 rounded-xl bg-gray-50 border border-gray-200 focus-within:border-red-500 focus-within:bg-white">
+              <TextareaAutosize
+                ref={textareaRef}
+                value={draft}
+                onChange={(e) => setDraft(e.target.value)}
+                onKeyDown={handleKey}
+                maxRows={6}
+                placeholder="Escribe tu consulta..."
+                className="flex-1 resize-none bg-transparent px-3 py-3 text-sm text-gray-800 placeholder-gray-500 outline-none"
+                disabled={typing}
+              />
+              <button
+                type="submit"
+                disabled={!draft.trim() || typing}
+                className="mb-2 mr-2 h-10 w-10 rounded-lg bg-red-600 hover:bg-red-700 disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center justify-center"
+              >
+                {typing ? (
+                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                ) : (
+                  <Send size={16} className="text-white" />
+                )}
+              </button>
+            </div>
+          </form>
         </Dialog.Content>
       </Dialog.Portal>
     </Dialog.Root>
