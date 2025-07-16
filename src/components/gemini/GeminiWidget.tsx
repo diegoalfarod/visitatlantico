@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import dynamic from "next/dynamic";
 import Image from "next/image";
 import { sendChatMessage, createUserMessage } from "@/lib/geminiService";
@@ -63,11 +63,49 @@ export default function GeminiWidget() {
   const [hasNewMessage, setHasNewMessage] = useState(false);
   const [fabVisible, setFabVisible] = useState(true);
   const [mounted, setMounted] = useState(false);
+  const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
+  const keyboardObserverRef = useRef<ResizeObserver | null>(null);
 
   // Solo montar después de la hidratación
   useEffect(() => {
     setMounted(true);
+    return () => {
+      if (keyboardObserverRef.current) {
+        keyboardObserverRef.current.disconnect();
+      }
+    };
   }, []);
+
+  // Manejar visibilidad del teclado
+  useEffect(() => {
+    if (!mounted || !open) return;
+    
+    const handleResize = () => {
+      if (!window.visualViewport) return;
+      
+      // Calcular diferencia entre innerHeight y visualViewport height
+      const keyboardHeight = window.innerHeight - window.visualViewport.height;
+      setIsKeyboardVisible(keyboardHeight > 100);
+    };
+
+    // Usar VisualViewport API si está disponible
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', handleResize);
+      handleResize();
+    } else {
+      // Fallback para navegadores sin VisualViewport
+      const viewport = document.querySelector('meta[name="viewport"]');
+      if (viewport) {
+        viewport.setAttribute('content', 'width=device-width, initial-scale=1.0, user-scalable=no');
+      }
+    }
+
+    return () => {
+      if (window.visualViewport) {
+        window.visualViewport.removeEventListener('resize', handleResize);
+      }
+    };
+  }, [mounted, open]);
 
   /* ─── Saludo institucional ─── */
   useEffect(() => {
@@ -153,6 +191,11 @@ export default function GeminiWidget() {
     setOpen(newOpen);
     if (newOpen) {
       setHasNewMessage(false);
+      // Enfocar el input después de la animación
+      setTimeout(() => {
+        const input = document.querySelector('textarea') as HTMLTextAreaElement;
+        input?.focus({ preventScroll: true });
+      }, 300);
     }
   };
 
@@ -236,6 +279,7 @@ export default function GeminiWidget() {
           typing={typing}
           suggestions={suggestions}
           onSend={handleSend}
+          isKeyboardVisible={isKeyboardVisible}
         />
       )}
     </>

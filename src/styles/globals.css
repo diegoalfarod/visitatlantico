@@ -507,3 +507,76 @@
     overscroll-behavior: none;
   }
 }
+
+/* ───────── Mejoras de comportamiento de teclado ───────── */
+@media (max-width: 768px) {
+  /* Prevenir zoom automático en inputs */
+  input, 
+  textarea {
+    font-size: 16px !important;
+  }
+
+  /* Mejorar desplazamiento con teclado */
+  body.chat-open {
+    position: fixed;
+    width: 100%;
+    overflow: hidden;
+  }
+
+  /* Ajustar animaciones para iOS */
+  .animate-message-in {
+    animation: messageSlideIn 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+  }
+  
+  /* Optimizar transiciones de teclado */
+  .keyboard-transition {
+    transition: transform 0.25s ease;
+  }
+}
+
+/* ───────── Keyframe Animations Optimizadas ───────── */
+@keyframes messageSlideIn {
+  0% {
+    opacity: 0;
+    transform: translateY(12px) scale(0.98);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* ───────── Comportamiento de scroll para móviles ───────── */
+.chat-scroll-container {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+
+/* ───────── Fix para Safari ───────── */
+@supports (-webkit-touch-callout: none) {
+  /* Ajuste de altura para iOS */
+  .ios-height-fix {
+    height: -webkit-fill-available;
+  }
+  
+  /* Prevenir bounce no deseado */
+  .no-bounce {
+    overscroll-behavior: none;
+  }
+  
+  /* Inputs en iOS */
+  input, textarea {
+    transform: translateZ(0);
+  }
+}
+
+/* ───────── Fix para Android ───────── */
+@supports (not (-webkit-touch-callout: none)) and (hover: none) and (pointer: coarse) {
+  .android-fix {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+  }
+}
