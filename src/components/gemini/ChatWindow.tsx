@@ -45,14 +45,15 @@ export default function ChatWindow({
   const [isBottom, setIsBottom] = useState(true);
   const [isDark, setIsDark] = useState(false);
   const [predictedText, setPredictedText] = useState("");
-  const [keyboardHeight, setKeyboardHeight] = useState(0);
   const [fontSize, setFontSize] = useState<FontSize>("text-base");
   const [scrollPosition, setScrollPosition] = useState(0);
+  const [viewportHeight, setViewportHeight] = useState('100vh');
   const isMobile = useMediaQuery({ maxWidth: 768 });
 
   /* --------- Refs --------- */
   const virtuosoRef: MutableRefObject<any> = useRef(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   /* --------- Efecto: Guardar posición del scroll y bloquear al abrir --------- */
   useEffect(() => {
@@ -73,28 +74,35 @@ export default function ChatWindow({
     };
   }, [open]);
 
-  /* --------- Efecto: viewport dinámico (dvh) --------- */
+  /* --------- Efecto: viewport visual (para teclado móvil) --------- */
   useEffect(() => {
-    const vv = window.visualViewport;
+    if (!open) return;
 
-    const setCustomVh = () => {
-      const vh = vv ? vv.height : window.innerHeight;
-      document.documentElement.style.setProperty("--vh", `${vh}px`);
-      if (vv) {
-        const kb = window.innerHeight - vv.height - vv.offsetTop;
-        setKeyboardHeight(Math.max(0, kb));
+    const vv = window.visualViewport;
+    if (!vv) return;
+
+    const updateViewport = () => {
+      setViewportHeight(`${vv.height}px`);
+      
+      // Hacer scroll al final cuando el teclado aparece
+      if (virtuosoRef.current) {
+        setTimeout(() => {
+          virtuosoRef.current.scrollToIndex({ 
+            index: messages.length, 
+            behavior: 'smooth',
+            align: 'end'
+          });
+        }, 100);
       }
     };
 
-    setCustomVh();
-    vv?.addEventListener("resize", setCustomVh);
-    window.addEventListener("resize", setCustomVh);
+    vv.addEventListener('resize', updateViewport);
+    updateViewport(); // Inicializar
 
     return () => {
-      vv?.removeEventListener("resize", setCustomVh);
-      window.removeEventListener("resize", setCustomVh);
+      vv.removeEventListener('resize', updateViewport);
     };
-  }, []);
+  }, [open, messages.length]);
 
   /* --------- Predicción de texto (mock) --------- */
   const predictText = (text: string) => {
@@ -106,16 +114,20 @@ export default function ChatWindow({
   /* --------- Auto-scroll cuando llegan mensajes --------- */
   useEffect(() => {
     if (isBottom) {
-      virtuosoRef.current?.scrollToIndex({ index: messages.length });
+      virtuosoRef.current?.scrollToIndex({ 
+        index: messages.length,
+        align: 'end'
+      });
     }
   }, [messages, typing, isBottom]);
 
   /* --------- Focus al abrir sin causar saltos --------- */
   useEffect(() => {
     if (open) {
-      requestAnimationFrame(() => {
+      // Esperar a que la animación de apertura termine
+      setTimeout(() => {
         textareaRef.current?.focus({ preventScroll: true });
-      });
+      }, 300);
     }
   }, [open]);
 
@@ -126,9 +138,15 @@ export default function ChatWindow({
     setDraft("");
     setPredictedText("");
     setIsBottom(true);
-    requestAnimationFrame(() =>
-      virtuosoRef.current?.scrollToIndex({ index: messages.length })
-    );
+    
+    // Scroll suave al enviar
+    setTimeout(() => {
+      virtuosoRef.current?.scrollToIndex({ 
+        index: messages.length,
+        behavior: 'smooth',
+        align: 'end'
+      });
+    }, 50);
   }, [draft, onSend, typing, messages.length]);
 
   const handleKey = useCallback(
@@ -173,10 +191,11 @@ export default function ChatWindow({
 
         {/* Content */}
         <Dialog.Content
+          ref={containerRef}
           className={`fixed inset-0 z-[60] flex flex-col ${
             isDark ? "bg-gray-800 text-white" : "bg-white"
           } ${isMobile ? "rounded-none" : "rounded-lg"}`}
-          style={{ height: "var(--vh)" }}
+          style={{ height: viewportHeight }}
         >
           {/* Header */}
           <header
@@ -239,14 +258,13 @@ export default function ChatWindow({
           <div
             className={`flex-1 overflow-y-auto ${isDark ? "bg-gray-800" : "bg-gray-50"}`}
             onScroll={handleScroll}
-            style={{ paddingBottom: keyboardHeight }}
           >
             <Virtuoso
               ref={virtuosoRef}
               totalCount={messages.length}
               className="px-3 sm:px-4 py-4 overflow-x-hidden"
               alignToBottom={true}
-              followOutput="auto"
+              followOutput={"smooth"}
               itemContent={(index) => {
                 const m = messages[index];
                 const isUser = m.role === "user";
@@ -335,7 +353,11 @@ export default function ChatWindow({
               <button
                 onClick={() => {
                   setIsBottom(true);
-                  virtuosoRef.current?.scrollToIndex({ index: messages.length });
+                  virtuosoRef.current?.scrollToIndex({ 
+                    index: messages.length,
+                    behavior: 'smooth',
+                    align: 'end'
+                  });
                 }}
                 className="absolute bottom-16 right-4 h-10 w-10 rounded-full bg-white border border-gray-200 shadow hover:bg-gray-50 flex items-center justify-center"
               >
@@ -365,13 +387,11 @@ export default function ChatWindow({
               e.preventDefault();
               send();
             }}
-            className={`sticky bottom-0 left-0 right-0 p-3 border-t keyboard-transition ${
+            className={`sticky bottom-0 left-0 right-0 p-3 border-t ${
               isDark ? "bg-gray-700 border-gray-600" : "bg-white border-gray-200"
             }`}
             style={{ 
-              paddingBottom: `calc(1rem + env(safe-area-inset-bottom))`,
-              transform: `translateY(${keyboardHeight > 0 ? -keyboardHeight : 0}px)`,
-              transition: 'transform 0.2s ease'
+              paddingBottom: 'env(safe-area-inset-bottom)'
             }}
           >
             {predictedText && (
