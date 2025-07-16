@@ -1,4 +1,3 @@
-// ChatWindow.tsx
 "use client";
 
 import * as Dialog from "@radix-ui/react-dialog";
@@ -46,13 +45,33 @@ export default function ChatWindow({
   const [isBottom, setIsBottom] = useState(true);
   const [isDark, setIsDark] = useState(false);
   const [predictedText, setPredictedText] = useState("");
-  const [keyboardHeight, setKeyboardHeight] = useState(0); // px de teclado
-  const [fontSize, setFontSize] = useState<FontSize>("text-base"); // >=16 px
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
+  const [fontSize, setFontSize] = useState<FontSize>("text-base");
+  const [scrollPosition, setScrollPosition] = useState(0);
   const isMobile = useMediaQuery({ maxWidth: 768 });
 
   /* --------- Refs --------- */
   const virtuosoRef: MutableRefObject<any> = useRef(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  /* --------- Efecto: Guardar posición del scroll y bloquear al abrir --------- */
+  useEffect(() => {
+    if (open) {
+      setScrollPosition(window.scrollY);
+      document.body.style.position = 'fixed';
+      document.body.style.top = `-${window.scrollY}px`;
+      document.body.style.width = '100%';
+    } else {
+      document.body.style.position = '';
+      document.body.style.top = '';
+      window.scrollTo(0, scrollPosition);
+    }
+
+    return () => {
+      document.body.style.position = '';
+      document.body.style.top = '';
+    };
+  }, [open]);
 
   /* --------- Efecto: viewport dinámico (dvh) --------- */
   useEffect(() => {
@@ -61,7 +80,6 @@ export default function ChatWindow({
     const setCustomVh = () => {
       const vh = vv ? vv.height : window.innerHeight;
       document.documentElement.style.setProperty("--vh", `${vh}px`);
-      // calcular alto de teclado (solo cuando vv disponible)
       if (vv) {
         const kb = window.innerHeight - vv.height - vv.offsetTop;
         setKeyboardHeight(Math.max(0, kb));
@@ -88,14 +106,17 @@ export default function ChatWindow({
   /* --------- Auto-scroll cuando llegan mensajes --------- */
   useEffect(() => {
     if (isBottom) {
-      // sin 'smooth' para evitar cortes con teclado
       virtuosoRef.current?.scrollToIndex({ index: messages.length });
     }
   }, [messages, typing, isBottom]);
 
-  /* --------- Focus al abrir --------- */
+  /* --------- Focus al abrir sin causar saltos --------- */
   useEffect(() => {
-    if (open) setTimeout(() => textareaRef.current?.focus(), 300);
+    if (open) {
+      requestAnimationFrame(() => {
+        textareaRef.current?.focus({ preventScroll: true });
+      });
+    }
   }, [open]);
 
   /* --------- Enviar --------- */
@@ -105,7 +126,6 @@ export default function ChatWindow({
     setDraft("");
     setPredictedText("");
     setIsBottom(true);
-    // scroll inmediatamente después de mandar
     requestAnimationFrame(() =>
       virtuosoRef.current?.scrollToIndex({ index: messages.length })
     );
@@ -133,7 +153,7 @@ export default function ChatWindow({
 
   const decreaseFontSize = () =>
     setFontSize((prev) => {
-      if (isMobile) return "text-base"; // nunca <16 px en mobile
+      if (isMobile) return "text-base";
       if (prev === "text-lg") return "text-base";
       return "text-sm";
     });
@@ -156,7 +176,7 @@ export default function ChatWindow({
           className={`fixed inset-0 z-[60] flex flex-col ${
             isDark ? "bg-gray-800 text-white" : "bg-white"
           } ${isMobile ? "rounded-none" : "rounded-lg"}`}
-          style={{ height: "var(--vh)" }} // usa la altura dinámica
+          style={{ height: "var(--vh)" }}
         >
           {/* Header */}
           <header
@@ -219,12 +239,14 @@ export default function ChatWindow({
           <div
             className={`flex-1 overflow-y-auto ${isDark ? "bg-gray-800" : "bg-gray-50"}`}
             onScroll={handleScroll}
-            style={{ paddingBottom: keyboardHeight }} // evita que el teclado tape mensajes
+            style={{ paddingBottom: keyboardHeight }}
           >
             <Virtuoso
               ref={virtuosoRef}
               totalCount={messages.length}
               className="px-3 sm:px-4 py-4 overflow-x-hidden"
+              alignToBottom={true}
+              followOutput="auto"
               itemContent={(index) => {
                 const m = messages[index];
                 const isUser = m.role === "user";
@@ -343,10 +365,14 @@ export default function ChatWindow({
               e.preventDefault();
               send();
             }}
-            className={`sticky bottom-0 left-0 right-0 p-3 border-t ${
+            className={`sticky bottom-0 left-0 right-0 p-3 border-t keyboard-transition ${
               isDark ? "bg-gray-700 border-gray-600" : "bg-white border-gray-200"
             }`}
-            style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+            style={{ 
+              paddingBottom: `calc(1rem + env(safe-area-inset-bottom))`,
+              transform: `translateY(${keyboardHeight > 0 ? -keyboardHeight : 0}px)`,
+              transition: 'transform 0.2s ease'
+            }}
           >
             {predictedText && (
               <div className={`mb-2 ${fontSize} italic ${isDark ? "text-gray-400" : "text-gray-500"}`}>

@@ -1,4 +1,3 @@
-// PlaceCard.tsx
 import Image from "next/image";
 import { MapPin, Star, Navigation, Award, Clock, Phone, Globe, Heart } from "lucide-react";
 import { useState, useCallback, useRef, useEffect } from "react";
@@ -79,7 +78,7 @@ export function PlaceCard({ place, isMobile, isDark, fontSize }: PlaceCardProps)
 
     // Auto-collapse cuando se hace scroll
     useEffect(() => {
-        if (!isExpanded) return;
+        if (!isExpanded || !isMobile) return;
         
         const observer = new IntersectionObserver(
             ([entry]) => {
@@ -87,7 +86,7 @@ export function PlaceCard({ place, isMobile, isDark, fontSize }: PlaceCardProps)
                     setIsExpanded(false);
                 }
             },
-            { threshold: 0.5 }
+            { threshold: 0.1 }
         );
 
         if (cardRef.current) {
@@ -95,7 +94,7 @@ export function PlaceCard({ place, isMobile, isDark, fontSize }: PlaceCardProps)
         }
 
         return () => observer.disconnect();
-    }, [isExpanded]);
+    }, [isExpanded, isMobile]);
 
     return (
         <div 

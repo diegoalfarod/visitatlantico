@@ -346,6 +346,27 @@
   .shadow-lg {
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.07);
   }
+
+  /* Prevenir zoom en inputs */
+  input, textarea {
+    font-size: 16px !important;
+  }
+  
+  /* Mejorar área de toque */
+  button, [role="button"] {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  /* Ajustes específicos para el chat */
+  .chat-input-container {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  
+  /* Animación suave para el teclado */
+  .keyboard-transition {
+    transition: transform 0.25s ease;
+  }
 }
 
 /* ───────── Landscape Mode Adjustments ───────── */
