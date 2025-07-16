@@ -33,7 +33,7 @@ export default function ChatWindow({
   const virtuosoRef = useRef<any>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  /* ─── Auto scroll y detección de scroll ─── */
+  /* ─── Auto scroll ─── */
   useEffect(() => {
     if (isScrolledToBottom) {
       virtuosoRef.current?.scrollToIndex({
@@ -43,14 +43,12 @@ export default function ChatWindow({
     }
   }, [messages, typing, isScrolledToBottom]);
 
-  /* ─── Focus textarea cuando se abre ─── */
+  /* ─── Focus textarea ─── */
   useEffect(() => {
-    if (open) {
-      setTimeout(() => textareaRef.current?.focus(), 300);
-    }
+    if (open) setTimeout(() => textareaRef.current?.focus(), 300);
   }, [open]);
 
-  /* ─── Enviar mensaje ─── */
+  /* ─── Send ─── */
   const send = () => {
     if (!draft.trim() || typing) return;
     onSend(draft.trim());
@@ -58,7 +56,7 @@ export default function ChatWindow({
     setIsScrolledToBottom(true);
   };
 
-  /* ─── Manejo de teclado ─── */
+  /* ─── Key handler ─── */
   const handleKey = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
       e.preventDefault();
@@ -66,11 +64,11 @@ export default function ChatWindow({
     }
   };
 
-  /* ─── Scroll handler ─── */
+  /* ─── Scroll detector ─── */
   const handleScroll = (e: any) => {
-    const element = e.target;
-    const isAtBottom = element.scrollHeight - element.scrollTop <= element.clientHeight + 50;
-    setIsScrolledToBottom(isAtBottom);
+    const el = e.target;
+    const atBottom = el.scrollHeight - el.scrollTop <= el.clientHeight + 50;
+    setIsScrolledToBottom(atBottom);
   };
 
   return (
@@ -79,11 +77,9 @@ export default function ChatWindow({
         <Dialog.Overlay className="fixed inset-0 z-[58] bg-black/50 backdrop-blur-sm animate-in fade-in-0 duration-300" />
 
         <Dialog.Content className="fixed inset-0 z-[60] flex flex-col bg-white animate-in fade-in-0 zoom-in-95 duration-300">
-          
-          {/* Header Institucional */}
+          {/* Header */}
           <header className="relative bg-white border-b-2 border-gray-100 shadow-sm">
             <div className="flex items-center justify-between gap-4 px-6 py-4">
-              {/* Logo y Branding */}
               <div className="flex items-center gap-4">
                 <div className="relative">
                   <div className="w-12 h-12 rounded-full bg-gradient-to-br from-gray-50 to-gray-100 border-2 border-gray-200 flex items-center justify-center">
@@ -97,7 +93,7 @@ export default function ChatWindow({
                   </div>
                   <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 border-2 border-white rounded-full" />
                 </div>
-                
+
                 <div className="flex flex-col">
                   <Dialog.Title asChild>
                     <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2 font-poppins">
@@ -111,7 +107,6 @@ export default function ChatWindow({
                 </div>
               </div>
 
-              {/* Controles */}
               <div className="flex items-center gap-3">
                 <Dialog.Close
                   aria-label="Cerrar chat"
@@ -128,7 +123,7 @@ export default function ChatWindow({
             <Virtuoso
               ref={virtuosoRef}
               totalCount={messages.length}
-              className="px-6 py-4 premium-scrollbar"
+              className="px-4 sm:px-6 py-4 premium-scrollbar overflow-x-hidden"
               onScroll={handleScroll}
               itemContent={(index) => {
                 const m = messages[index];
@@ -136,11 +131,12 @@ export default function ChatWindow({
                 const isLast = index === messages.length - 1;
 
                 return (
-                  <div
-                    className={`mb-6 flex ${isUser ? "justify-end" : "justify-start"}`}
-                  >
-                    <div className={`group flex items-end gap-3 max-w-[85%] md:max-w-[75%] ${isUser ? "flex-row-reverse" : "flex-row"}`}>
-                      {/* Avatar */}
+                  <div className={`mb-6 flex ${isUser ? "justify-end" : "justify-start"}`}>
+                    <div
+                      className={`group flex items-end gap-3 max-w-full sm:max-w-[85%] md:max-w-[75%] ${
+                        isUser ? "flex-row-reverse" : "flex-row"
+                      }`}
+                    >
                       {!isUser && (
                         <div className="relative flex-shrink-0 mb-1">
                           <div className="w-8 h-8 rounded-full bg-gradient-to-br from-gray-100 to-gray-200 border border-gray-300 flex items-center justify-center">
@@ -155,23 +151,24 @@ export default function ChatWindow({
                         </div>
                       )}
 
-                      <div className={`flex flex-col gap-2 ${isUser ? "items-end" : "items-start"}`}>
-                        {/* Message Bubble */}
+                      <div
+                        className={`flex flex-col gap-2 ${
+                          isUser ? "items-end" : "items-start"
+                        }`}
+                      >
+                        {/* Bubble */}
                         <div
-                          className={`relative group/bubble max-w-full break-words rounded-2xl px-5 py-4 text-sm shadow-sm transition-all duration-200 hover:shadow-md font-merriweather-sans ${
+                          className={`relative group/bubble max-w-full break-words whitespace-pre-line rounded-2xl px-5 py-4 text-sm shadow-sm transition-all duration-200 hover:shadow-md font-merriweather-sans ${
                             isUser
                               ? "bg-red-600 text-white rounded-br-md border border-red-700"
                               : "bg-white border border-gray-200 rounded-bl-md text-gray-800"
-                          } ${isLast && !isUser ? 'animate-message-in' : ''}`}
-                        >
-                          <div
-                            dangerouslySetInnerHTML={{
-                              __html: m.text.replace(/\n/g, "<br />"),
-                            }}
-                          />
-                        </div>
+                          } ${isLast && !isUser ? "animate-message-in" : ""}`}
+                          dangerouslySetInnerHTML={{
+                            __html: m.text.replace(/\n/g, "<br />"),
+                          }}
+                        />
 
-                        {/* Places Cards */}
+                        {/* Place cards */}
                         {"places" in m && (
                           <div className="mt-2 flex gap-3 overflow-x-auto snap-x premium-scrollbar-horizontal pb-2">
                             {(m as any).places.map((p: Place) => (
@@ -186,7 +183,6 @@ export default function ChatWindow({
               }}
             />
 
-            {/* Typing Indicator */}
             {typing && (
               <div className="px-6 pb-4">
                 <div className="flex items-start gap-3">
@@ -204,7 +200,6 @@ export default function ChatWindow({
               </div>
             )}
 
-            {/* Scroll to Bottom Button */}
             {!isScrolledToBottom && (
               <button
                 onClick={() => {
@@ -221,7 +216,6 @@ export default function ChatWindow({
             )}
           </div>
 
-          {/* Suggestions */}
           {suggestions.length > 0 && (
             <div className="px-6 py-4 bg-white border-t border-gray-200">
               <div className="flex flex-wrap gap-2">
@@ -232,7 +226,7 @@ export default function ChatWindow({
             </div>
           )}
 
-          {/* Input Area */}
+          {/* Input */}
           <div className="bg-white border-t border-gray-200 shadow-sm">
             <form
               onSubmit={(e) => {
@@ -243,8 +237,6 @@ export default function ChatWindow({
             >
               <div className="relative">
                 <div className="relative flex items-end gap-3 rounded-xl bg-gray-50 border border-gray-200 focus-within:border-red-500 focus-within:bg-white transition-all duration-200">
-                  
-                  {/* Textarea */}
                   <TextareaAutosize
                     ref={textareaRef}
                     value={draft}
@@ -256,7 +248,6 @@ export default function ChatWindow({
                     disabled={typing}
                   />
 
-                  {/* Send Button */}
                   <button
                     type="submit"
                     disabled={!draft.trim() || typing}
@@ -269,13 +260,6 @@ export default function ChatWindow({
                     )}
                   </button>
                 </div>
-
-                {/* Character counter */}
-                {draft.length > 500 && (
-                  <div className="absolute -top-6 right-2 text-xs text-gray-500">
-                    {draft.length}/1000
-                  </div>
-                )}
               </div>
             </form>
           </div>
