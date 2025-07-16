@@ -24,6 +24,7 @@ module.exports = {
         muted: '#F1F5F9',
         border: '#E5E7EB',
         ring: '#CBD5E0',
+        muted: '#F5F7FA',
       },
       borderColor: {
         border: '#E5E7EB',

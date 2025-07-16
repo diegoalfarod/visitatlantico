@@ -1,11 +1,12 @@
-// src/app/layout.tsx
-
 import "./globals.css";
 import "../styles/planner.css";
+
 import { Poppins, Merriweather_Sans } from "next/font/google";
 import { ReactNode } from "react";
 import type { Metadata } from "next";
+
 import ClientInitializer from "@/components/ClientInitializer";
+import GeminiWidget from "@/components/gemini/GeminiWidget";  // 👈 import directo
 
 const poppins = Poppins({
   subsets: ["latin"],
@@ -53,7 +54,6 @@ export const metadata: Metadata = {
   },
 };
 
-// Mover viewport y themeColor a generateViewport
 export function generateViewport() {
   return {
     viewport: "width=device-width, initial-scale=1",
@@ -68,16 +68,16 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       className={`${poppins.variable} ${merriweatherSans.variable}`}
     >
       <head>
-        {/* Next.js inyecta aquí todos los meta tags definidos en `metadata` */}
-
-        {/* Canonical URL */}
         <link rel="canonical" href="https://visitatlantico.com" />
       </head>
+
       <body className="font-sans">
         <ClientInitializer />
         {children}
-        
-        {/* JSON-LD Structured Data - Movido al final del body para evitar conflictos */}
+
+        {/* 💬 Widget flotante de Gemini */}
+        <GeminiWidget />
+
         <script
           type="application/ld+json"
           suppressHydrationWarning
@@ -87,7 +87,8 @@ export default function RootLayout({ children }: { children: ReactNode }) {
               "@type": "WebSite",
               url: "https://visitatlantico.com",
               name: "VisitAtlántico",
-              description: "Explora el paraíso costero del Atlántico, Colombia.",
+              description:
+                "Explora el paraíso costero del Atlántico, Colombia.",
               publisher: {
                 "@type": "Organization",
                 name: "VisitAtlántico",

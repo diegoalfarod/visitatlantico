@@ -8,7 +8,7 @@ import SustainabilityBanner from "@/components/SustainabilityBanner";
 import ItineraryBanner from "@/components/ItineraryBanner";
 import InstagramFeed from "@/components/InstagramFeed";
 import Footer from "@/components/Footer";
-import ChatBot from "@/components/ChatBot";
+import GeminiWidget from '@/components/gemini/GeminiWidget';
 
 export default function Home() {
   return (
@@ -26,7 +26,7 @@ export default function Home() {
         <InstagramFeed />
       </main>
       <Footer />
-      <ChatBot />
+      <GeminiWidget />
     </>
   );
 }

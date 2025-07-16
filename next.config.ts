@@ -1,59 +1,24 @@
-// next.config.ts
-import { type NextConfig } from 'next'
-
-const nextConfig: NextConfig = {
+/** @type {import('next').NextConfig} */
+const nextConfig = {
   reactStrictMode: true,
 
-  // Configuración para imágenes
   images: {
-    domains: ['firebasestorage.googleapis.com'],
+    /* dominios con URL fija */
+    domains: [
+      "firebasestorage.googleapis.com",
+      "maps.googleapis.com", // para Static Maps u otros endpoints fijos
+    ],
+
+    /* patrones remotos (subdominios variables de Google Photos) */
     remotePatterns: [
-      {
-        protocol: 'https',
-        hostname: 'firebasestorage.googleapis.com',
-        port: '',
-        pathname: '/**',
-      },
+      { protocol: "https", hostname: "lh3.googleusercontent.com", pathname: "/**" },
+      { protocol: "https", hostname: "lh4.googleusercontent.com", pathname: "/**" },
+      { protocol: "https", hostname: "lh5.googleusercontent.com", pathname: "/**" },
+      { protocol: "https", hostname: "lh6.googleusercontent.com", pathname: "/**" },
     ],
   },
 
-  // Paquetes externos que Next.js debe dejar fuera de su bundle de servidor
-  serverExternalPackages: [
-    'chrome-aws-lambda',
-    'puppeteer-core',
-    '@sparticuz/chromium',
-  ],
+  eslint: { ignoreDuringBuilds: true },
+};
 
-  // Para que el build siga adelante aunque haya advertencias de ESLint
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
-
-  webpack: (
-    config: import('webpack').Configuration,
-    { isServer }: { isServer: boolean }
-  ) => {
-    if (isServer) {
-      const externals = Array.isArray(config.externals)
-        ? config.externals
-        : [config.externals || {}]
-
-      config.externals = [
-        ...externals,
-        {
-          'chrome-aws-lambda': 'chrome-aws-lambda',
-          'puppeteer-core': 'puppeteer-core',
-          '@sparticuz/chromium': '@sparticuz/chromium',
-        },
-      ]
-    }
-
-    return config
-  },
-}
-
-if (process.env.NODE_ENV === 'production') {
-  nextConfig.serverExternalPackages!.push('@sparticuz/chromium-min')
-}
-
-export default nextConfig
+module.exports = nextConfig;
