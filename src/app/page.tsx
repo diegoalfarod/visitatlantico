@@ -2,13 +2,13 @@
 import Navbar from "@/components/Navbar";
 import HeroCarousel from "@/components/HeroCarousel";
 import QuickFilters from "@/components/QuickFilters";
-import InstitutionalDivider from "@/components/InstitutionalDivider"; // << nuevo import
+import InstitutionalDivider from "@/components/InstitutionalDivider";
 import FeaturedExperiences from "@/components/FeaturedExperiences";
 import SustainabilityBanner from "@/components/SustainabilityBanner";
 import ItineraryBanner from "@/components/ItineraryBanner";
 import InstagramFeed from "@/components/InstagramFeed";
 import Footer from "@/components/Footer";
-import GeminiWidget from '@/components/gemini/GeminiWidget';
+import "@/styles/globals.css";
 
 export default function Home() {
   return (
@@ -26,7 +26,7 @@ export default function Home() {
         <InstagramFeed />
       </main>
       <Footer />
-      <GeminiWidget />
+      {/* GeminiWidget se renderiza desde layout.tsx, no es necesario aquí */}
     </>
   );
 }

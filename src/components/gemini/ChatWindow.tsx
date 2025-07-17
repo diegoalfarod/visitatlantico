@@ -1,17 +1,15 @@
 "use client";
 
-import * as Dialog from "@radix-ui/react-dialog";
-import { Virtuoso } from "react-virtuoso";
+import { Virtuoso, VirtuosoHandle } from "react-virtuoso";
 import TextareaAutosize from "react-textarea-autosize";
 import {
   useEffect,
   useRef,
   useState,
   useCallback,
-  MutableRefObject,
 } from "react";
 import Image from "next/image";
-import { Send, Shield, X, ChevronDown } from "lucide-react";
+import { Send, Shield, X, ChevronDown, MinusCircle, PlusCircle, Moon, Sun } from "lucide-react";
 import type { ChatMessage, Place } from "@/types/geminiChat";
 import { PlaceCard } from "./PlaceCard";
 import { SuggestionChip } from "./SuggestionChip";
@@ -26,6 +24,8 @@ interface Props {
   suggestions: string[];
   onSend: (text: string) => void;
   onOpenChange: (v: boolean) => void;
+  keyboardHeight: number;
+  viewportHeight: number;
 }
 
 type FontSize = "text-sm" | "text-base" | "text-lg";
@@ -39,103 +39,72 @@ export default function ChatWindow({
   suggestions,
   onSend,
   onOpenChange,
+  keyboardHeight,
+  viewportHeight,
 }: Props) {
   /* --------- Estado --------- */
   const [draft, setDraft] = useState("");
   const [isBottom, setIsBottom] = useState(true);
   const [isDark, setIsDark] = useState(false);
-  const [predictedText, setPredictedText] = useState("");
   const [fontSize, setFontSize] = useState<FontSize>("text-base");
-  const [keyboardHeight, setKeyboardHeight] = useState(0);
-  const [viewportOffset, setViewportOffset] = useState(0);
+  const [isAnimating, setIsAnimating] = useState(false);
   const isMobile = useMediaQuery({ maxWidth: 768 });
 
   /* --------- Refs --------- */
-  const virtuosoRef: MutableRefObject<any> = useRef(null);
+  const virtuosoRef = useRef<VirtuosoHandle>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
+  const chatContainerRef = useRef<HTMLDivElement>(null);
 
-  /* --------- Efecto: Manejo avanzado de viewport --------- */
-  useEffect(() => {
-    if (!open) return;
-
-    const vv = window.visualViewport;
-    if (!vv) return;
-
-    const updateViewport = () => {
-      const keyboardHeight = window.innerHeight - vv.height;
-      setKeyboardHeight(Math.max(0, keyboardHeight));
-      setViewportOffset(vv.offsetTop);
-      
-      // Ajustar posición del chat
-      if (containerRef.current) {
-        containerRef.current.style.transform = `translateY(${-vv.offsetTop}px)`;
-        containerRef.current.style.height = `${vv.height}px`;
-      }
-    };
-
-    vv.addEventListener('resize', updateViewport);
-    updateViewport();
-
-    return () => {
-      vv.removeEventListener('resize', updateViewport);
-    };
-  }, [open]);
-
-  /* --------- Efecto: Scroll al final cuando el teclado aparece --------- */
-  useEffect(() => {
-    if (keyboardHeight > 0 && virtuosoRef.current) {
-      setTimeout(() => {
-        virtuosoRef.current.scrollToIndex({ 
-          index: messages.length, 
-          behavior: 'smooth',
-          align: 'end'
-        });
-      }, 100);
-    }
-  }, [keyboardHeight, messages.length]);
-
-  /* --------- Predicción de texto (mock) --------- */
-  const predictText = (text: string) => {
-    const phrases = ["Hola, ¿cómo estás?", "Quiero reservar un hotel", "Gracias por la ayuda"];
-    const prediction = phrases.find((p) => p.startsWith(text));
-    setPredictedText(prediction ?? "");
-  };
-
-  /* --------- Auto-scroll cuando llegan mensajes --------- */
-  useEffect(() => {
-    if (isBottom && virtuosoRef.current) {
-      virtuosoRef.current.scrollToIndex({ 
-        index: messages.length,
-        behavior: 'smooth',
-        align: 'end'
-      });
-    }
-  }, [messages, typing, isBottom]);
-
-  /* --------- Focus al abrir sin causar saltos --------- */
+  /* --------- Efecto: Animación de apertura/cierre --------- */
   useEffect(() => {
     if (open) {
+      setIsAnimating(true);
+      // Focus después de la animación
       setTimeout(() => {
         textareaRef.current?.focus({ preventScroll: true });
       }, 300);
     }
   }, [open]);
 
-  /* --------- Enviar --------- */
+  /* --------- Efecto: Auto-scroll cuando llegan mensajes --------- */
+  useEffect(() => {
+    if (isBottom && virtuosoRef.current && messages.length > 0) {
+      virtuosoRef.current?.scrollToIndex({
+        index: messages.length - 1,
+        behavior: "smooth",
+        align: "end",
+      });
+    }
+  }, [messages, typing, isBottom]);
+
+  /* --------- Efecto: Ajustar scroll cuando aparece el teclado --------- */
+  useEffect(() => {
+    if (keyboardHeight > 0 && virtuosoRef.current && messages.length > 0) {
+      // Pequeño delay para asegurar que el DOM se actualice
+      setTimeout(() => {
+        virtuosoRef.current?.scrollToIndex({
+          index: messages.length - 1,
+          behavior: "smooth",
+          align: "end",
+        });
+      }, 100);
+    }
+  }, [keyboardHeight, messages.length]);
+
+  /* --------- Enviar mensaje --------- */
   const send = useCallback(() => {
     if (!draft.trim() || typing) return;
     onSend(draft.trim());
     setDraft("");
-    setPredictedText("");
     setIsBottom(true);
-    
-    // Scroll suave al enviar
+
+    // Scroll al nuevo mensaje
     setTimeout(() => {
-      virtuosoRef.current?.scrollToIndex({ 
+      virtuosoRef.current?.scrollToIndex({
         index: messages.length,
-        behavior: 'smooth',
-        align: 'end'
+        behavior: "smooth",
+        align: "end",
       });
     }, 50);
   }, [draft, onSend, typing, messages.length]);
@@ -150,176 +119,240 @@ export default function ChatWindow({
     [send]
   );
 
-  const handleScroll = useCallback((e: any) => {
-    const el = e.target;
-    const atBottom = el.scrollHeight - el.scrollTop <= el.clientHeight + 48;
-    setIsBottom(atBottom);
+  /* --------- Detectar si el usuario está al final del scroll --------- */
+  const handleScroll = useCallback((isAtBottom: boolean) => {
+    setIsBottom(isAtBottom);
   }, []);
 
   /* --------- Controles de tamaño de fuente --------- */
-  const increaseFontSize = () =>
-    setFontSize((prev) => (prev === "text-base" ? "text-lg" : "text-lg"));
-
-  const decreaseFontSize = () =>
+  const increaseFontSize = () => {
     setFontSize((prev) => {
-      if (isMobile) return "text-base";
-      if (prev === "text-lg") return "text-base";
-      return "text-sm";
+      if (prev === "text-sm") return "text-base";
+      if (prev === "text-base") return "text-lg";
+      return "text-lg";
     });
+  };
 
-  /* --------- Estilo común de botones del header --------- */
-  const btnStyle = `h-10 w-10 rounded-lg border flex items-center justify-center
-    ${isDark ? "bg-gray-600 hover:bg-gray-500 border-gray-500" : "bg-gray-200 hover:bg-gray-300 border-gray-300"}`;
+  const decreaseFontSize = () => {
+    setFontSize((prev) => {
+      if (prev === "text-lg") return "text-base";
+      if (prev === "text-base") return isMobile ? "text-base" : "text-sm";
+      return prev;
+    });
+  };
+
+  /* --------- Cerrar chat --------- */
+  const handleClose = () => {
+    setIsAnimating(false);
+    setTimeout(() => {
+      onOpenChange(false);
+    }, 300);
+  };
+
+  /* --------- Altura calculada para el contenedor --------- */
+  const containerHeight = viewportHeight > 0 ? viewportHeight : window.innerHeight;
+  const hasKeyboard = keyboardHeight > 50;
+
+  if (!open) return null;
 
   /* ==========================================================================
      Render
      ========================================================================== */
   return (
-    <Dialog.Root open={open} onOpenChange={onOpenChange}>
-      <Dialog.Portal>
-        {/* Overlay */}
-        <Dialog.Overlay className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm" />
+    <>
+      {/* Overlay */}
+      <div
+        className={`fixed inset-0 z-[50] bg-black/50 backdrop-blur-sm transition-opacity duration-300 ${
+          isAnimating ? "opacity-100" : "opacity-0"
+        }`}
+        onClick={handleClose}
+      />
 
-        {/* Content */}
-        <Dialog.Content
-          ref={containerRef}
-          className={`fixed inset-0 z-[60] flex flex-col ${
-            isDark ? "bg-gray-800 text-white" : "bg-white"
-          } ${isMobile ? "rounded-none" : "rounded-lg"}`}
-          style={{ 
-            transform: `translateY(${-viewportOffset}px)`,
-            height: `calc(100% + ${viewportOffset}px)`,
-            transition: 'transform 0.2s ease, height 0.2s ease'
-          }}
+      {/* Chat Container */}
+      <div
+        ref={chatContainerRef}
+        className={`fixed bottom-0 left-0 right-0 z-[60] bg-white flex flex-col transition-transform duration-300 ease-out ${
+          isAnimating ? "translate-y-0" : "translate-y-full"
+        } ${isDark ? "dark bg-gray-900" : ""}`}
+        style={{
+          height: containerHeight,
+          maxHeight: "100vh",
+          WebkitTransform: isAnimating ? "translateY(0)" : "translateY(100%)",
+        }}
+      >
+        {/* Header */}
+        <header
+          className={`border-b shadow-sm flex-shrink-0 ${
+            isDark ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"
+          }`}
         >
-          {/* Header */}
-          <header
-            className={`border-b shadow-sm ${
-              isDark ? "bg-gray-700 border-gray-600" : "bg-white border-gray-200"
-            }`}
-          >
-            <div className="flex items-center justify-between gap-4 px-4 sm:px-6 py-4">
-              {/* Avatar + título */}
-              <div className="flex items-center gap-4">
-                <div className="relative">
-                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-gray-50 to-gray-100 border-2 border-gray-200 flex items-center justify-center">
-                    <Image
-                      src="/jimmy-avatar.png"
-                      alt="Jimmy"
-                      width={32}
-                      height={32}
-                      className="rounded-full"
-                    />
-                  </div>
-                  <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 border-2 border-white rounded-full" />
+          <div className="flex items-center justify-between gap-4 px-4 sm:px-6 py-4">
+            {/* Avatar + título */}
+            <div className="flex items-center gap-4">
+              <div className="relative">
+                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-gray-50 to-gray-100 border-2 border-gray-200 flex items-center justify-center">
+                  <Image
+                    src="/jimmy-avatar.png"
+                    alt="Jimmy"
+                    width={32}
+                    height={32}
+                    className="rounded-full"
+                  />
                 </div>
-                <div className="flex flex-col">
-                  <Dialog.Title asChild>
-                    <h2
-                      className="text-xl font-bold flex items-center gap-2 font-poppins"
-                      style={{ color: "#4A4F55", fontFamily: "Poppins" }}
-                    >
-                      Jimmy <Shield size={16} className="text-red-600" />
-                    </h2>
-                  </Dialog.Title>
-                  <p
-                    className="text-sm font-medium font-merriweather-sans"
-                    style={{ color: "#7A888C", fontFamily: "Merriweather Sans" }}
-                  >
-                    Asistente Virtual • Gobernación del Atlántico
-                  </p>
-                </div>
+                <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 border-2 border-white rounded-full" />
               </div>
-
-              {/* Controles */}
-              <div className="flex gap-2">
-                <button onClick={increaseFontSize} className={btnStyle}>
-                  A+
-                </button>
-                <button onClick={decreaseFontSize} className={btnStyle}>
-                  A-
-                </button>
-                <button onClick={() => setIsDark(!isDark)} className={btnStyle}>
-                  {isDark ? "Light" : "Dark"}
-                </button>
-                <Dialog.Close className={`${btnStyle} group`}>
-                  <X size={18} className="text-gray-600 group-hover:text-gray-800" />
-                </Dialog.Close>
+              <div className="flex flex-col">
+                <h2
+                  className="text-xl font-bold flex items-center gap-2"
+                  style={{ color: isDark ? "#ffffff" : "#4A4F55", fontFamily: "Poppins" }}
+                >
+                  Jimmy <Shield size={16} className="text-red-600" />
+                </h2>
+                <p
+                  className="text-sm font-medium"
+                  style={{ color: isDark ? "#94a3b8" : "#7A888C", fontFamily: "Merriweather Sans" }}
+                >
+                  Asistente Virtual • Gobernación del Atlántico
+                </p>
               </div>
             </div>
-          </header>
 
-          {/* Scroll-area + mensajes */}
-          <div
-            className={`flex-1 overflow-y-auto ${isDark ? "bg-gray-800" : "bg-gray-50"}`}
-            onScroll={handleScroll}
-            style={{ 
-              paddingBottom: keyboardHeight > 0 ? keyboardHeight : 0,
-              maxHeight: `calc(100% - ${keyboardHeight}px)`
+            {/* Controles */}
+            <div className="flex items-center gap-1.5">
+              {!isMobile && (
+                <>
+                  <button
+                    onClick={increaseFontSize}
+                    className="h-9 w-9 rounded-lg border flex items-center justify-center transition-all hover:scale-105 active:scale-95"
+                    style={{
+                      backgroundColor: isDark ? "#374151" : "#f3f4f6",
+                      borderColor: isDark ? "#4b5563" : "#e5e7eb",
+                    }}
+                  >
+                    <PlusCircle size={18} className={isDark ? "text-gray-300" : "text-gray-600"} />
+                  </button>
+                  <button
+                    onClick={decreaseFontSize}
+                    className="h-9 w-9 rounded-lg border flex items-center justify-center transition-all hover:scale-105 active:scale-95"
+                    style={{
+                      backgroundColor: isDark ? "#374151" : "#f3f4f6",
+                      borderColor: isDark ? "#4b5563" : "#e5e7eb",
+                    }}
+                  >
+                    <MinusCircle size={18} className={isDark ? "text-gray-300" : "text-gray-600"} />
+                  </button>
+                </>
+              )}
+              <button
+                onClick={() => setIsDark(!isDark)}
+                className="h-9 w-9 rounded-lg border flex items-center justify-center transition-all hover:scale-105 active:scale-95"
+                style={{
+                  backgroundColor: isDark ? "#374151" : "#f3f4f6",
+                  borderColor: isDark ? "#4b5563" : "#e5e7eb",
+                }}
+              >
+                {isDark ? (
+                  <Sun size={18} className="text-yellow-400" />
+                ) : (
+                  <Moon size={18} className="text-gray-600" />
+                )}
+              </button>
+              <button
+                onClick={handleClose}
+                className="h-9 w-9 rounded-lg border flex items-center justify-center transition-all hover:scale-105 active:scale-95 hover:bg-red-50 hover:border-red-300"
+                style={{
+                  backgroundColor: isDark ? "#374151" : "#f3f4f6",
+                  borderColor: isDark ? "#4b5563" : "#e5e7eb",
+                }}
+              >
+                <X size={18} className={isDark ? "text-gray-300" : "text-gray-600"} />
+              </button>
+            </div>
+          </div>
+        </header>
+
+        {/* Messages Area */}
+        <div
+          ref={messagesContainerRef}
+          className={`flex-1 overflow-hidden ${isDark ? "bg-gray-900" : "bg-gray-50"}`}
+          style={{
+            paddingBottom: hasKeyboard ? "0" : "env(safe-area-inset-bottom, 0)",
+          }}
+        >
+          <Virtuoso
+            ref={virtuosoRef}
+            data={messages}
+            totalCount={messages.length}
+            alignToBottom
+            followOutput="smooth"
+            overscan={200}
+            atBottomStateChange={handleScroll}
+            style={{
+              height: "100%",
+              overscrollBehavior: "contain",
+              WebkitOverflowScrolling: "touch",
             }}
-          >
-            <Virtuoso
-              ref={virtuosoRef}
-              totalCount={messages.length}
-              className="px-3 sm:px-4 py-4 overflow-x-hidden"
-              alignToBottom={true}
-              followOutput={"smooth"}
-              initialTopMostItemIndex={messages.length - 1}
-              itemContent={(index) => {
-                const m = messages[index];
-                const isUser = m.role === "user";
-                const isLast = index === messages.length - 1;
+            itemContent={(index, message) => {
+              const isUser = message.role === "user";
+              const isLast = index === messages.length - 1;
 
-                return (
-                  <div key={index} className={`mb-6 flex ${isUser ? "justify-end" : "justify-start"}`}>
-                    <div className={`flex items-end gap-2 w-full ${isUser ? "flex-row-reverse" : "flex-row"}`}>
+              return (
+                <div
+                  key={message.id}
+                  className={`px-4 sm:px-6 ${index === 0 ? "pt-4" : ""} ${
+                    index === messages.length - 1 ? "pb-4" : ""
+                  } mb-4`}
+                >
+                  <div className={`flex ${isUser ? "justify-end" : "justify-start"}`}>
+                    <div
+                      className={`flex items-end gap-2 max-w-[85%] sm:max-w-[75%] ${
+                        isUser ? "flex-row-reverse" : "flex-row"
+                      }`}
+                    >
                       {!isUser && (
                         <Image
                           src="/jimmy-avatar.png"
                           alt="Jimmy"
                           width={32}
                           height={32}
-                          className="rounded-full flex-shrink-0"
+                          className="rounded-full flex-shrink-0 mb-1"
                         />
                       )}
 
-                      <div className={`flex flex-col gap-2 flex-1 ${isUser && "items-end"}`}>
-                        {/* Bubble */}
+                      <div className={`flex flex-col gap-2 ${isUser ? "items-end" : "items-start"}`}>
+                        {/* Message Bubble */}
                         <div
                           className={`
-                            break-words whitespace-pre-line w-fit
-                            max-w-[90vw] sm:max-w-[80%] md:max-w-[60%]
-                            rounded-2xl px-4 py-3 ${fontSize} shadow-sm border
+                            break-words whitespace-pre-line
+                            rounded-2xl px-4 py-3 ${fontSize} shadow-sm
                             ${
                               isUser
-                                ? "bg-[#E40E20] text-white border-[#E40E20] rounded-br-md"
+                                ? "bg-[#E40E20] text-white rounded-br-md"
                                 : `${
                                     isDark
-                                      ? "bg-gray-700 text-white border-gray-600"
-                                      : "bg-white text-[#4A4F55] border-[#C1C5C8]"
+                                      ? "bg-gray-800 text-white border border-gray-700"
+                                      : "bg-white text-[#4A4F55] border border-gray-200"
                                   } rounded-bl-md`
                             }
-                            ${isLast && !isUser ? "animate-message-in motion-reduce:animate-none" : ""}
+                            ${isLast && !isUser ? "animate-message-in" : ""}
                           `}
                           style={{ fontFamily: "Merriweather Sans" }}
-                          dangerouslySetInnerHTML={{ __html: m.text.replace(/\n/g, "<br />") }}
+                          dangerouslySetInnerHTML={{ __html: message.text.replace(/\n/g, "<br />") }}
                         />
 
-                        {/* Carrusel de lugares */}
-                        {"places" in m && (
+                        {/* Place Cards */}
+                        {"places" in message && (message as any).places && (
                           <div
-                            key={JSON.stringify((m as any).places)}
                             className={`
                               mt-2 flex gap-3 pb-2
                               ${isMobile ? "flex-col" : "overflow-x-auto snap-x snap-mandatory"}
-                              [touch-action:pan-x] [overscroll-behavior-x:contain] scroll-smooth
+                              scrollbar-hide
                             `}
-                            style={isMobile ? {} : { WebkitOverflowScrolling: "touch" }}
                           >
-                            {(m as any).places.map((p: Place) => (
+                            {(message as any).places.map((place: Place) => (
                               <PlaceCard
-                                key={p.id}
-                                place={p}
+                                key={place.id}
+                                place={place}
                                 isMobile={isMobile}
                                 isDark={isDark}
                                 fontSize={fontSize}
@@ -330,112 +363,128 @@ export default function ChatWindow({
                       </div>
                     </div>
                   </div>
-                );
+                </div>
+              );
+            }}
+            components={{
+              Footer: () =>
+                typing ? (
+                  <div className="px-4 sm:px-6 pb-4 flex items-start gap-2">
+                    <Image
+                      src="/jimmy-avatar.png"
+                      alt="Jimmy"
+                      width={32}
+                      height={32}
+                      className="rounded-full flex-shrink-0"
+                    />
+                    <TypingIndicator />
+                  </div>
+                ) : null,
+            }}
+          />
+
+          {/* Scroll to bottom button */}
+          {!isBottom && (
+            <button
+              onClick={() => {
+                setIsBottom(true);
+                virtuosoRef.current?.scrollToIndex({
+                  index: messages.length - 1,
+                  behavior: "smooth",
+                  align: "end",
+                });
               }}
-            />
+              className={`absolute bottom-4 right-4 h-10 w-10 rounded-full shadow-lg 
+                flex items-center justify-center transition-all hover:scale-105 active:scale-95
+                ${isDark ? "bg-gray-700 hover:bg-gray-600" : "bg-white hover:bg-gray-50"}
+              `}
+            >
+              <ChevronDown size={20} className={isDark ? "text-gray-300" : "text-gray-600"} />
+            </button>
+          )}
+        </div>
 
-            {/* Indicador “typing” */}
-            {typing && (
-              <div className="px-4 sm:px-6 pb-4 flex items-start gap-2">
-                <Image
-                  src="/jimmy-avatar.png"
-                  alt="Jimmy"
-                  width={32}
-                  height={32}
-                  className="rounded-full flex-shrink-0"
+        {/* Suggestions */}
+        {suggestions.length > 0 && !hasKeyboard && (
+          <div
+            className={`px-4 py-3 border-t flex-shrink-0 ${
+              isDark ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"
+            }`}
+          >
+            <div className="flex flex-wrap gap-2">
+              {suggestions.map((suggestion) => (
+                <SuggestionChip
+                  key={suggestion}
+                  label={suggestion}
+                  onClick={() => onSend(suggestion)}
+                  small={isMobile}
                 />
-                <TypingIndicator />
-              </div>
-            )}
-
-            {/* Botón scroll-down */}
-            {!isBottom && (
-              <button
-                onClick={() => {
-                  setIsBottom(true);
-                  virtuosoRef.current?.scrollToIndex({ 
-                    index: messages.length,
-                    behavior: 'smooth',
-                    align: 'end'
-                  });
-                }}
-                className="absolute bottom-16 right-4 h-10 w-10 rounded-full bg-white border border-gray-200 shadow hover:bg-gray-50 flex items-center justify-center"
-              >
-                <ChevronDown size={18} className="text-gray-600" />
-              </button>
-            )}
+              ))}
+            </div>
           </div>
+        )}
 
-          {/* Sugerencias */}
-          {suggestions.length > 0 && (
+        {/* Input Area */}
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            send();
+          }}
+          className={`border-t flex-shrink-0 ${
+            isDark ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"
+          }`}
+          style={{
+            paddingBottom: hasKeyboard ? "8px" : "env(safe-area-inset-bottom, 8px)",
+          }}
+        >
+          <div className="p-3">
             <div
-              className={`px-4 py-3 border-t ${
-                isDark ? "bg-gray-700 border-gray-600" : "bg-white border-gray-200"
+              className={`flex items-end gap-2 rounded-xl border transition-all ${
+                isDark
+                  ? "bg-gray-700 border-gray-600 focus-within:border-gray-500"
+                  : "bg-gray-50 border-gray-200 focus-within:border-[#E40E20] focus-within:bg-white"
               }`}
             >
-              <div className="flex flex-wrap gap-2">
-                {suggestions.map((s) => (
-                  <SuggestionChip key={s} label={s} onClick={() => onSend(s)} small={isMobile} />
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Input bar (sticky) */}
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              send();
-            }}
-            className={`sticky bottom-0 left-0 right-0 p-3 border-t ${
-              isDark ? "bg-gray-700 border-gray-600" : "bg-white border-gray-200"
-            }`}
-            style={{ 
-              paddingBottom: 'env(safe-area-inset-bottom)',
-              transform: `translateY(${keyboardHeight > 0 ? -viewportOffset : 0}px)`
-            }}
-          >
-            {predictedText && (
-              <div className={`mb-2 ${fontSize} italic ${isDark ? "text-gray-400" : "text-gray-500"}`}>
-                {predictedText}
-              </div>
-            )}
-
-            <div className="flex items-end gap-2 rounded-xl bg-gray-50 border border-gray-200 focus-within:border-[#E40E20] focus-within:bg-white">
               <TextareaAutosize
                 ref={textareaRef}
                 value={draft}
-                onChange={(e) => {
-                  setDraft(e.target.value);
-                  predictText(e.target.value);
-                }}
+                onChange={(e) => setDraft(e.target.value)}
                 onKeyDown={handleKey}
                 onFocus={() => {
-                  // Enfocar suavemente el último mensaje
-                  setTimeout(() => {
-                    if (virtuosoRef.current) {
-                      virtuosoRef.current.scrollToIndex({
-                        index: messages.length,
-                        behavior: 'smooth',
-                        align: 'end'
+                  // Asegurar que los mensajes estén visibles
+                  if (virtuosoRef.current && messages.length > 0) {
+                    setTimeout(() => {
+                      virtuosoRef.current?.scrollToIndex({
+                        index: messages.length - 1,
+                        behavior: "smooth",
+                        align: "end",
                       });
-                    }
-                  }, 100);
+                    }, 100);
+                  }
                 }}
-                maxRows={6}
+                minRows={1}
+                maxRows={4}
                 placeholder="Escribe tu consulta..."
                 className={`flex-1 resize-none bg-transparent px-3 py-3 ${fontSize} ${
-                  isDark ? "text-white" : "text-gray-800"
-                } placeholder-gray-500 outline-none`}
+                  isDark ? "text-white placeholder-gray-400" : "text-gray-800 placeholder-gray-500"
+                } outline-none min-h-[44px]`}
                 disabled={typing}
-                style={{ fontFamily: "Merriweather Sans" }}
+                style={{ 
+                  fontFamily: "Merriweather Sans"
+                }}
               />
 
               <button
                 type="submit"
                 disabled={!draft.trim() || typing}
-                className="mb-2 mr-2 h-10 w-10 rounded-lg disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center justify-center"
-                style={{ backgroundColor: "#E40E20" }}
+                className={`mb-2 mr-2 h-10 w-10 rounded-lg flex items-center justify-center 
+                  transition-all hover:scale-105 active:scale-95
+                  ${
+                    !draft.trim() || typing
+                      ? "bg-gray-300 cursor-not-allowed"
+                      : "bg-[#E40E20] hover:bg-[#d40d1d]"
+                  }
+                `}
               >
                 {typing ? (
                   <div className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
@@ -444,9 +493,53 @@ export default function ChatWindow({
                 )}
               </button>
             </div>
-          </form>
-        </Dialog.Content>
-      </Dialog.Portal>
-    </Dialog.Root>
+          </div>
+        </form>
+      </div>
+
+      {/* Estilos adicionales */}
+      <style jsx global>{`
+        /* Animación de entrada de mensajes */
+        @keyframes message-in {
+          from {
+            opacity: 0;
+            transform: translateY(10px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+
+        .animate-message-in {
+          animation: message-in 0.3s ease-out;
+        }
+
+        /* Ocultar scrollbar en el carrusel de lugares */
+        .scrollbar-hide {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
+        }
+        .scrollbar-hide::-webkit-scrollbar {
+          display: none;
+        }
+
+        /* Prevenir el zoom en iOS cuando el input tiene focus */
+        @media (max-width: 768px) {
+          input[type="text"],
+          input[type="email"],
+          input[type="number"],
+          input[type="tel"],
+          textarea {
+            font-size: 16px !important;
+          }
+        }
+
+        /* Dark mode styles */
+        .dark {
+          color-scheme: dark;
+        }
+      `}</style>
+    </>
   );
 }
