@@ -305,8 +305,7 @@ export async function POST(req: NextRequest) {
     }
 
     /* --------- Persist convo if we have email --------- */
-    const emailNow =
-      emailInHistory || answer.match(emailReg)?.[0] ?? null;
+    const emailNow = emailInHistory ?? answer.match(emailReg)?.[0] ?? null;
 
     if (emailNow) {
       persistConversation(emailNow, [
