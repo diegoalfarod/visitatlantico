@@ -97,7 +97,7 @@ export default function HeroCarousel() {
 
                 <button
                   onClick={() => router.push(slide.link)}
-                  className="px-6 py-3 text-lg font-baloo font-bold rounded-full bg-[#E40E20] text-white hover:bg-[#D31A2B] transition-all"
+                  className="px-6 py-3 text-lg font-fivo font-bold rounded-full bg-[#E40E20] text-white hover:bg-[#D31A2B] transition-all"
                 >
                   {slide.buttonText}
                 </button>
