@@ -6,15 +6,13 @@ import { ReactNode } from "react";
 import type { Metadata } from "next";
 
 import ClientInitializer from "@/components/ClientInitializer";
-import GeminiWidget from "@/components/gemini/GeminiWidget";
-import { ViewportProvider } from "@/components/ViewportProvider";
+import GeminiWidget from "@/components/gemini/GeminiWidget";  // 👈 import directo
 
 const poppins = Poppins({
   subsets: ["latin"],
   weight: ["400", "600", "700"],
   variable: "--font-poppins",
 });
-
 const merriweatherSans = Merriweather_Sans({
   subsets: ["latin"],
   weight: ["400", "600", "700"],
@@ -58,12 +56,8 @@ export const metadata: Metadata = {
 
 export function generateViewport() {
   return {
-    width: "device-width",
-    initialScale: 1,
-    maximumScale: 1,
-    userScalable: false,
-    viewportFit: "cover",
-    interactiveWidget: "resizes-content",
+    viewport: "width=device-width, initial-scale=1",
+    themeColor: "#006994",
   };
 }
 
@@ -75,26 +69,14 @@ export default function RootLayout({ children }: { children: ReactNode }) {
     >
       <head>
         <link rel="canonical" href="https://visitatlantico.com" />
-        {/* Meta viewport mejorado para móviles */}
-        <meta 
-          name="viewport" 
-          content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content" 
-        />
-        {/* PWA meta tags */}
-        <meta name="mobile-web-app-capable" content="yes" />
-        <meta name="apple-mobile-web-app-capable" content="yes" />
-        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-        <meta name="theme-color" content="#006994" />
       </head>
 
       <body className="font-sans">
-        <ViewportProvider>
-          <ClientInitializer />
-          {children}
+        <ClientInitializer />
+        {children}
 
-          {/* 💬 Widget de chat Gemini - Solo una vez aquí */}
-          <GeminiWidget />
-        </ViewportProvider>
+        {/* 💬 Widget flotante de Gemini */}
+        <GeminiWidget />
 
         <script
           type="application/ld+json"
