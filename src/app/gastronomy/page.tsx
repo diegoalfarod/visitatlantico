@@ -822,15 +822,7 @@ const GastronomiaPage = () => {
       <Footer />
 
       {/* CSS para animaciones */}
-      <style jsx global>{`
-        .font-fivo {
-          font-family: 'Fivo', 'Inter', system-ui, sans-serif;
-        }
-
-        .font-baloo {
-          font-family: 'Baloo', 'Inter', system-ui, sans-serif;
-        }
-      `}</style>
+    
     </>
   );
 };
