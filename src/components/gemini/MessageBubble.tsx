@@ -25,15 +25,53 @@ export function MessageBubble({
     fontSize
 }: MessageBubbleProps) {
     const [copied, setCopied] = useState(false);
+    const [copyError, setCopyError] = useState(false);
     const isUser = message.role === "user";
     const isMobile = useMediaQuery({ maxWidth: 768 });
 
     const copy = useCallback(async () => {
-        await navigator.clipboard.writeText(
-            message.text.replace(/<[^>]*>/g, "").replace(/ /g, " ")
-        );
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
+        const textToCopy = message.text.replace(/<[^>]*>/g, "").replace(/ /g, " ");
+        
+        try {
+            // Método moderno
+            if (navigator.clipboard && window.isSecureContext) {
+                await navigator.clipboard.writeText(textToCopy);
+                setCopied(true);
+                setCopyError(false);
+                setTimeout(() => setCopied(false), 2000);
+            } else {
+                // Fallback para navegadores antiguos o contextos no seguros
+                const textArea = document.createElement("textarea");
+                textArea.value = textToCopy;
+                textArea.style.position = "fixed";
+                textArea.style.left = "-999999px";
+                textArea.style.top = "-999999px";
+                document.body.appendChild(textArea);
+                textArea.focus();
+                textArea.select();
+                
+                try {
+                    const successful = document.execCommand('copy');
+                    if (successful) {
+                        setCopied(true);
+                        setCopyError(false);
+                        setTimeout(() => setCopied(false), 2000);
+                    } else {
+                        throw new Error("Copy command failed");
+                    }
+                } catch (err) {
+                    console.error('Fallback copy failed:', err);
+                    setCopyError(true);
+                    setTimeout(() => setCopyError(false), 3000);
+                } finally {
+                    document.body.removeChild(textArea);
+                }
+            }
+        } catch (err) {
+            console.error('Copy to clipboard failed:', err);
+            setCopyError(true);
+            setTimeout(() => setCopyError(false), 3000);
+        }
     }, [message.text]);
 
     const time = new Date(message.timestamp).toLocaleTimeString("es-ES", {
@@ -74,19 +112,29 @@ export function MessageBubble({
           `}
                     style={{ fontFamily: 'Merriweather Sans' }}
                 >
-                    <button
-                        onClick={copy}
-                        className={`
-              absolute top-2 right-2 h-6 w-6 rounded-md flex items-center justify-center text-xs transition-opacity duration-200
-              opacity-0 hover:opacity-100
-              ${isUser
-                                ? "bg-white/20 hover:bg-white/30 text-white"
-                                : "bg-gray-100 hover:bg-gray-200 text-gray-600"
-                            }
-            `}
-                    >
-                        {copied ? <Check size={12} className="text-green-500" /> : <Copy size={12} />}
-                    </button>
+                    {/* Solo mostrar botón de copiar si el navegador lo soporta */}
+                    {(navigator.clipboard || document.queryCommandSupported?.('copy')) && (
+                        <button
+                            onClick={copy}
+                            title={copyError ? "No se pudo copiar" : "Copiar mensaje"}
+                            className={`
+                                absolute top-2 right-2 h-6 w-6 rounded-md flex items-center justify-center text-xs transition-opacity duration-200
+                                opacity-0 hover:opacity-100
+                                ${isUser
+                                    ? "bg-white/20 hover:bg-white/30 text-white"
+                                    : "bg-gray-100 hover:bg-gray-200 text-gray-600"
+                                }
+                            `}
+                        >
+                            {copied ? (
+                                <Check size={12} className="text-green-500" />
+                            ) : copyError ? (
+                                <span className="text-red-500">!</span>
+                            ) : (
+                                <Copy size={12} />
+                            )}
+                        </button>
+                    )}
                     <div dangerouslySetInnerHTML={{ __html: message.text.replace(/\n/g, "<br />") }} />
                 </div>
 
@@ -102,6 +150,7 @@ export function MessageBubble({
                         </span>
                     )}
                     {copied && <span className="text-green-500 font-medium">Copiado</span>}
+                    {copyError && <span className="text-red-500 font-medium">Error al copiar</span>}
                 </div>
             </div>
         </div>

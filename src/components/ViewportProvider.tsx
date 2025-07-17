@@ -14,26 +14,6 @@ export function ViewportProvider({ children }: ViewportProviderProps) {
       document.documentElement.style.setProperty('--vh', `${vh}px`);
     };
 
-    // Función para detectar si es iOS
-    const isIOS = () => {
-      return /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
-    };
-
-    // Función para manejar el viewport en iOS
-    const handleIOSViewport = () => {
-      if (!isIOS()) return;
-
-      // Prevenir el bounce/elastic scroll en iOS
-      document.body.addEventListener('touchmove', (e) => {
-        const target = e.target as HTMLElement;
-        const isScrollable = target.closest('.overflow-y-auto, .overflow-y-scroll, .scrollable');
-        
-        if (!isScrollable) {
-          e.preventDefault();
-        }
-      }, { passive: false });
-    };
-
     // Función para manejar el teclado virtual
     const handleVirtualKeyboard = () => {
       if (!window.visualViewport) return;
@@ -48,20 +28,13 @@ export function ViewportProvider({ children }: ViewportProviderProps) {
         if (Math.abs(heightDiff) > 100) {
           const isKeyboardOpen = heightDiff > 0;
           
-          // Disparar evento personalizado
+          // Disparar evento personalizado para que otros componentes puedan reaccionar
           window.dispatchEvent(new CustomEvent('virtual-keyboard', {
             detail: { 
               isOpen: isKeyboardOpen,
               keyboardHeight: isKeyboardOpen ? heightDiff : 0
             }
           }));
-
-          // Agregar clase al body
-          if (isKeyboardOpen) {
-            document.body.classList.add('keyboard-open');
-          } else {
-            document.body.classList.remove('keyboard-open');
-          }
         }
 
         lastHeight = currentHeight;
@@ -78,51 +51,51 @@ export function ViewportProvider({ children }: ViewportProviderProps) {
       };
     };
 
-    // Prevenir zoom en inputs
-    const preventZoom = () => {
-      const inputs = document.querySelectorAll('input, textarea, select');
-      
-      inputs.forEach((input) => {
-        input.addEventListener('focus', (e) => {
-          const target = e.target as HTMLElement;
-          // Aplicar font-size 16px temporalmente para prevenir zoom
-          target.style.fontSize = '16px';
-        });
+    // Prevenir zoom SOLO en inputs cuando tienen focus
+    const preventZoomOnFocus = () => {
+      const handleFocus = (e: FocusEvent) => {
+        const target = e.target as HTMLElement;
+        if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT') {
+          // Solo aplicar el hack del font-size si estamos en el chat
+          if (target.closest('.chat-container')) {
+            target.style.fontSize = '16px';
+          }
+        }
+      };
 
-        input.addEventListener('blur', (e) => {
-          const target = e.target as HTMLElement;
-          // Restaurar font-size original
-          target.style.fontSize = '';
-        });
-      });
+      const handleBlur = (e: FocusEvent) => {
+        const target = e.target as HTMLElement;
+        if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT') {
+          if (target.closest('.chat-container')) {
+            target.style.fontSize = '';
+          }
+        }
+      };
+
+      document.addEventListener('focusin', handleFocus);
+      document.addEventListener('focusout', handleBlur);
+
+      return () => {
+        document.removeEventListener('focusin', handleFocus);
+        document.removeEventListener('focusout', handleBlur);
+      };
     };
 
     // Inicializar todo
     updateViewportHeight();
-    handleIOSViewport();
     const cleanupKeyboard = handleVirtualKeyboard();
-    preventZoom();
+    const cleanupZoom = preventZoomOnFocus();
 
     // Event listeners
     window.addEventListener('resize', updateViewportHeight);
     window.addEventListener('orientationchange', updateViewportHeight);
 
-    // Observer para nuevos inputs dinámicos
-    const observer = new MutationObserver(() => {
-      preventZoom();
-    });
-
-    observer.observe(document.body, {
-      childList: true,
-      subtree: true,
-    });
-
     // Cleanup
     return () => {
       window.removeEventListener('resize', updateViewportHeight);
       window.removeEventListener('orientationchange', updateViewportHeight);
-      observer.disconnect();
       if (cleanupKeyboard) cleanupKeyboard();
+      if (cleanupZoom) cleanupZoom();
     };
   }, []);
 

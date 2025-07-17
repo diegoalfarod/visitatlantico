@@ -113,19 +113,25 @@ export default function GeminiWidget() {
     if (!mounted) return;
 
     if (open) {
-      // Guardar el estilo original
+      // Guardar el estilo original y la posición de scroll
       originalBodyStyleRef.current = document.body.style.cssText;
+      const scrollY = window.scrollY;
       
       // Bloquear scroll
       document.body.style.overflow = "hidden";
       document.body.style.position = "fixed";
-      document.body.style.top = `-${window.scrollY}px`;
+      document.body.style.top = `-${scrollY}px`;
       document.body.style.width = "100%";
-      document.body.style.touchAction = "none";
+      
+      // Agregar clase para CSS
+      document.body.classList.add('chat-open');
     } else {
       // Restaurar scroll
       const scrollY = document.body.style.top;
       document.body.style.cssText = originalBodyStyleRef.current;
+      
+      // Remover clase
+      document.body.classList.remove('chat-open');
       
       // Restaurar posición de scroll
       if (scrollY) {
@@ -136,6 +142,7 @@ export default function GeminiWidget() {
     return () => {
       if (open) {
         document.body.style.cssText = originalBodyStyleRef.current;
+        document.body.classList.remove('chat-open');
       }
     };
   }, [open, mounted]);
@@ -241,11 +248,11 @@ export default function GeminiWidget() {
                 {/* Texto */}
                 <div className="flex flex-col">
                   <h3 className="text-base font-bold text-gray-800 flex items-center gap-1">
-                  Asistente en turismo
+                    ¿Necesitas ayuda?
                     <Shield size={14} className="text-red-600" />
                   </h3>
                   <p className="text-sm text-gray-600">
-                    Jimmy está aquí para ayudarte
+                    Jimmy está aquí para asistirte
                   </p>
                 </div>
               </div>

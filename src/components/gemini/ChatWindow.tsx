@@ -171,7 +171,7 @@ export default function ChatWindow({
       {/* Chat Container */}
       <div
         ref={chatContainerRef}
-        className={`fixed bottom-0 left-0 right-0 z-[60] bg-white flex flex-col transition-transform duration-300 ease-out ${
+        className={`chat-container fixed bottom-0 left-0 right-0 z-[60] bg-white flex flex-col transition-transform duration-300 ease-out ${
           isAnimating ? "translate-y-0" : "translate-y-full"
         } ${isDark ? "dark bg-gray-900" : ""}`}
         style={{
@@ -274,7 +274,7 @@ export default function ChatWindow({
         {/* Messages Area */}
         <div
           ref={messagesContainerRef}
-          className={`flex-1 overflow-hidden ${isDark ? "bg-gray-900" : "bg-gray-50"}`}
+          className={`flex-1 overflow-hidden relative ${isDark ? "bg-gray-900" : "bg-gray-50"}`}
           style={{
             paddingBottom: hasKeyboard ? "0" : "env(safe-area-inset-bottom, 0)",
           }}
@@ -300,7 +300,7 @@ export default function ChatWindow({
                 <div
                   key={message.id}
                   className={`px-4 sm:px-6 ${index === 0 ? "pt-4" : ""} ${
-                    index === messages.length - 1 ? "pb-4" : ""
+                    index === messages.length - 1 ? "pb-20 sm:pb-24" : ""
                   } mb-4`}
                 >
                   <div className={`flex ${isUser ? "justify-end" : "justify-start"}`}>
@@ -384,30 +384,62 @@ export default function ChatWindow({
           />
 
           {/* Scroll to bottom button */}
-          {!isBottom && (
-            <button
-              onClick={() => {
-                setIsBottom(true);
-                virtuosoRef.current?.scrollToIndex({
-                  index: messages.length - 1,
-                  behavior: "smooth",
-                  align: "end",
-                });
-              }}
-              className={`absolute bottom-4 right-4 h-10 w-10 rounded-full shadow-lg 
-                flex items-center justify-center transition-all hover:scale-105 active:scale-95
-                ${isDark ? "bg-gray-700 hover:bg-gray-600" : "bg-white hover:bg-gray-50"}
-              `}
-            >
-              <ChevronDown size={20} className={isDark ? "text-gray-300" : "text-gray-600"} />
-            </button>
+          {!isBottom && messages.length > 3 && (
+            <div className={`absolute ${isMobile ? 'bottom-[90px]' : 'bottom-24'} right-4 flex flex-col items-end gap-2`}>
+              {/* Indicador de mensajes nuevos - solo desktop */}
+              {!isMobile && (
+                <div className="bg-white dark:bg-gray-800 rounded-full px-3 py-1 shadow-lg border border-gray-200 dark:border-gray-700 text-sm animate-fade-in">
+                  <span className="text-gray-600 dark:text-gray-300">Nuevos mensajes</span>
+                </div>
+              )}
+              
+              {/* Botón de scroll */}
+              <button
+                onClick={() => {
+                  setIsBottom(true);
+                  virtuosoRef.current?.scrollToIndex({
+                    index: messages.length - 1,
+                    behavior: "smooth",
+                    align: "end",
+                  });
+                }}
+                className={`group relative ${isMobile ? 'h-10 w-10' : 'h-12 w-12'} rounded-full shadow-lg 
+                  flex items-center justify-center transition-all duration-200
+                  hover:scale-110 active:scale-95 backdrop-blur-sm
+                  ${isDark 
+                    ? "bg-gray-800/90 hover:bg-gray-700 border border-gray-600" 
+                    : "bg-white/90 hover:bg-white border border-gray-200"
+                  }
+                `}
+              >
+                {/* Efecto de pulso - solo cuando hay mensajes nuevos */}
+                {!isMobile && (
+                  <span className="absolute inset-0 rounded-full bg-red-500 opacity-75 animate-ping" />
+                )}
+                
+                {/* Icono */}
+                <ChevronDown 
+                  size={isMobile ? 18 : 20} 
+                  className={`relative z-10 transition-transform duration-200 group-hover:translate-y-0.5
+                    ${isDark ? "text-gray-300" : "text-gray-700"}`
+                  } 
+                />
+                
+                {/* Badge de contador en móvil */}
+                {isMobile && messages.length > 5 && (
+                  <div className="absolute -top-1 -right-1 h-4 w-4 bg-red-500 rounded-full flex items-center justify-center">
+                    <span className="text-[10px] text-white font-bold">↓</span>
+                  </div>
+                )}
+              </button>
+            </div>
           )}
         </div>
 
         {/* Suggestions */}
         {suggestions.length > 0 && !hasKeyboard && (
           <div
-            className={`px-4 py-3 border-t flex-shrink-0 ${
+            className={`px-4 py-3 border-t flex-shrink-0 relative z-10 ${
               isDark ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"
             }`}
           >
@@ -430,16 +462,16 @@ export default function ChatWindow({
             e.preventDefault();
             send();
           }}
-          className={`border-t flex-shrink-0 ${
+          className={`border-t flex-shrink-0 relative z-10 ${
             isDark ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"
-          }`}
+          } shadow-lg`}
           style={{
             paddingBottom: hasKeyboard ? "8px" : "env(safe-area-inset-bottom, 8px)",
           }}
         >
-          <div className="p-3">
+          <div className="p-3 sm:p-4">
             <div
-              className={`flex items-end gap-2 rounded-xl border transition-all ${
+              className={`flex items-end gap-2 rounded-2xl border transition-all ${
                 isDark
                   ? "bg-gray-700 border-gray-600 focus-within:border-gray-500"
                   : "bg-gray-50 border-gray-200 focus-within:border-[#E40E20] focus-within:bg-white"
@@ -465,7 +497,7 @@ export default function ChatWindow({
                 minRows={1}
                 maxRows={4}
                 placeholder="Escribe tu consulta..."
-                className={`flex-1 resize-none bg-transparent px-3 py-3 ${fontSize} ${
+                className={`flex-1 resize-none bg-transparent px-4 py-3 ${fontSize} ${
                   isDark ? "text-white placeholder-gray-400" : "text-gray-800 placeholder-gray-500"
                 } outline-none min-h-[44px]`}
                 disabled={typing}
@@ -477,19 +509,19 @@ export default function ChatWindow({
               <button
                 type="submit"
                 disabled={!draft.trim() || typing}
-                className={`mb-2 mr-2 h-10 w-10 rounded-lg flex items-center justify-center 
-                  transition-all hover:scale-105 active:scale-95
+                className={`mb-2 mr-2 h-11 w-11 rounded-xl flex items-center justify-center 
+                  transition-all duration-200 hover:scale-105 active:scale-95
                   ${
                     !draft.trim() || typing
-                      ? "bg-gray-300 cursor-not-allowed"
-                      : "bg-[#E40E20] hover:bg-[#d40d1d]"
+                      ? "bg-gray-300 cursor-not-allowed opacity-50"
+                      : "bg-[#E40E20] hover:bg-[#d40d1d] shadow-md hover:shadow-lg"
                   }
                 `}
               >
                 {typing ? (
-                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                  <div className="h-5 w-5 animate-spin rounded-full border-2 border-white/30 border-t-white" />
                 ) : (
-                  <Send size={16} className="text-white" />
+                  <Send size={18} className="text-white" />
                 )}
               </button>
             </div>
