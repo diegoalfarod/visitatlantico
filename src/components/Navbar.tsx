@@ -8,13 +8,13 @@ import { RiGovernmentLine } from "react-icons/ri";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import PlannerModal from "@/components/PlannerModal"; // ⬅️ Importa el modal
+import PlannerPage from "@/components/planner/PlannerPage"; // ⬅️ nuevo import
 import "@/styles/globals.css";
 
 export default function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
-  const [plannerOpen, setPlannerOpen] = useState(false); // ⬅️ Estado para el modal
+  const [plannerOpen, setPlannerOpen] = useState(false); // ⬅️ estado del modal
   const navbarRef = useRef<HTMLElement>(null);
   const pathname = usePathname();
 
@@ -24,16 +24,12 @@ export default function Navbar() {
     { href: "/gastronomy", label: "Gastronomía", icon: HiGlobeAlt },
   ];
 
-  // Detectar scroll para efectos de navbar
   useEffect(() => {
-    const handleScroll = () => {
-      setScrolled(window.scrollY > 20);
-    };
+    const handleScroll = () => setScrolled(window.scrollY > 20);
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  // Actualizar altura del navbar
   useEffect(() => {
     const updateNavbarHeight = () => {
       if (navbarRef.current) {
@@ -46,7 +42,6 @@ export default function Navbar() {
     return () => window.removeEventListener("resize", updateNavbarHeight);
   }, []);
 
-  // Cerrar menú móvil cuando cambie la ruta
   useEffect(() => {
     setMenuOpen(false);
   }, [pathname]);
@@ -130,7 +125,7 @@ export default function Navbar() {
                 </Link>
               </div>
 
-              {/* CTA Button → abre PlannerModal */}
+              {/* CTA Button → abre PlannerPage */}
               <motion.button
                 onClick={() => setPlannerOpen(true)}
                 className="group relative px-8 py-3 bg-gradient-to-r from-red-600 to-red-700 text-white font-semibold rounded-full shadow-lg hover:shadow-xl hover:shadow-red-900/30 transition-all duration-300 overflow-hidden"
@@ -138,7 +133,7 @@ export default function Navbar() {
                 whileTap={{ scale: 0.98 }}
                 aria-haspopup="dialog"
                 aria-expanded={plannerOpen}
-                aria-controls="planner-modal"
+                aria-controls="planner-sheet"
               >
                 <motion.div className="absolute inset-0 bg-gradient-to-r from-red-700 to-red-800 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                 <span className="relative flex items-center gap-2">
@@ -271,7 +266,7 @@ export default function Navbar() {
                     </div>
                   </div>
 
-                  {/* CTA Button → abre PlannerModal y cierra menú */}
+                  {/* CTA Button → abre PlannerPage y cierra menú */}
                   <motion.button
                     onClick={() => {
                       setMenuOpen(false);
@@ -282,7 +277,7 @@ export default function Navbar() {
                     whileTap={{ scale: 0.98 }}
                     aria-haspopup="dialog"
                     aria-expanded={plannerOpen}
-                    aria-controls="planner-modal"
+                    aria-controls="planner-sheet"
                   >
                     <span className="flex items-center justify-center gap-3">
                       <RiGovernmentLine className="text-xl" />
@@ -318,11 +313,8 @@ export default function Navbar() {
         }
       `}</style>
 
-      {/* PlannerModal montado en el mismo árbol */}
-      <PlannerModal
-        isOpen={plannerOpen}
-        onClose={() => setPlannerOpen(false)}
-      />
+      {/* PlannerPage montado en el árbol */}
+      <PlannerPage open={plannerOpen} onOpenChange={setPlannerOpen} />
     </>
   );
 }

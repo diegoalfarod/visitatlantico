@@ -2,7 +2,46 @@
 const nextConfig = {
   reactStrictMode: true,
   images: {
-    domains: ['firebasestorage.googleapis.com', 'lh3.googleusercontent.com'],
+    /* dominios con URL fija */
+    domains: [
+      'firebasestorage.googleapis.com', 
+      'lh3.googleusercontent.com',
+      'maps.googleapis.com', // Añadido para las imágenes de Google Maps
+    ],
+    
+    /* patrones remotos (subdominios variables y APIs) */
+    remotePatterns: [
+      { 
+        protocol: "https", 
+        hostname: "lh3.googleusercontent.com", 
+        pathname: "/**" 
+      },
+      { 
+        protocol: "https", 
+        hostname: "lh4.googleusercontent.com", 
+        pathname: "/**" 
+      },
+      { 
+        protocol: "https", 
+        hostname: "lh5.googleusercontent.com", 
+        pathname: "/**" 
+      },
+      { 
+        protocol: "https", 
+        hostname: "lh6.googleusercontent.com", 
+        pathname: "/**" 
+      },
+      {
+        protocol: "https",
+        hostname: "maps.googleapis.com",
+        pathname: "/maps/api/place/photo/**",
+      },
+      {
+        protocol: "https",
+        hostname: "firebasestorage.googleapis.com",
+        pathname: "/**",
+      }
+    ],
   },
   experimental: {
     optimizeCss: false // Deshabilitado para evitar el error de critters

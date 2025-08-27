@@ -8,7 +8,7 @@ import { motion } from "framer-motion";
 import { HiPlay, HiChevronLeft, HiChevronRight } from "react-icons/hi";
 import { RiMapPin2Line, RiCalendarLine } from "react-icons/ri";
 import { BsPlayCircleFill } from "react-icons/bs";
-import PlannerModal from "./PlannerModal"; // Importar el PlannerModal
+import PlannerPage from "@/components/planner/PlannerPage"; // ⟵ usa el PlannerPage nuevo
 
 const videoSrc =
   "https://appdevelopi.s3.us-east-1.amazonaws.com/AtlanticoEsMas/ATLA%CC%81NTICO+ES+MA%CC%81S+Extra+Compreso.mp4";
@@ -30,7 +30,7 @@ const slides: Slide[] = [
     subtitle: "Patrimonio Cultural de la Humanidad",
     description: "Vive la auténtica experiencia caribeña con la calidez de nuestra gente.",
     buttonText: "Planifica tu Visita",
-    link: "/planner",
+    link: "/planner", // ⟵ usaremos esto para decidir abrir el modal
   },
   {
     image:
@@ -52,11 +52,9 @@ export default function HeroCarousel() {
 
   useEffect(() => {
     if (!autoPlay || isVideoPlaying) return;
-
     const interval = setInterval(() => {
       setCurrentSlide((prev) => (prev + 1) % slides.length);
     }, 8000);
-
     return () => clearInterval(interval);
   }, [autoPlay, isVideoPlaying]);
 
@@ -80,8 +78,9 @@ export default function HeroCarousel() {
     setAutoPlay(true);
   };
 
+  // ⟵ ahora decide por el link
   const handlePlannerClick = useCallback(() => {
-    if (slides[currentSlide].buttonText === "Planifica tu Visita") {
+    if (slides[currentSlide].link === "/planner") {
       setShowPlannerModal(true);
     } else {
       router.push(slides[currentSlide].link);
@@ -151,7 +150,6 @@ export default function HeroCarousel() {
                         const highlightWords = ["Atlántico", "Caribe", "Colombiano"];
                         const isHighlighted = highlightWords.includes(word);
                         const isLastWords = index >= array.length - 2;
-
                         return (
                           <span key={index}>
                             {isHighlighted || isLastWords ? (
@@ -173,9 +171,7 @@ export default function HeroCarousel() {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.4, duration: 0.8 }}
-                  style={{
-                    textShadow: "1px 1px 3px rgba(0,0,0,0.8)",
-                  }}
+                  style={{ textShadow: "1px 1px 3px rgba(0,0,0,0.8)" }}
                 >
                   {slides[currentSlide].description}
                 </motion.p>
@@ -187,7 +183,7 @@ export default function HeroCarousel() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.6, duration: 0.8 }}
                 >
-                  {/* Botón principal (abre planner en slide 1, navega en slide 2) */}
+                  {/* Botón principal (abre planner si link === /planner) */}
                   <motion.button
                     onClick={handlePlannerClick}
                     className="w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-4 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-full shadow-xl transition-all duration-300"
@@ -200,7 +196,7 @@ export default function HeroCarousel() {
                     </span>
                   </motion.button>
 
-                  {/* Botón secundario SOLO en el slide 1 (índice 0) y apunta a /destinations */}
+                  {/* Botón secundario SOLO en el slide 1 (índice 0) */}
                   {currentSlide === 0 && (
                     <motion.button
                       onClick={() => router.push("/destinations")}
@@ -354,11 +350,8 @@ export default function HeroCarousel() {
         </div>
       </section>
 
-      {/* Planner Modal */}
-      <PlannerModal
-        isOpen={showPlannerModal}
-        onClose={() => setShowPlannerModal(false)}
-      />
+      {/* Planner Modal (nuevo) */}
+      <PlannerPage open={showPlannerModal} onOpenChange={setShowPlannerModal} />
     </>
   );
 }

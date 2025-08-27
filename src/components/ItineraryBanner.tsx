@@ -3,13 +3,9 @@
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { 
-  Calendar,
-  ChevronRight,
-  Map
-} from "lucide-react";
+import { Calendar, ChevronRight, Map } from "lucide-react";
 import { RiGovernmentLine, RiMapLine, RiTimeLine, RiUserLocationLine } from "react-icons/ri";
-import PlannerModal from "@/components/PlannerModal";
+import PlannerPage from "@/components/planner/PlannerPage"; // ⬅️ usar PlannerPage
 
 export default function ItineraryBanner() {
   const router = useRouter();
@@ -18,7 +14,6 @@ export default function ItineraryBanner() {
   return (
     <>
       <section className="relative w-full bg-gradient-to-b from-gray-900 via-gray-800 to-gray-900 py-16 sm:py-20 lg:py-24 overflow-hidden">
-        
         {/* Background pattern - subtle institutional */}
         <div className="absolute inset-0 opacity-10">
           <div
@@ -38,7 +33,6 @@ export default function ItineraryBanner() {
 
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-            
             {/* Left Content */}
             <motion.div
               initial={{ opacity: 0, x: -30 }}
@@ -65,15 +59,15 @@ export default function ItineraryBanner() {
               >
                 Planifica tu <span className="text-yellow-400">Itinerario</span>
               </h2>
-              
+
               <p className="text-lg text-gray-300 mb-8 leading-relaxed">
-                Sistema oficial de planificación turística del departamento del Atlántico. 
+                Sistema oficial de planificación turística del departamento del Atlántico.
                 Crea rutas optimizadas basadas en datos actualizados y recomendaciones verificadas.
               </p>
 
               {/* Features Grid */}
               <div className="grid grid-cols-2 gap-6 mb-10">
-                <motion.div 
+                <motion.div
                   initial={{ opacity: 0, y: 20 }}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
@@ -89,7 +83,7 @@ export default function ItineraryBanner() {
                   </div>
                 </motion.div>
 
-                <motion.div 
+                <motion.div
                   initial={{ opacity: 0, y: 20 }}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
@@ -105,7 +99,7 @@ export default function ItineraryBanner() {
                   </div>
                 </motion.div>
 
-                <motion.div 
+                <motion.div
                   initial={{ opacity: 0, y: 20 }}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
@@ -121,7 +115,7 @@ export default function ItineraryBanner() {
                   </div>
                 </motion.div>
 
-                <motion.div 
+                <motion.div
                   initial={{ opacity: 0, y: 20 }}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
@@ -139,14 +133,14 @@ export default function ItineraryBanner() {
               </div>
 
               {/* CTA Buttons */}
-              <motion.div 
+              <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: 0.5 }}
                 className="flex flex-col sm:flex-row gap-4"
               >
-                {/* Abrir PlannerModal */}
+                {/* Abrir PlannerPage */}
                 <motion.button
                   onClick={() => setPlannerOpen(true)}
                   className="px-8 py-4 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-full 
@@ -182,7 +176,6 @@ export default function ItineraryBanner() {
               <div className="relative">
                 {/* Main Card */}
                 <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-2xl p-6 shadow-2xl">
-                  
                   {/* Header */}
                   <div className="flex items-center justify-between mb-6">
                     <div>
@@ -235,7 +228,7 @@ export default function ItineraryBanner() {
                     <div className="absolute inset-0 flex items-center justify-center">
                       <Map className="text-gray-600 w-12 h-12" />
                     </div>
-                    
+
                     {/* Map Points */}
                     <div className="absolute top-1/4 left-1/3">
                       <div className="w-3 h-3 bg-red-600 rounded-full animate-pulse" />
@@ -284,11 +277,8 @@ export default function ItineraryBanner() {
         </div>
       </section>
 
-      {/* Planner Modal */}
-      <PlannerModal
-        isOpen={plannerOpen}
-        onClose={() => setPlannerOpen(false)}
-      />
+      {/* PlannerPage (nuevo modal) */}
+      <PlannerPage open={plannerOpen} onOpenChange={setPlannerOpen} />
     </>
   );
 }

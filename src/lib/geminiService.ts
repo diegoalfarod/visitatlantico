@@ -1,3 +1,5 @@
+//geminiService.ts
+
 import type { ChatMessage } from "@/types/geminiChat";
 
 /**
