@@ -4,21 +4,13 @@
 import { useEffect } from "react";
 import { motion } from "framer-motion";
 
-/* -------- Colores de marca -------- */
-const brandColors = {
-  primary: "#E40E20",
-  secondary: "#D34A78",
-  dark: "#4A4F55",
-  medium: "#7A888C",
-};
-
 export default function InstagramFeed() {
-  /* ------- Carga de script Elfsight ------- */
+  /* ------- Carga de script Elfsight con CDN actualizado ------- */
   useEffect(() => {
     const id = "elfsight-script";
     if (!document.getElementById(id)) {
       const s = document.createElement("script");
-      s.src = "https://static.elfsight.com/platform/platform.js";
+      s.src = "https://elfsightcdn.com/platform.js"; // URL actualizada del CDN
       s.async = true;
       s.id = id;
       document.body.appendChild(s);
@@ -26,95 +18,70 @@ export default function InstagramFeed() {
   }, []);
 
   return (
-    <section id="instagram" className="relative py-24 bg-white">
-      {/* Ola superior */}
-      <div className="absolute top-0 left-0 w-full h-32 overflow-hidden -z-10">
-        <svg
-          viewBox="0 0 1440 200"
-          className="w-full h-full"
-          preserveAspectRatio="none"
-        >
-          <defs>
-            <linearGradient id="insta-grad" x1="0%" y1="0%" x2="100%" y2="0%">
-              <stop offset="0%" stopColor={brandColors.primary} stopOpacity="0.08" />
-              <stop offset="100%" stopColor={brandColors.secondary} stopOpacity="0.08" />
-            </linearGradient>
-          </defs>
-          <path
-            d="M0,160L48,138.7C96,117,192,75,288,69.3C384,64,480,96,576,101.3C672,107,768,85,864,80C960,75,1056,85,1152,90.7C1248,96,1344,96,1392,96L1440,96L1440,0L0,0Z"
-            fill="url(#insta-grad)"
-          />
-        </svg>
-      </div>
-
-      {/* Contenido */}
-      <div className="max-w-4xl mx-auto px-4 text-center">
-        <motion.h2
+    <section id="instagram" className="relative py-16 sm:py-20 bg-white border-t border-gray-200">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+        
+        {/* Header */}
+        <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.6 }}
-          className="text-4xl sm:text-5xl font-bold mb-3"
-          style={{ color: brandColors.dark }}
+          className="text-center mb-12"
         >
-          Síguenos en Instagram
-        </motion.h2>
-
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          whileInView={{ opacity: 1, scale: 1 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.6, delay: 0.15 }}
-          className="inline-flex items-center gap-3 mb-5 text-lg font-medium"
-          style={{ color: brandColors.primary }}
-        >
-          <span className="block w-10 h-0.5 bg-gradient-to-r from-[#E40E20] to-[#D34A78] rounded-full" />
-          Momentos del Atlántico
-          <span className="block w-10 h-0.5 bg-gradient-to-r from-[#D34A78] to-[#E40E20] rounded-full" />
+          <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-gray-900 mb-4">
+            Síguenos en <span className="text-red-600">Instagram</span>
+          </h2>
+          
+          <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+            Descubre experiencias y paisajes del Atlántico a través de nuestras publicaciones oficiales
+          </p>
         </motion.div>
 
-        <motion.p
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.6, delay: 0.25 }}
-          className="text-lg max-w-2xl mx-auto mb-12"
-          style={{ color: brandColors.medium }}
-        >
-          Descubre experiencias y paisajes del Atlántico a través de nuestro feed,
-          curado para inspirar tu próxima aventura.
-        </motion.p>
-
-        {/* Widget Elfsight sin sombras ni padding extra */}
+        {/* Widget Container */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          transition={{ duration: 0.6, delay: 0.35 }}
-          className="w-full"
+          transition={{ duration: 0.6, delay: 0.2 }}
+          className="relative"
         >
+          {/* Instagram Widget */}
           <div
             className="elfsight-app-4ceb8aab-9936-4357-b003-27c38c147990 w-full"
             data-elfsight-app-lazy
           />
-          <p className="mt-4 text-sm text-center" style={{ color: brandColors.medium }}>
-            Cargando feed…
-          </p>
+          
+          {/* Loading message */}
+          <noscript>
+            <p className="text-center text-gray-500 py-8">
+              Por favor, habilita JavaScript para ver el feed de Instagram.
+            </p>
+          </noscript>
         </motion.div>
-      </div>
 
-      {/* Ola inferior */}
-      <div className="absolute bottom-0 left-0 w-full overflow-hidden -z-10">
-        <svg
-          viewBox="0 0 1440 80"
-          className="w-full h-16"
-          preserveAspectRatio="none"
+        {/* Footer CTA */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.6, delay: 0.4 }}
+          className="text-center mt-12"
         >
-          <path
-            d="M0,64L48,58.7C96,53,192,43,288,48C384,53,480,75,576,80C672,85,768,75,864,69.3C960,64,1056,64,1152,58.7C1248,53,1344,43,1392,37.3L1440,32L1440,80L0,80Z"
-            fill="#ffffff"
-          />
-        </svg>
+          <a
+            href="https://www.instagram.com/turismoatlantico_"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white px-6 py-3 rounded-full font-semibold hover:shadow-lg transition-all duration-300"
+          >
+            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073z"/>
+              <path d="M12 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4z"/>
+              <circle cx="18.406" cy="5.594" r="1.44"/>
+            </svg>
+            Ver más en Instagram
+          </a>
+        </motion.div>
       </div>
     </section>
   );

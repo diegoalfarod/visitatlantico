@@ -1,10 +1,6 @@
-// src/components/FeaturedDestinations.tsx
 "use client";
 
-/* -------------------------------------------------- */
-/* Imports                                            */
-/* -------------------------------------------------- */
-import { useEffect, useState, useRef, useCallback } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { collection, getDocs } from "firebase/firestore";
 import { ref, getDownloadURL } from "firebase/storage";
@@ -13,6 +9,7 @@ import Image from "next/image";
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import { MapPin, Grid3X3, Map as MapIcon, Loader2 } from "lucide-react";
+import { RiGovernmentLine } from "react-icons/ri";
 
 import {
   FaUmbrellaBeach, FaLeaf, FaUtensils, FaMountain, FaLandmark, FaUsers,
@@ -22,19 +19,17 @@ import {
   FaChevronDown, FaChevronUp
 } from "react-icons/fa";
 
-// Dynamic import para el mapa (mejora el performance inicial)
+// Dynamic import para el mapa
 const MapWrapper = dynamic(() => import('./MapWrapper'), {
   ssr: false,
   loading: () => (
-    <div className="w-full h-[600px] rounded-2xl bg-gray-50 flex items-center justify-center">
+    <div className="w-full h-[600px] rounded-xl bg-gray-100 flex items-center justify-center">
       <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
     </div>
   )
 });
 
-/* -------------------------------------------------- */
-/* Types                                              */
-/* -------------------------------------------------- */
+/* Types */
 type Destination = {
   id: string;
   name: string;
@@ -51,35 +46,14 @@ type Destination = {
 
 type ViewMode = 'grid' | 'map';
 
-/* -------------------------------------------------- */
-/* Helper Icon Component                              */
-/* -------------------------------------------------- */
+/* Helper Icon Component */
 const IconWrap = ({
   icon: Icon,
   size = 14,
 }: { icon: React.ComponentType<{ size?: number }>; size?: number }) => <Icon size={size} />;
 
-/* -------------------------------------------------- */
-/* Main Component                                     */
-/* -------------------------------------------------- */
 export default function FeaturedDestinations() {
-  /* ---------------- Brand Colors ------------------ */
-  const brandColors = {
-    primary: "#E40E20",
-    secondary: "#D34A78",
-    dark: "#4A4F55",
-    medium: "#7A888C",
-    light: "#C1C5C8",
-    gold: "#F4B223",
-    yellow: "#FFD000",
-    lightBlue: "#009ADE",
-    darkBlue: "#0047BA",
-    lightTeal: "#9ED4E9",
-    teal: "#00833E",
-    green: "#00B4B1",
-  };
-
-  /* -------------- Category List (Same as DestinationsClient) -------------- */
+  /* Category List */
   const CATEGORIES = [
     "Playas",
     "Artesanías",
@@ -104,36 +78,36 @@ export default function FeaturedDestinations() {
     "EcoTurismo",
   ];
 
-  /* -------------- Category Config ----------------- */
+  /* Category Config - Colores más institucionales */
   const categoryConfig: Record<string, {
     icon: React.ComponentType<{ size?: number }>;
     color: string;
   }> = {
-    "Playas":               { icon: FaUmbrellaBeach, color: brandColors.lightBlue },
-    "Gastronomía":          { icon: FaUtensils,      color: brandColors.gold },
-    "Aventura":             { icon: FaMountain,      color: brandColors.teal },
-    "Cultura":              { icon: FaMusic,         color: brandColors.darkBlue },
-    "Historia":             { icon: FaLandmark,      color: brandColors.medium },
-    "Familia":              { icon: FaUsers,         color: brandColors.yellow },
-    "Deportes":             { icon: FaRunning,       color: brandColors.lightTeal },
-    "Nocturna":             { icon: FaMoon,          color: brandColors.dark },
-    "Bienestar":            { icon: FaSpa,           color: brandColors.secondary },
-    "Festivales":           { icon: FaMusic,         color: brandColors.primary },
-    "Romántico":            { icon: FaHeart,         color: brandColors.secondary },
-    "Naturaleza":           { icon: FaTree,          color: brandColors.green },
-    "Avistamiento":         { icon: FaBinoculars,    color: brandColors.teal },
-    "Compras":              { icon: FaShoppingCart,  color: brandColors.medium },
-    "Fotografía":           { icon: FaCamera,        color: brandColors.gold },
-    "Náutica":              { icon: FaShip,          color: brandColors.lightBlue },
-    "Acuáticos":            { icon: FaSwimmer,       color: brandColors.lightTeal },
-    "Arte":                 { icon: FaPaintBrush,    color: brandColors.light },
-    "Spots instagrameables": { icon: FaInstagram,    color: brandColors.secondary },
-    "Artesanías":           { icon: FaHandHoldingHeart, color: brandColors.gold },
-    "EcoTurismo":           { icon: FaTree,          color: brandColors.green },
+    "Playas":               { icon: FaUmbrellaBeach, color: "#0891b2" },
+    "Gastronomía":          { icon: FaUtensils,      color: "#dc2626" },
+    "Aventura":             { icon: FaMountain,      color: "#059669" },
+    "Cultura":              { icon: FaMusic,         color: "#7c3aed" },
+    "Historia":             { icon: FaLandmark,      color: "#b45309" },
+    "Familia":              { icon: FaUsers,         color: "#0284c7" },
+    "Deportes":             { icon: FaRunning,       color: "#ea580c" },
+    "Nocturna":             { icon: FaMoon,          color: "#6b7280" },
+    "Bienestar":            { icon: FaSpa,           color: "#ec4899" },
+    "Festivales":           { icon: FaMusic,         color: "#dc2626" },
+    "Romántico":            { icon: FaHeart,         color: "#e11d48" },
+    "Naturaleza":           { icon: FaTree,          color: "#16a34a" },
+    "Avistamiento":         { icon: FaBinoculars,    color: "#0d9488" },
+    "Compras":              { icon: FaShoppingCart,  color: "#9333ea" },
+    "Fotografía":           { icon: FaCamera,        color: "#f59e0b" },
+    "Náutica":              { icon: FaShip,          color: "#06b6d4" },
+    "Acuáticos":            { icon: FaSwimmer,       color: "#0ea5e9" },
+    "Arte":                 { icon: FaPaintBrush,    color: "#8b5cf6" },
+    "Spots instagrameables": { icon: FaInstagram,    color: "#ec4899" },
+    "Artesanías":           { icon: FaHandHoldingHeart, color: "#f97316" },
+    "EcoTurismo":           { icon: FaTree,          color: "#10b981" },
   };
-  const defaultCfg = { icon: FaStar, color: brandColors.primary };
+  const defaultCfg = { icon: FaStar, color: "#dc2626" };
 
-  /* -------------------- State --------------------- */
+  /* State */
   const [destinations, setDestinations] = useState<Destination[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeCat, setActiveCat] = useState<string[]>([]);
@@ -141,7 +115,7 @@ export default function FeaturedDestinations() {
   const [showCardCount, setShowCardCount] = useState(9);
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
 
-  /* --------------- Fetch Firestore ---------------- */
+  /* Fetch Firestore */
   useEffect(() => {
     async function fetchDestinations() {
       try {
@@ -187,7 +161,7 @@ export default function FeaturedDestinations() {
     fetchDestinations();
   }, []);
 
-  /* ------------- Filtering Logic ------------------ */
+  /* Filtering Logic */
   const visibleCats = CATEGORIES.slice(0, showCatCount);
 
   const filtered = activeCat.length
@@ -196,7 +170,7 @@ export default function FeaturedDestinations() {
       )
     : destinations;
 
-  /* ------------- Toggle Categories ---------------- */
+  /* Toggle Categories */
   const toggleCategory = useCallback((cat: string) => {
     setActiveCat((prev) =>
       prev.includes(cat) 
@@ -205,44 +179,40 @@ export default function FeaturedDestinations() {
     );
   }, []);
 
-  /* ----------------- Loader UI -------------------- */
+  /* Loader UI */
   if (loading) {
     return (
-      <section className="py-24 flex justify-center">
-        <div className="h-16 w-16 rounded-full border-4 border-primary/30 border-t-primary animate-spin" />
+      <section className="py-20 flex justify-center">
+        <div className="h-12 w-12 rounded-full border-4 border-red-200 border-t-red-600 animate-spin" />
       </section>
     );
   }
 
-  /* ------------------------------------------------ */
-  /* Helper Card Component                            */
-  /* ------------------------------------------------ */
+  /* Card Component - Diseño más institucional */
   const Card = ({ d }: { d: Destination }) => {
     return (
       <Link
         href={`/destinations/${d.id}`}
-        className="block rounded-2xl shadow-lg overflow-hidden hover:shadow-2xl transition-all duration-300 relative group bg-white"
+        className="block rounded-xl overflow-hidden border border-gray-200 hover:border-gray-300 hover:shadow-xl transition-all duration-300 bg-white group"
       >
-        {/* Badge categorías - mismo diseño que DestinationsClient */}
+        {/* Categorías badge - más sobrio */}
         {d.categories.length > 0 && (
-          <div className="absolute top-4 right-4 z-20 flex flex-wrap gap-1 max-w-[60%] justify-end">
+          <div className="absolute top-3 right-3 z-20 flex flex-wrap gap-1 max-w-[60%] justify-end">
             {d.categories.slice(0, 2).map((cat, idx) => {
               const cfg = categoryConfig[cat] || defaultCfg;
               return (
                 <span
                   key={idx}
-                  className="text-white text-xs px-3 py-1 rounded-full flex items-center gap-1 shadow-lg"
-                  style={{ backgroundColor: cfg.color }}
+                  className="bg-white/90 backdrop-blur-sm text-xs px-2.5 py-1 rounded-full flex items-center gap-1 shadow-md border border-white/50"
+                  style={{ color: cfg.color }}
                 >
-                  <IconWrap icon={cfg.icon} size={12} /> {cat}
+                  <IconWrap icon={cfg.icon} size={10} />
+                  <span className="font-medium">{cat}</span>
                 </span>
               );
             })}
             {d.categories.length > 2 && (
-              <span
-                className="text-white text-xs px-3 py-1 rounded-full shadow-lg"
-                style={{ backgroundColor: `${brandColors.primary}CC` }}
-              >
+              <span className="bg-gray-900/80 text-white text-xs px-2.5 py-1 rounded-full shadow-md">
                 +{d.categories.length - 2}
               </span>
             )}
@@ -250,28 +220,28 @@ export default function FeaturedDestinations() {
         )}
 
         {/* Imagen */}
-        <div className="relative w-full h-56">
+        <div className="relative w-full h-52 overflow-hidden bg-gray-100">
           <Image
             src={d.image}
             alt={d.name}
             fill
             sizes="(max-width:768px)100vw,33vw"
-            className="object-cover group-hover:scale-110 transition-transform duration-500"
+            className="object-cover group-hover:scale-105 transition-transform duration-500"
             unoptimized
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
         </div>
 
-        {/* Cuerpo */}
-        <div className="p-6">
-          <h3 className="text-lg font-bold mb-1">{d.name}</h3>
-          <p className="text-sm text-gray-600 line-clamp-2">
+        {/* Contenido */}
+        <div className="p-5">
+          <h3 className="text-lg font-bold text-gray-900 mb-2">{d.name}</h3>
+          <p className="text-sm text-gray-600 line-clamp-2 mb-3">
             {d.tagline || d.description.slice(0, 120)}
           </p>
 
           {d.address && (
-            <div className="mt-4 flex items-center text-sm text-gray-500">
-              <MapPin className="h-4 w-4 mr-1 flex-shrink-0" />
+            <div className="flex items-center text-xs text-gray-500">
+              <MapPin className="h-3 w-3 mr-1.5 flex-shrink-0" />
               <span className="truncate">{d.address}</span>
             </div>
           )}
@@ -280,165 +250,194 @@ export default function FeaturedDestinations() {
     );
   };
 
-  /* ------------------------------------------------ */
-  /* Render                                           */
-  /* ------------------------------------------------ */
+  /* Render */
   return (
-    <section className="max-w-7xl mx-auto px-6 py-20">
-      {/* Título */}
-      <div className="text-center mb-12">
-        <h2 className="text-4xl font-bold">Destinos Destacados</h2>
-        <p className="text-gray-600 mt-2">
-          Explora los lugares imperdibles del Atlántico.
-        </p>
-      </div>
+    <section className="bg-white py-16 sm:py-20 border-t border-gray-200">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        
+        {/* Header */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
+          className="text-center mb-12"
+        >
+          {/* Badge oficial */}
+          <div className="inline-flex items-center gap-2 bg-red-50 border border-red-200 text-red-600 px-4 py-2 rounded-full text-sm font-medium mb-4">
+            <RiGovernmentLine className="text-lg" />
+            <span>Destinos Recomendados</span>
+          </div>
+          
+          <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-gray-900 mb-3">
+            Explora el <span className="text-red-600">Atlántico</span>
+          </h2>
+          <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+            Lugares verificados y recomendados por la Gobernación del Atlántico
+          </p>
+        </motion.div>
 
-      {/* View Mode Toggle */}
-      <div className="flex justify-center mb-8">
-        <div className="bg-gray-100 p-1 rounded-lg inline-flex">
-          <button
-            onClick={() => setViewMode('grid')}
-            className={`px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 flex items-center gap-2 ${
-              viewMode === 'grid' 
-                ? 'bg-white text-gray-900 shadow-sm' 
-                : 'text-gray-600 hover:text-gray-900'
-            }`}
-          >
-            <Grid3X3 className="w-4 h-4" />
-            Lista
-          </button>
-          <button
-            onClick={() => setViewMode('map')}
-            className={`px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 flex items-center gap-2 ${
-              viewMode === 'map' 
-                ? 'bg-white text-gray-900 shadow-sm' 
-                : 'text-gray-600 hover:text-gray-900'
-            }`}
-          >
-            <MapIcon className="w-4 h-4" />
-            Mapa
-          </button>
-        </div>
-      </div>
-
-      {/* Filtros */}
-      <motion.div
-        className="flex flex-wrap justify-center gap-2 mb-10"
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-      >
-        {visibleCats.map((cat) => {
-          const active = activeCat.includes(cat);
-          const cfg = categoryConfig[cat] || defaultCfg;
-          return (
+        {/* View Mode Toggle - Más sobrio */}
+        <div className="flex justify-center mb-8">
+          <div className="bg-gray-100 p-1 rounded-lg inline-flex">
             <button
-              key={cat}
-              onClick={() => toggleCategory(cat)}
-              className={`px-4 py-2 rounded-full text-sm border shadow-sm flex items-center gap-1.5 transition-all duration-200
-              ${active 
-                ? "bg-gray-900 text-white border-gray-900" 
-                : "bg-white text-gray-700 border-gray-200 hover:bg-gray-50"}`}
+              onClick={() => setViewMode('grid')}
+              className={`px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 flex items-center gap-2 ${
+                viewMode === 'grid' 
+                  ? 'bg-white text-gray-900 shadow-sm' 
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
             >
-              <IconWrap icon={cfg.icon} size={14} />
-              {cat}
+              <Grid3X3 className="w-4 h-4" />
+              Vista Lista
             </button>
-          );
-        })}
-
-        {showCatCount < CATEGORIES.length && (
-          <button
-            onClick={() => setShowCatCount((v) => v + 6)}
-            className="px-4 py-2 rounded-full text-sm bg-white border border-gray-200 shadow-sm text-gray-600 hover:bg-gray-50"
-          >
-            <FaChevronDown size={14} className="inline mr-1" /> Más categorías
-          </button>
-        )}
-        {showCatCount >= CATEGORIES.length && CATEGORIES.length > 6 && (
-          <button
-            onClick={() => setShowCatCount(6)}
-            className="px-4 py-2 rounded-full text-sm bg-white border border-gray-200 shadow-sm text-gray-600 hover:bg-gray-50"
-          >
-            <FaChevronUp size={14} className="inline mr-1" /> Menos categorías
-          </button>
-        )}
-      </motion.div>
-
-      {/* Limpiar filtros si hay activos */}
-      {activeCat.length > 0 && (
-        <div className="flex justify-center mb-6">
-          <button
-            onClick={() => setActiveCat([])}
-            className="text-red-600 hover:text-red-700 underline text-sm"
-          >
-            Limpiar filtros ({activeCat.length})
-          </button>
+            <button
+              onClick={() => setViewMode('map')}
+              className={`px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 flex items-center gap-2 ${
+                viewMode === 'map' 
+                  ? 'bg-white text-gray-900 shadow-sm' 
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              <MapIcon className="w-4 h-4" />
+              Vista Mapa
+            </button>
+          </div>
         </div>
-      )}
 
-      {/* Content - Grid or Map */}
-      <AnimatePresence mode="wait">
-        {viewMode === 'grid' ? (
-          <motion.div
-            key="grid"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            transition={{ duration: 0.3 }}
-          >
-            {/* Grid View */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-              {filtered.slice(0, showCardCount).map((d, i) => (
-                <motion.div
-                  key={d.id}
-                  initial={{ opacity: 0, y: 25 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ duration: 0.4, delay: i * 0.05 }}
-                >
-                  <Card d={d} />
-                </motion.div>
-              ))}
-            </div>
+        {/* Filtros - Estilo más institucional */}
+        <motion.div
+          className="flex flex-wrap justify-center gap-2 mb-8"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+        >
+          {visibleCats.map((cat) => {
+            const active = activeCat.includes(cat);
+            const cfg = categoryConfig[cat] || defaultCfg;
+            return (
+              <button
+                key={cat}
+                onClick={() => toggleCategory(cat)}
+                className={`px-3.5 py-2 rounded-full text-sm border font-medium flex items-center gap-1.5 transition-all duration-200 ${
+                  active 
+                    ? "bg-red-600 text-white border-red-600 shadow-md" 
+                    : "bg-white text-gray-700 border-gray-300 hover:border-gray-400 hover:bg-gray-50"
+                }`}
+              >
+                <IconWrap icon={cfg.icon} size={14} />
+                {cat}
+              </button>
+            );
+          })}
 
-            {/* No results message */}
-            {filtered.length === 0 && (
-              <div className="text-center py-12">
-                <p className="text-lg text-gray-500">
-                  No se encontraron destinos con las categorías seleccionadas.
-                </p>
-              </div>
-            )}
+          {showCatCount < CATEGORIES.length && (
+            <button
+              onClick={() => setShowCatCount((v) => v + 6)}
+              className="px-3.5 py-2 rounded-full text-sm bg-white border border-gray-300 text-gray-600 hover:bg-gray-50 font-medium"
+            >
+              <FaChevronDown size={12} className="inline mr-1" /> 
+              Más filtros
+            </button>
+          )}
+          {showCatCount >= CATEGORIES.length && CATEGORIES.length > 6 && (
+            <button
+              onClick={() => setShowCatCount(6)}
+              className="px-3.5 py-2 rounded-full text-sm bg-white border border-gray-300 text-gray-600 hover:bg-gray-50 font-medium"
+            >
+              <FaChevronUp size={12} className="inline mr-1" /> 
+              Menos filtros
+            </button>
+          )}
+        </motion.div>
 
-            {/* Botón ver más */}
-            {showCardCount < filtered.length && (
-              <div className="flex justify-center mt-10">
-                <button
-                  onClick={() => setShowCardCount((c) => c + 9)}
-                  className="px-6 py-3 bg-primary text-white rounded-xl hover:bg-primary/90 transition-colors"
-                >
-                  Ver más destinos
-                </button>
-              </div>
-            )}
-          </motion.div>
-        ) : (
-          <motion.div
-            key="map"
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.95 }}
-            transition={{ duration: 0.3 }}
-          >
-            {/* Map View */}
-            <MapWrapper 
-              destinations={filtered} 
-              categoryConfig={categoryConfig}
-              brandColors={brandColors}
-            />
-          </motion.div>
+        {/* Limpiar filtros */}
+        {activeCat.length > 0 && (
+          <div className="flex justify-center mb-6">
+            <button
+              onClick={() => setActiveCat([])}
+              className="text-red-600 hover:text-red-700 text-sm font-medium underline underline-offset-2"
+            >
+              Limpiar filtros ({activeCat.length} activos)
+            </button>
+          </div>
         )}
-      </AnimatePresence>
+
+        {/* Content - Grid or Map */}
+        <AnimatePresence mode="wait">
+          {viewMode === 'grid' ? (
+            <motion.div
+              key="grid"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.3 }}
+            >
+              {/* Grid View */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                {filtered.slice(0, showCardCount).map((d, i) => (
+                  <motion.div
+                    key={d.id}
+                    initial={{ opacity: 0, y: 25 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ duration: 0.4, delay: Math.min(i * 0.05, 0.3) }}
+                  >
+                    <Card d={d} />
+                  </motion.div>
+                ))}
+              </div>
+
+              {/* No results */}
+              {filtered.length === 0 && (
+                <div className="text-center py-16 bg-gray-50 rounded-xl">
+                  <MapIcon className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                  <p className="text-lg text-gray-600 font-medium mb-2">
+                    No se encontraron destinos
+                  </p>
+                  <p className="text-sm text-gray-500">
+                    Intenta con otras categorías o limpia los filtros actuales
+                  </p>
+                </div>
+              )}
+
+              {/* Ver más button */}
+              {showCardCount < filtered.length && (
+                <div className="flex justify-center mt-10">
+                  <motion.button
+                    onClick={() => setShowCardCount((c) => c + 9)}
+                    className="px-8 py-3 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-full shadow-lg transition-all duration-300"
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                  >
+                    Ver más destinos ({filtered.length - showCardCount} restantes)
+                  </motion.button>
+                </div>
+              )}
+            </motion.div>
+          ) : (
+            <motion.div
+              key="map"
+              initial={{ opacity: 0, scale: 0.98 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.98 }}
+              transition={{ duration: 0.3 }}
+              className="rounded-xl overflow-hidden border border-gray-200 shadow-lg"
+            >
+              {/* Map View */}
+              <MapWrapper 
+                destinations={filtered} 
+                categoryConfig={categoryConfig}
+                brandColors={{
+                  primary: "#dc2626",
+                  secondary: "#f87171",
+                  dark: "#1f2937",
+                  medium: "#6b7280",
+                }}
+              />
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
     </section>
   );
 }

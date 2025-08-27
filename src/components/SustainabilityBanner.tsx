@@ -1,503 +1,656 @@
 "use client";
 
-import { useState } from 'react';
-import { motion } from "framer-motion";
-import { 
-  ChevronDown, 
-  ChevronUp, 
-  Plane, 
-  TreeDeciduous, 
-  Droplet, 
-  Recycle, 
-  ShoppingBag, 
+import { useState, useMemo } from "react";
+import Link from "next/link";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  Plane,
+  TreePine,
+  Droplet,
+  Recycle,
+  ShoppingBag,
   Users,
-  Award,
-  Compass
-} from 'lucide-react';
+  Leaf,
+  Download,
+  ExternalLink,
+  MapPin,
+  Calculator,
+  FileText,
+  ChevronRight,
+  X,
+} from "lucide-react";
+import { RiGovernmentLine } from "react-icons/ri";
 
-export default function ResponsibleTravel() {
-  const [openTab, setOpenTab] = useState<number | null>(null);
-  const [pledgeMade, setPledgeMade] = useState<boolean>(false);
-  
-  // Colores adaptados según la guía de marca
-  const brandColors = {
-    primary: {
-      main: "#E40E20", // Color principal - RGB E40E20
-      light: "#FF715B", // Una variante más clara del coral
-      dark: "#D31A2B", // Variante oscura - RGB D31A2B
+/* ===============================
+   Emission factors (kg CO2e)
+   Fuente/método:
+   - Vuelos: factor por pasajero-km + opción RF (Radiative Forcing) ~1.9
+     (uso común en metodologías; ver DEFRA 2024 y guías sobre RF).
+   - Carretera: factores promedio por pasajero-km (aprox., coche
+     con ocupación media; bus; tren). Ajustables en el UI.
+   - Hoteles: valor por noche (promedio conservador).
+   NOTA: son valores por defecto editables desde el modal.
+================================= */
+const DEFAULT_FACTORS = {
+  flight_pkm: 0.158, // Avión (kg CO2e/pkm, solo CO2). Con RF se multiplica.
+  rf_multiplier: 1.9, // Radiative Forcing recomendado (rango típico 1.7–2.0)
+  car_pkm: 0.12, // Coche promedio por pasajero-km
+  bus_pkm: 0.05, // Bus por pasajero-km
+  rail_pkm: 0.035, // Tren por pasajero-km
+  hotel_night: 10, // kg CO2e por habitación-noche (promedio conservador)
+};
+
+/* Redondeo amable */
+const round = (n: number, d = 1) =>
+  Math.round(n * Math.pow(10, d)) / Math.pow(10, d);
+
+export default function SustainabilityBanner() {
+  const [hoveredTip, setHoveredTip] = useState<number | null>(null);
+  const [hoveredResource, setHoveredResource] = useState<number | null>(null);
+
+  // === MODAL CALCULADORA ===
+  const [calcOpen, setCalcOpen] = useState(false);
+
+  // Entradas
+  const [flightKm, setFlightKm] = useState<number>(0);
+  const [classMultiplier, setClassMultiplier] = useState<number>(1); // Economy=1; Premium=1.5; Business=2.0 (aprox)
+  const [applyRF, setApplyRF] = useState<boolean>(true);
+
+  const [carKm, setCarKm] = useState<number>(0);
+  const [busKm, setBusKm] = useState<number>(0);
+  const [railKm, setRailKm] = useState<number>(0);
+
+  const [hotelNights, setHotelNights] = useState<number>(0);
+
+  // Factores editables
+  const [factors, setFactors] = useState(DEFAULT_FACTORS);
+
+  // Resultados
+  const calc = useMemo(() => {
+    const flightBase = flightKm * factors.flight_pkm * classMultiplier;
+    const flight = applyRF ? flightBase * factors.rf_multiplier : flightBase;
+
+    const road =
+      carKm * factors.car_pkm + busKm * factors.bus_pkm + railKm * factors.rail_pkm;
+
+    const lodging = hotelNights * factors.hotel_night;
+
+    const total = flight + road + lodging;
+
+    return {
+      flight: round(flight, 1),
+      road: round(road, 1),
+      lodging: round(lodging, 1),
+      total: round(total, 1),
+    };
+  }, [
+    flightKm,
+    classMultiplier,
+    applyRF,
+    carKm,
+    busKm,
+    railKm,
+    hotelNights,
+    factors,
+  ]);
+
+  // Consejos principales de turismo sostenible
+  const sustainabilityTips = [
+    {
+      icon: <Plane className="w-6 h-6 text-cyan-600" />,
+      title: "Transporte",
+      points: ["Buses intermunicipales", "Bicicletas en Puerto Colombia", "Comparte trayectos"],
+      impact: "-70% CO₂",
     },
-    secondary: {
-      blue: {
-        light: "#009ADE", // Azul claro - RGB 009ADE
-        medium: "#0047BA", // Azul medio - RGB 0047BA
-        dark: "#4A4F55", // Gris azulado - RGB 4A4F55
-      },
-      yellow: {
-        main: "#F4B223", // Amarillo principal - RGB F4B223
-        light: "#FFDD00", // Amarillo claro - RGB FFDD00
-      },
-      green: {
-        main: "#00B451", // Verde principal - RGB 00B451
-        light: "#00B451", // Verde claro con transparencia
-        dark: "#00833E", // Verde oscuro - RGB 00833E
+    {
+      icon: <Droplet className="w-6 h-6 text-blue-600" />,
+      title: "Agua",
+      points: ["Duchas de 5 minutos", "Reutiliza toallas", "Reporta fugas"],
+      impact: "-200L/día",
+    },
+    {
+      icon: <Recycle className="w-6 h-6 text-green-600" />,
+      title: "Residuos",
+      points: ["Bolsa reutilizable", "Evita plásticos", "Separa basura"],
+      impact: "-3kg/semana",
+    },
+    {
+      icon: <ShoppingBag className="w-6 h-6 text-orange-600" />,
+      title: "Economía Local",
+      points: ["Artesanías Usiacurí", "Restaurantes locales", "Guías certificados"],
+      impact: "80% local",
+    },
+    {
+      icon: <Users className="w-6 h-6 text-red-600" />,
+      title: "Cultura",
+      points: ["Pide permisos", "Aprende del Carnaval", "Respeta tradiciones"],
+      impact: "Preservación",
+    },
+    {
+      icon: <TreePine className="w-6 h-6 text-green-600" />,
+      title: "Naturaleza",
+      points: ["Senderos marcados", "No alimentes fauna", "No extraigas especies"],
+      impact: "Conservación",
+    },
+  ];
+
+  // Recursos descargables
+  const resources = [
+    {
+      icon: <FileText className="w-5 h-5 text-red-600" />,
+      title: "Guía PDF Completa",
+      subtitle: "Manual del viajero",
+      size: "2.3 MB",
+      kind: "pdf",
+    },
+    {
+      icon: <MapPin className="w-5 h-5 text-green-600" />,
+      title: "Destinos Ecológicos",
+      subtitle: "Rincones naturales auténticos",
+      size: "1.1 MB",
+      kind: "eco",
+    },
+    {
+      icon: (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src="/jimmy-avatar.png" alt="Jimmy" className="w-8 h-8 rounded-full object-cover" />
+      ),
+      title: "Jimmy - Asistente IA",
+      subtitle: "Tu guía virtual del Atlántico",
+      size: "Chat 24/7",
+      kind: "jimmy",
+    },
+    {
+      icon: <Calculator className="w-5 h-5 text-purple-600" />,
+      title: "Calculadora Huella",
+      subtitle: "Mide tu impacto",
+      size: "Online",
+      kind: "calc",
+    },
+  ];
+
+  // Datos de impacto
+  const impactStats = [
+    { number: "23", label: "Municipios", color: "text-red-600" },
+    { number: "5,000+", label: "Empleos locales", color: "text-amber-600" },
+    { number: "40%", label: "Menos residuos", color: "text-green-600" },
+    { number: "15", label: "Ecosistemas", color: "text-blue-600" },
+  ];
+
+  /* Handlers Recursos */
+  const handleResourceClick = (kind: string) => {
+    if (kind === "jimmy") {
+      if (typeof window !== "undefined") {
+        // 2 nombres de evento por si tipografías/guiones varían
+        window.dispatchEvent(new Event("jimmy:open"));
+        window.dispatchEvent(new Event("jimmy-open"));
+  
+        // fallback imperativo si el widget lo expone
+        (window as any).openJimmy?.();
       }
-    },
-    neutral: {
-      light: "#C1C5C8", // Gris claro - RGB C1C5C8
-      medium: "#7A858C", // Gris medio - RGB 7A858C
-      dark: "#4A4F55", // Gris oscuro para textos
+      return;
     }
+    if (kind === "calc") {
+      setCalcOpen(true);
+      return;
+    }
+    // otros recursos se manejan por <a>/<Link>
   };
   
-  const toggleTab = (index: number): void => {
-    if (openTab === index) {
-      setOpenTab(null);
-    } else {
-      setOpenTab(index);
-    }
-  };
-  
-  const makePledge = (): void => {
-    setPledgeMade(true);
-    // Aquí podríamos agregar código para guardar el compromiso en la base de datos del usuario
-  };
-  
-  const tips = [
-    {
-      title: "Transporte Sostenible",
-      icon: <Plane className="w-5 h-5" style={{ color: brandColors.secondary.blue.light }} />,
-      content: "Utiliza transporte público o bicicletas para recorrer el corredor costero. Considera alternativas de bajo impacto como kayak o paddle para explorar la Ciénaga de Mallorquín o el río Magdalena. Compensa tu huella de carbono al viajar desde otras regiones a Barranquilla."
-    },
-    {
-      title: "Conservación Natural",
-      icon: <TreeDeciduous className="w-5 h-5" style={{ color: brandColors.secondary.green.main }} />,
-      content: "Respeta los senderos marcados en los manglares y ecosistemas del Atlántico. No alimentes ni perturbes la fauna en lugares como la Laguna del Cisne o Tubará. Participa en programas de conservación de la zona costera para proteger este paraíso de biodiversidad."
-    },
-    {
-      title: "Ahorro de Agua",
-      icon: <Droplet className="w-5 h-5" style={{ color: brandColors.secondary.blue.light }} />,
-      content: "El Atlántico es una región con escasez de agua dulce. Toma duchas cortas en tu hospedaje, reutiliza toallas y sé consciente del uso del agua, especialmente en temporada seca. Lleva siempre contigo una botella reutilizable."
-    },
-    {
-      title: "Gestión de Residuos",
-      icon: <Recycle className="w-5 h-5" style={{ color: brandColors.secondary.blue.medium }} />,
-      content: "No dejes basura en las playas de Puerto Colombia, Tubará o Juan de Acosta. Reduce el uso de plásticos de un solo uso, especialmente durante eventos como el Carnaval de Barranquilla. Dispón correctamente de tus residuos en las zonas rurales."
-    },
-    {
-      title: "Apoyo Local",
-      icon: <ShoppingBag className="w-5 h-5" style={{ color: brandColors.secondary.yellow.main }} />,
-      content: "Compra artesanías de fibra de palma en Usiacurí o máscaras tradicionales del Carnaval en Galapa. Consume platos locales como arroz de lisa, sancocho de pescado y dulces típicos en restaurantes de comunidades locales, especialmente en municipios pequeños."
-    },
-    {
-      title: "Respeto Cultural",
-      icon: <Users className="w-5 h-5" style={{ color: brandColors.secondary.yellow.main }} />,
-      content: "Aprende sobre las tradiciones del Carnaval de Barranquilla antes de participar. Pide permiso antes de fotografiar personas o ceremonias locales. Visita los museos que preservan la historia cultural como el Museo Romántico o el Museo Bolivariano."
-    },
-    {
-      title: "Turismo de Aventura Responsable",
-      icon: <Compass className="w-5 h-5" style={{ color: brandColors.secondary.green.main }} />,
-      content: "Si practicas deportes náuticos en Puerto Velero o Salinas del Rey, respeta las indicaciones de seguridad y los ecosistemas marinos. Para el senderismo en zonas como la Serranía de Piojó, usa solo rutas establecidas y lleva de regreso toda tu basura."
-    }
-  ];
-  
-  const stats = [
-    { label: "Reducción CO₂", value: "2.5 ton", description: "por viajero que usa transporte público y kayaks" },
-    { label: "Apoyo económico", value: "+80%", description: "se queda en comunidades si compras artesanías locales" },
-    { label: "Ahorro de agua", value: "1,500 L", description: "por semana usando prácticas responsables" },
-    { label: "Plástico evitado", value: "3 kg", description: "por viajero durante una semana de estancia" }
-  ];
-
-  // Estilos para animaciones
-  const backgroundKeyframes = `
-    @keyframes gradientFlow {
-      0% { background-position: 0% 50% }
-      50% { background-position: 100% 50% }
-      100% { background-position: 0% 50% }
-    }
-    
-    @keyframes pulseGlow {
-      0% { box-shadow: 0 0 0 0 rgba(228, 14, 32, 0.4); }
-      70% { box-shadow: 0 0 0 10px rgba(228, 14, 32, 0); }
-      100% { box-shadow: 0 0 0 0 rgba(228, 14, 32, 0); }
-    }
-    
-    @font-face {
-      font-family: 'Fivo';
-      src: local('Fivo Sans');
-      font-weight: normal;
-      font-style: normal;
-    }
-    @font-face {
-      font-family: 'Baloo';
-      src: local('Baloo');
-      font-weight: normal;
-      font-style: normal;
-    }
-  `;
 
   return (
-    <>
-      <style>{backgroundKeyframes}</style>
-      <section className="relative bg-background pt-28 pb-24 overflow-hidden" style={{ fontFamily: "'Fivo', 'Inter', sans-serif" }}>
-        {/* Decoración superior minimalista y moderna */}
-        <div className="absolute top-0 left-0 w-full h-16 overflow-hidden" style={{ zIndex: 0 }}>
-          {/* Gradiente de fondo sutil */}
-          <div className="absolute inset-0 bg-gradient-to-b from-white to-transparent"></div>
-          
-          {/* Formas modernas con sombreado suave */}
-          <div className="absolute left-1/4 top-4 w-40 h-8 rounded-full opacity-10"
-               style={{ 
-                 background: `linear-gradient(135deg, ${brandColors.primary.light}20, ${brandColors.primary.main}50)`,
-                 filter: 'blur(12px)',
-                 transform: 'skewX(-15deg)'
-               }}></div>
-               
-          <div className="absolute right-1/3 top-6 w-32 h-6 rounded-full opacity-10"
-               style={{ 
-                 background: `linear-gradient(135deg, ${brandColors.secondary.green.main}20, ${brandColors.secondary.blue.light}40)`,
-                 filter: 'blur(8px)',
-                 transform: 'skewX(20deg)'
-               }}></div>
-          
-          {/* Línea decorativa horizontal con efecto de sombra */}
-          <div className="absolute bottom-0 left-0 w-full h-px" 
-               style={{
-                 background: `linear-gradient(to right, 
-                              transparent, 
-                              ${brandColors.primary.main}15 20%, 
-                              ${brandColors.primary.main}30 50%,
-                              ${brandColors.primary.main}15 80%,
-                              transparent)`,
-                 boxShadow: `0 1px 2px rgba(0,0,0,0.05)`
-               }}></div>
-               
-          {/* Acento minimalista */}
-          <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-24 h-0.5 rounded-t-full"
-               style={{ 
-                 background: `linear-gradient(to right, ${brandColors.primary.main}70, ${brandColors.primary.light})`,
-                 boxShadow: `0 -1px 3px ${brandColors.primary.main}30`
-               }}></div>
-        </div>
+    <section className="relative w-full bg-white py-16 sm:py-20 border-t border-gray-200">
+      {/* Background pattern */}
+      <div className="absolute inset-0 opacity-[0.02]">
+        <div
+          className="absolute inset-0"
+          style={{
+            backgroundImage:
+              "repeating-linear-gradient(45deg, transparent, transparent 35px, rgba(0,0,0,.02) 35px, rgba(0,0,0,.02) 70px)",
+          }}
+        />
+      </div>
 
-        <div className="container mx-auto px-4 relative z-10 pt-6">
+      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Header */}
+        <motion.div
+          className="text-center mb-12"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
+        >
           <motion.div
-            initial={{ opacity: 0 }}
-            whileInView={{ opacity: 1 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.8 }}
-            className="relative text-center mb-16"
+            className="inline-flex items-center gap-2 bg-green-50 border border-green-200 text-green-600 px-4 py-2 rounded-full text-sm font-medium mb-4"
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.1 }}
           >
-            {/* Icono de ubicación moderno */}
-            <motion.div
-              initial={{ opacity: 0, y: -10 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.5 }}
-              className="flex justify-center mb-4"
-            >
-              <div className="relative w-16 h-16 flex items-center justify-center">
-                {/* Efecto de resplandor/sombra */}
-                <div className="absolute w-10 h-10 rounded-full opacity-10"
-                     style={{ 
-                       background: `radial-gradient(circle, ${brandColors.primary.main} 0%, transparent 70%)`,
-                       filter: 'blur(8px)'
-                     }}></div>
-                
-                {/* Icono principal */}
-                <Award className="w-8 h-8" style={{ color: brandColors.neutral.dark }} />
-                
-                {/* Círculo punteado decorativo */}
-                <div className="absolute w-16 h-16 rounded-full border border-dashed" 
-                     style={{ borderColor: `${brandColors.neutral.medium}20` }}></div>
-                     
-                {/* Pequeña animación de ping */}
-                <motion.div 
-                  className="absolute w-14 h-14 rounded-full"
-                  style={{ border: `1px solid ${brandColors.primary.main}10` }}
-                  animate={{ 
-                    scale: [1, 1.2, 1],
-                    opacity: [0.2, 0.1, 0]
-                  }}
-                  transition={{ 
-                    duration: 2,
-                    repeat: Infinity,
-                    ease: "easeInOut"
-                  }}
-                ></motion.div>
-              </div>
-            </motion.div>
-            
-            <motion.h2
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.6, delay: 0.1 }}
-              className="text-4xl md:text-5xl font-bold mb-3 text-center"
-              style={{ fontFamily: "'Fivo', 'Inter', sans-serif", color: brandColors.neutral.dark }}
-            >
-              Viaje Responsable en Atlántico
-            </motion.h2>
-            
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              whileInView={{ opacity: 1, scale: 1 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.6, delay: 0.2 }}
-              className="flex justify-center mb-6"
-            >
-              <div className="text-lg font-medium" 
-                style={{ fontFamily: "'Baloo', 'Inter', sans-serif", color: brandColors.neutral.medium }}>
-                Disfruta el Caribe preservando su belleza 🌊
-              </div>
-            </motion.div>
-            
-            <motion.p
-              initial={{ opacity: 0, y: 10 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.4, delay: 0.3 }}
-              className="max-w-2xl mx-auto"
-              style={{ color: brandColors.neutral.medium }}
-            >
-              Pequeñas acciones que generan un gran impacto positivo en nuestro destino
-            </motion.p>
+            <Leaf className="text-lg" />
+            <span>Turismo Sostenible</span>
           </motion.div>
 
-          {/* 1. Infografía de estadísticas de impacto */}
-          <motion.div
-            initial={{ opacity: 0, y: 40 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6, delay: 0.4 }}
-            className="p-6 rounded-3xl mb-12 shadow-lg border"
-            style={{
-              backgroundColor: "rgba(0, 154, 222, 0.03)",
-              backdropFilter: "blur(8px)",
-              borderColor: "rgba(0, 154, 222, 0.1)",
-              boxShadow: "0 15px 35px rgba(0, 154, 222, 0.08)",
-            }}
-          >
-            <h3 className="text-xl font-semibold text-center mb-8"
-                style={{ fontFamily: "'Fivo', 'Inter', sans-serif", color: brandColors.secondary.blue.medium }}>
-              El Impacto de Tus Decisiones
-            </h3>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
-              {stats.map((stat, index) => (
+          <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-gray-900 mb-3">
+            Viaja de manera <span className="text-green-600">Responsable</span>
+          </h2>
+
+          <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+            Pequeñas acciones que generan un gran impacto positivo en el Atlántico
+          </p>
+        </motion.div>
+
+        {/* Stats Bar */}
+        <motion.div
+          className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-8 mb-10 p-6 
+                     bg-gray-50 border border-gray-200 rounded-2xl"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2, duration: 0.6 }}
+        >
+          {impactStats.map((stat, idx) => (
+            <div key={idx} className="text-center">
+              <div className={`text-xl sm:text-2xl font-bold ${stat.color}`}>{stat.number}</div>
+              <div className="text-xs text-gray-600">{stat.label}</div>
+            </div>
+          ))}
+
+          <div className="hidden sm:block w-px h-8 bg-gray-300" />
+
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-gradient-to-br from-green-600 to-green-700 rounded-full flex items-center justify-center shadow-lg">
+              <RiGovernmentLine className="text-white text-xl" />
+            </div>
+            <div className="text-left">
+              <div className="text-sm font-semibold text-gray-900">EcoTurismo</div>
+              <div className="text-xs text-gray-500">Gobernación del Atlántico</div>
+            </div>
+          </div>
+        </motion.div>
+
+        {/* Principios */}
+        <motion.div
+          className="mb-10"
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.3 }}
+        >
+          <div className="overflow-x-auto pb-4 scrollbar-hide">
+            <div className="flex lg:grid lg:grid-cols-6 gap-3 sm:gap-4 min-w-max lg:min-w-0">
+              {sustainabilityTips.map((tip, idx) => (
                 <motion.div
-                  key={index}
+                  key={idx}
+                  className="group relative bg-white border border-gray-200 rounded-xl p-4 sm:p-5 hover:border-gray-300 hover:shadow-lg hover:bg-gray-50 transition-all duration-300 min-w-[140px] sm:min-w-[160px] lg:min-w-0"
                   initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ duration: 0.5, delay: 0.2 + index * 0.1 }}
-                  whileHover={{ y: -5 }}
-                  className="bg-white p-5 rounded-2xl shadow text-center transition-all duration-300 border"
-                  style={{ borderColor: "rgba(0, 154, 222, 0.1)" }}
+                  animate={{ opacity: 1, y: 0 }}
+                  whileHover={{
+                    y: -4,
+                    transition: { type: "spring", stiffness: 300, damping: 20 },
+                  }}
+                  whileTap={{ scale: 0.95 }}
+                  transition={{ delay: idx * 0.05, duration: 0.4 }}
+                  onMouseEnter={() => setHoveredTip(idx)}
+                  onMouseLeave={() => setHoveredTip(null)}
                 >
-                  <p className="text-3xl font-bold mb-1" style={{ color: brandColors.secondary.blue.medium }}>
-                    {stat.value}
-                  </p>
-                  <p className="font-medium mb-1" style={{ fontFamily: "'Fivo', 'Inter', sans-serif", color: brandColors.neutral.dark }}>
-                    {stat.label}
-                  </p>
-                  <p className="text-xs" style={{ fontFamily: "'Baloo', 'Inter', sans-serif", color: brandColors.neutral.medium }}>
-                    {stat.description}
-                  </p>
+                  <motion.div
+                    className="flex justify-center items-center w-12 h-12 mx-auto mb-3 rounded-lg bg-gray-50"
+                    whileHover={{ scale: 1.1, rotate: 5 }}
+                    transition={{ type: "spring", stiffness: 300 }}
+                  >
+                    {tip.icon}
+                  </motion.div>
+
+                  <h3 className="text-sm font-semibold text-gray-700 text-center mb-2">{tip.title}</h3>
+
+                  <div className="text-xs font-medium text-green-600 text-center mb-3 bg-green-50 rounded-full py-1">
+                    {tip.impact}
+                  </div>
+
+                  <motion.div className="space-y-1" initial={{ opacity: 0.5 }} animate={{ opacity: hoveredTip === idx ? 1 : 0.5 }}>
+                    {tip.points.map((point, pidx) => (
+                      <div key={pidx} className="text-xs text-gray-500 flex items-start gap-1">
+                        <ChevronRight className="w-3 h-3 mt-0.5 flex-shrink-0" />
+                        <span>{point}</span>
+                      </div>
+                    ))}
+                  </motion.div>
+
+                  <motion.div
+                    className="absolute bottom-0 left-0 right-0 h-0.5 bg-green-600 opacity-0 group-hover:opacity-100 rounded-b-xl"
+                    initial={{ scaleX: 0 }}
+                    whileHover={{ scaleX: 1 }}
+                    transition={{ type: "spring", stiffness: 300 }}
+                  />
                 </motion.div>
               ))}
             </div>
-          </motion.div>
-          
-          {/* 2. Acordeón de consejos */}
-          <motion.div
-            initial={{ opacity: 0, y: 40 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6, delay: 0.5 }}
-            className="mb-12"
-          >
-            <h3 className="text-xl font-semibold text-center mb-8" 
-                style={{ fontFamily: "'Fivo', 'Inter', sans-serif", color: brandColors.neutral.dark }}>
-              Consejos para Viajeros Conscientes
-            </h3>
-            <div className="space-y-3 md:space-y-4">
-              {tips.map((tip, index) => (
-                <motion.div
-                  key={index}
-                  initial={{ opacity: 0, y: 10 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ duration: 0.4, delay: 0.3 + index * 0.07 }}
-                  className="border rounded-2xl overflow-hidden"
-                  style={{ borderColor: `${brandColors.primary.main}10` }}
-                >
-                  <motion.button 
-                    className="w-full flex items-center justify-between p-5 bg-white transition-colors duration-300"
-                    onClick={() => toggleTab(index)}
-                    whileHover={{ backgroundColor: "rgba(237, 242, 255, 0.7)" }}
+          </div>
+        </motion.div>
+
+        {/* Recursos */}
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.6, delay: 0.4 }}
+          className="mb-10"
+        >
+          <h3 className="text-xl font-bold text-gray-900 mb-6 text-center">Recursos para tu Viaje</h3>
+
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {resources.map((resource, idx) => {
+              const isEco = resource.kind === "eco";
+              const isGuide = resource.kind === "pdf";
+              const isJimmy = resource.kind === "jimmy";
+              const isCalc = resource.kind === "calc";
+
+              const CardInner = (
+                <div className="flex flex-col items-center text-center">
+                  <motion.div
+                    className="w-12 h-12 bg-gray-50 rounded-lg flex items-center justify-center mb-3"
+                    animate={{
+                      scale: hoveredResource === idx ? 1.1 : 1,
+                      rotate: hoveredResource === idx ? 5 : 0,
+                    }}
+                    transition={{ type: "spring", stiffness: 300 }}
                   >
-                    <div className="flex items-center gap-4">
-                      <div className="w-10 h-10 rounded-xl flex items-center justify-center"
-                           style={{ background: "rgba(0, 0, 0, 0.03)" }}>
-                        {tip.icon}
-                      </div>
-                      <span className="font-semibold text-lg" 
-                            style={{ fontFamily: "'Fivo', 'Inter', sans-serif", color: brandColors.neutral.dark }}>
-                        {tip.title}
-                      </span>
-                    </div>
-                    <div className="w-8 h-8 rounded-full flex items-center justify-center"
-                         style={{ background: "rgba(0, 0, 0, 0.03)" }}>
-                      {openTab === index ? 
-                        <ChevronUp style={{ color: brandColors.primary.main }} /> : 
-                        <ChevronDown style={{ color: brandColors.primary.main }} />}
-                    </div>
-                  </motion.button>
-                  
-                  {openTab === index && (
-                    <motion.div 
-                      initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: "auto" }}
-                      exit={{ opacity: 0, height: 0 }}
-                      transition={{ duration: 0.3 }}
-                      className="bg-white px-5 py-4 border-t"
-                      style={{ borderColor: `${brandColors.primary.main}05` }}
+                    {resource.icon}
+                  </motion.div>
+
+                  <h4 className="font-semibold text-gray-900 text-sm mb-1 group-hover:text-red-600 transition-colors">
+                    {resource.title}
+                  </h4>
+
+                  <p className="text-xs text-gray-500 mb-2">{resource.subtitle}</p>
+
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-medium text-gray-400">{resource.size}</span>
+                    <ExternalLink className="w-3 h-3 text-gray-400 group-hover:text-red-600 transition-colors" />
+                  </div>
+                </div>
+              );
+
+              return (
+                <motion.div
+                  key={idx}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onMouseEnter={() => setHoveredResource(idx)}
+                  onMouseLeave={() => setHoveredResource(null)}
+                  className="bg-white p-5 rounded-xl border border-gray-200 hover:border-red-300 hover:shadow-lg transition-all duration-200 text-left group"
+                >
+                  {isGuide ? (
+                    // Descarga directa del PDF ubicado en public/docs/guia-turismo.pdf
+                    <a
+                      href="/docs/guia-turismo.pdf"
+                      download="Guia-Turismo-Atlantico.pdf"
+                      target="_blank"
+                      rel="noopener"
+                      className="block"
+                      onClick={() => handleResourceClick(resource.kind)}
                     >
-                      <p style={{ fontFamily: "'Baloo', 'Inter', sans-serif", color: brandColors.neutral.medium, lineHeight: "1.6" }}>
-                        {tip.content}
-                      </p>
-                    </motion.div>
+                      {CardInner}
+                    </a>
+                  ) : isEco ? (
+                    // Navega a destinos con filtro EcoTurismo
+                    <Link
+                      href={{ pathname: "/destinations", query: { filter: "EcoTurismo" } }}
+                      className="block"
+                      onClick={() => handleResourceClick(resource.kind)}
+                    >
+                      {CardInner}
+                    </Link>
+                  ) : isJimmy || isCalc ? (
+                    <button
+                      type="button"
+                      className="block w-full text-left"
+                      onClick={() => handleResourceClick(resource.kind)}
+                    >
+                      {CardInner}
+                    </button>
+                  ) : (
+                    CardInner
                   )}
                 </motion.div>
-              ))}
-            </div>
-          </motion.div>
-          
-          {/* 3. Compromiso y badge */}
-          <motion.div
-            initial={{ opacity: 0, y: 40 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6, delay: 0.6 }}
-            className="p-8 rounded-3xl border relative overflow-hidden"
-            style={{
-              background: `linear-gradient(to bottom right, ${brandColors.primary.main}05, ${brandColors.primary.main}10)`,
-              borderColor: `${brandColors.primary.main}15`,
-              boxShadow: `0 15px 35px ${brandColors.primary.main}05`,
-            }}
-          >
-            {/* Elementos decorativos sutiles */}
-            <div className="absolute -top-20 -right-20 w-40 h-40 rounded-full opacity-20"
-                 style={{ 
-                   background: brandColors.primary.main,
-                   filter: 'blur(70px)'
-                 }}></div>
-            <div className="absolute -bottom-20 -left-20 w-40 h-40 rounded-full opacity-10"
-                 style={{ 
-                   background: brandColors.primary.main,
-                   filter: 'blur(70px)'
-                 }}></div>
-            
-            <h3 className="text-xl font-semibold text-center mb-4"
-                style={{ fontFamily: "'Fivo', 'Inter', sans-serif", color: brandColors.neutral.dark }}>
-              Haz Tu Compromiso con el Atlántico
-            </h3>
-            <p className="text-center mb-8 max-w-xl mx-auto"
-               style={{ fontFamily: "'Baloo', 'Inter', sans-serif", color: brandColors.neutral.medium }}>
-              Comprométete a seguir estos principios en tu viaje por el Atlántico y demuestra tu apoyo a la sostenibilidad del destino
-            </p>
-            
-            <div className="flex flex-col items-center">
-              {!pledgeMade ? (
-                <motion.button 
-                  onClick={makePledge} 
-                  whileHover={{ scale: 1.03 }}
-                  whileTap={{ scale: 0.98 }}
-                  className="font-semibold px-8 py-3 rounded-xl flex items-center gap-2 transition-all duration-300"
-                  style={{ 
-                    fontFamily: "'Fivo', 'Inter', sans-serif",
-                    color: "white",
-                    background: `linear-gradient(to right, ${brandColors.primary.main}, ${brandColors.primary.dark})`,
-                    boxShadow: `0 8px 25px ${brandColors.primary.main}20`
-                  }}
-                >
-                  <span>Me comprometo a viajar responsablemente por el Atlántico</span>
-                </motion.button>
-              ) : (
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ duration: 0.5 }}
-                  className="bg-white p-8 rounded-2xl text-center w-full max-w-md shadow-lg border"
-                  style={{
-                    borderColor: `${brandColors.primary.main}10`,
-                    boxShadow: `0 15px 35px ${brandColors.primary.main}10`,
-                  }}
-                >
-                  <div className="flex justify-center mb-4">
-                    <div className="w-16 h-16 rounded-full flex items-center justify-center"
-                         style={{ background: `${brandColors.primary.main}10` }}>
-                      <Award className="h-10 w-10" style={{ color: brandColors.primary.main }} />
-                    </div>
-                  </div>
-                  <h4 className="text-xl font-bold mb-2"
-                      style={{ fontFamily: "'Fivo', 'Inter', sans-serif", color: brandColors.neutral.dark }}>
-                    ¡Felicidades!
-                  </h4>
-                  <p className="mb-3" style={{ fontFamily: "'Baloo', 'Inter', sans-serif", color: brandColors.neutral.medium }}>
-                    
-                  </p>
-                  <p className="text-sm mt-2" style={{ fontFamily: "'Baloo', 'Inter', sans-serif", color: brandColors.neutral.medium }}>
-                    Gracias por tu compromiso con la sostenibilidad y el respeto por los destinos costeros y culturales del Caribe colombiano.
-                  </p>
-                </motion.div>
-              )}
-            </div>
-          </motion.div>
-          
-          {/* Decoración inferior minimalista con sombras */}
-          <div className="relative h-18 mt-6 overflow-hidden">
-            {/* Línea decorativa superior */}
-            <div className="absolute inset-x-0 top-0 h-px" 
-                 style={{
-                   background: `linear-gradient(to right, 
-                                transparent, 
-                                ${brandColors.neutral.medium}10 30%, 
-                                ${brandColors.neutral.medium}20 50%,
-                                ${brandColors.neutral.medium}10 70%,
-                                transparent)`,
-                 }}></div>
-            
-            {/* Efectos de sombra modernos */}
-            <div className="absolute left-1/3 bottom-0 w-64 h-8 rounded-full opacity-5"
-                 style={{ 
-                   background: `radial-gradient(ellipse, ${brandColors.secondary.blue.medium}90, transparent)`,
-                   filter: 'blur(10px)',
-                 }}></div>
-                 
-            <div className="absolute right-1/4 bottom-2 w-40 h-6 rounded-full opacity-5"
-                 style={{ 
-                   background: `radial-gradient(ellipse, ${brandColors.primary.main}90, transparent)`,
-                   filter: 'blur(8px)',
-                 }}></div>
+              );
+            })}
           </div>
-        </div>
-        
-        {/* Elemento de curva en la parte inferior */}
-        <div className="absolute bottom-0 left-0 right-0 overflow-hidden">
-          <svg
-            viewBox="0 0 1440 100"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-            className="w-full h-[100px]"
-            preserveAspectRatio="none"
+        </motion.div>
+
+        {/* CTA Section (descarga PDF) */}
+        <motion.div
+          className="text-center"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.5, duration: 0.6 }}
+        >
+          <a
+            href="/docs/guia-turismo.pdf"
+            download
+            target="_blank"
+            rel="noopener"
+            className="inline-flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-6 sm:px-8 py-3 sm:py-4 rounded-full font-semibold shadow-xl transition-all duration-300"
           >
-            <path
-              d="M0,64L48,58.7C96,53,192,43,288,48C384,53,480,75,576,80C672,85,768,75,864,69.3C960,64,1056,64,1152,58.7C1248,53,1344,43,1392,37.3L1440,32L1440,100L1392,100C1344,100,1248,100,1152,100C1056,100,960,100,864,100C768,100,672,100,576,100C480,100,384,100,288,100C192,100,96,100,48,100L0,100Z"
-              fill="var(--background)"
-            />
-          </svg>
-        </div>
-      </section>
-    </>
+            <Download className="w-5 h-5" />
+            <span>Descargar Guía Completa</span>
+          </a>
+        </motion.div>
+      </div>
+
+      {/* ===== Modal Calculadora de Huella ===== */}
+      <AnimatePresence>
+        {calcOpen && (
+          <motion.div
+            className="fixed inset-0 z-[60] bg-black/50 backdrop-blur-sm flex items-center justify-center px-4"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setCalcOpen(false)}
+            role="dialog"
+            aria-modal="true"
+          >
+            <motion.div
+              className="w-full max-w-3xl bg-white rounded-2xl shadow-2xl border border-gray-200"
+              initial={{ y: 24, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: 24, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between px-5 py-4 border-b">
+                <div className="flex items-center gap-2">
+                  <Calculator className="w-5 h-5 text-purple-600" />
+                  <h4 className="font-semibold">Calculadora de Huella</h4>
+                </div>
+                <button
+                  className="p-2 rounded-lg hover:bg-gray-100"
+                  onClick={() => setCalcOpen(false)}
+                >
+                  <X className="w-5 h-5 text-gray-500" />
+                </button>
+              </div>
+
+              <div className="grid md:grid-cols-2 gap-6 p-5">
+                {/* Vuelos */}
+                <div className="space-y-3">
+                  <h5 className="font-semibold text-gray-900 flex items-center gap-2">
+                    <Plane className="w-4 h-4 text-cyan-600" /> Vuelos
+                  </h5>
+                  <label className="block text-sm text-gray-600">
+                    Kilómetros (ida + vuelta)
+                    <input
+                      type="number"
+                      min={0}
+                      value={flightKm}
+                      onChange={(e) => setFlightKm(Number(e.target.value || 0))}
+                      className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm"
+                      placeholder="p. ej. 1800"
+                    />
+                  </label>
+                  <label className="block text-sm text-gray-600">
+                    Clase
+                    <select
+                      value={classMultiplier}
+                      onChange={(e) => setClassMultiplier(Number(e.target.value))}
+                      className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm bg-white"
+                    >
+                      <option value={1}>Económica (x1)</option>
+                      <option value={1.5}>Premium Económica (x1.5)</option>
+                      <option value={2}>Business (x2)</option>
+                    </select>
+                  </label>
+                  <label className="flex items-center gap-2 text-sm text-gray-700">
+                    <input
+                      type="checkbox"
+                      checked={applyRF}
+                      onChange={(e) => setApplyRF(e.target.checked)}
+                    />
+                    Incluir efecto de altitud / RF (recomendado)
+                  </label>
+                </div>
+
+                {/* Carretera */}
+                <div className="space-y-3">
+                  <h5 className="font-semibold text-gray-900 flex items-center gap-2">
+                    <MapPin className="w-4 h-4 text-green-600" /> Transporte terrestre
+                  </h5>
+                  <div className="grid grid-cols-3 gap-3">
+                    <label className="block text-sm text-gray-600">
+                      Coche (km)
+                      <input
+                        type="number"
+                        min={0}
+                        value={carKm}
+                        onChange={(e) => setCarKm(Number(e.target.value || 0))}
+                        className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm"
+                        placeholder="p. ej. 120"
+                      />
+                    </label>
+                    <label className="block text-sm text-gray-600">
+                      Bus (km)
+                      <input
+                        type="number"
+                        min={0}
+                        value={busKm}
+                        onChange={(e) => setBusKm(Number(e.target.value || 0))}
+                        className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm"
+                        placeholder="p. ej. 60"
+                      />
+                    </label>
+                    <label className="block text-sm text-gray-600">
+                      Tren (km)
+                      <input
+                        type="number"
+                        min={0}
+                        value={railKm}
+                        onChange={(e) => setRailKm(Number(e.target.value || 0))}
+                        className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm"
+                        placeholder="p. ej. 80"
+                      />
+                    </label>
+                  </div>
+                </div>
+
+                {/* Alojamiento */}
+                <div className="space-y-3 md:col-span-2">
+                  <h5 className="font-semibold text-gray-900 flex items-center gap-2">
+                    <TreePine className="w-4 h-4 text-green-600" /> Alojamiento
+                  </h5>
+                  <label className="block text-sm text-gray-600 max-w-xs">
+                    Noches de hotel
+                    <input
+                      type="number"
+                      min={0}
+                      value={hotelNights}
+                      onChange={(e) => setHotelNights(Number(e.target.value || 0))}
+                      className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm"
+                      placeholder="p. ej. 3"
+                    />
+                  </label>
+                </div>
+
+                {/* Factores (avanzado) */}
+                <details className="md:col-span-2 bg-gray-50 rounded-xl border border-gray-200 p-4">
+                  <summary className="cursor-pointer text-sm font-semibold text-gray-800">
+                    Ajustar factores (avanzado)
+                  </summary>
+                  <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-3">
+                    {([
+                      ["flight_pkm", "Vuelo (kg CO2e/pkm)"],
+                      ["rf_multiplier", "RF multiplier (vuelos)"],
+                      ["car_pkm", "Coche (kg CO2e/pkm)"],
+                      ["bus_pkm", "Bus (kg CO2e/pkm)"],
+                      ["rail_pkm", "Tren (kg CO2e/pkm)"],
+                      ["hotel_night", "Hotel (kg CO2e/noche)"],
+                    ] as const).map(([k, label]) => (
+                      <label key={k} className="block text-sm text-gray-600">
+                        {label}
+                        <input
+                          type="number"
+                          step="0.001"
+                          value={(factors as any)[k]}
+                          onChange={(e) =>
+                            setFactors((prev) => ({
+                              ...prev,
+                              [k]: Number(e.target.value || 0),
+                            }))
+                          }
+                          className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm bg-white"
+                        />
+                      </label>
+                    ))}
+                  </div>
+                </details>
+              </div>
+
+              {/* Resultados */}
+              <div className="px-5 pb-5">
+                <div className="grid sm:grid-cols-3 gap-4">
+                  <div className="rounded-xl border p-4">
+                    <div className="text-xs text-gray-500">Vuelos</div>
+                    <div className="text-2xl font-bold">{calc.flight} kg</div>
+                  </div>
+                  <div className="rounded-xl border p-4">
+                    <div className="text-xs text-gray-500">Transporte terrestre</div>
+                    <div className="text-2xl font-bold">{calc.road} kg</div>
+                  </div>
+                  <div className="rounded-xl border p-4">
+                    <div className="text-xs text-gray-500">Alojamiento</div>
+                    <div className="text-2xl font-bold">{calc.lodging} kg</div>
+                  </div>
+                </div>
+
+                <div className="mt-4 rounded-2xl bg-green-50 border border-green-200 p-4 flex items-center justify-between">
+                  <div>
+                    <div className="text-sm text-green-700">Huella total estimada</div>
+                    <div className="text-2xl font-bold text-green-800">{calc.total} kg CO₂e</div>
+                  </div>
+                  <button
+                    className="px-4 py-2 rounded-xl bg-green-600 text-white font-semibold hover:bg-green-700"
+                    onClick={() => setCalcOpen(false)}
+                  >
+                    Listo
+                  </button>
+                </div>
+
+                <p className="text-xs text-gray-500 mt-3 leading-relaxed">
+                  Esta calculadora usa factores por defecto inspirados en prácticas comunes (DEFRA / GHG
+                  Protocol). Activa la opción <strong>RF</strong> para vuelos para contemplar efectos no-CO₂ en
+                  altitud. Los factores son editables para adecuarse a contextos locales o nuevas tablas
+                  oficiales.
+                </p>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <style jsx>{`
+        .scrollbar-hide {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
+        }
+        .scrollbar-hide::-webkit-scrollbar {
+          display: none;
+        }
+      `}</style>
+    </section>
   );
 }

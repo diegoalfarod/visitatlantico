@@ -3,7 +3,6 @@ import Navbar from "@/components/Navbar";
 import HeroCarousel from "@/components/HeroCarousel";
 import QuickFilters from "@/components/QuickFilters";
 import InstitutionalDivider from "@/components/InstitutionalDivider";
-import FeaturedExperiences from "@/components/FeaturedExperiences";
 import SustainabilityBanner from "@/components/SustainabilityBanner";
 import ItineraryBanner from "@/components/ItineraryBanner";
 import InstagramFeed from "@/components/InstagramFeed";
@@ -20,9 +19,8 @@ export default function Home() {
 
         {/* Divider decorativo institucional */}
         <InstitutionalDivider />
-        <FeaturedExperiences />
-        <SustainabilityBanner />
         <ItineraryBanner />
+        <SustainabilityBanner />
         <InstagramFeed />
       </main>
       <Footer />

@@ -1,393 +1,86 @@
 "use client";
+import { useMemo, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { X, Copy, Check, Download, Share2 } from "lucide-react";
+import LZString from "lz-string";
 
-import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import QRCode from 'react-qr-code';
-import { 
-  X, 
-  Copy, 
-  Download, 
-  Share2, 
-  Mail, 
-  Check,
-  Loader2,
-  WifiOff,
-  Sparkles
-} from 'lucide-react';
-import { SavedItinerary, Stop } from '@/types/itinerary';
-import { ItineraryStorage } from '@/utils/itinerary-storage';
-import { OfflineManager } from '@/utils/offline-manager';
-
-interface SaveItineraryModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  days: number;
-  answers: {
-    motivos?: string[];
-    otros?: boolean;
-    email?: string;
-  };
-  itinerary: Stop[];
-  locationData: {
-    lat: number;
-    lng: number;
-    address?: string;
-  } | null;
-}
+interface Stop { id:string; name:string; description:string; lat:number; lng:number; startTime:string; durationMinutes:number; tip?:string; municipality?:string; category?:string; imageUrl?:string; photos?:string[]; distance:number; type:"destination"|"experience"; }
+interface LocationResult { lat:number; lng:number; address?:string; }
 
 export default function SaveItineraryModal({
-  isOpen,
-  onClose,
-  days,
-  answers,
-  itinerary,
-  locationData
-}: SaveItineraryModalProps) {
-  const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [savedData, setSavedData] = useState<SavedItinerary | null>(null);
+  isOpen, onClose, days, answers, itinerary, locationData,
+}:{
+  isOpen:boolean; onClose:()=>void; days:number; answers:any; itinerary:Stop[]; locationData:LocationResult|null;
+}) {
   const [copied, setCopied] = useState(false);
-  const [isOnline, setIsOnline] = useState(OfflineManager.getStatus());
-  const [customTitle, setCustomTitle] = useState('');
-  const [wantsEmail, setWantsEmail] = useState(false);
-  const [userEmail, setUserEmail] = useState(answers.email || '');
 
-  useEffect(() => {
-    const unsubscribe = OfflineManager.addListener(setIsOnline);
-    return unsubscribe;
-  }, []);
+  const payload = useMemo(()=>({
+    v:1, generatedAt:Date.now(), days, answers, itinerary, locationData
+  }),[days,answers,itinerary,locationData]);
 
-  useEffect(() => {
-    if (isOpen && !customTitle) {
-      const generatedTitle = ItineraryStorage.generateTitle(answers, days);
-      setCustomTitle(generatedTitle);
-    }
-  }, [isOpen, answers, days]);
+  const shareUrl = useMemo(()=>{
+    if (typeof window==="undefined") return "";
+    const raw = JSON.stringify(payload);
+    const compressed = LZString.compressToEncodedURIComponent(raw);
+    return `${window.location.origin}/itinerary?d=${compressed}`;
+  },[payload]);
 
-  const handleSave = async () => {
-    if (saving || saved) return;
-
-    setSaving(true);
-    setError(null);
-
-    try {
-      const shortId = ItineraryStorage.generateShortId();
-      const now = new Date();
-      const expiresAt = wantsEmail && userEmail ? null : new Date(
-        now.getTime() + (180 * 24 * 60 * 60 * 1000) // 6 meses
-      ).toISOString();
-
-      const savedItinerary: SavedItinerary = {
-        id: `itinerary_${Date.now()}`,
-        shortId,
-        title: customTitle || ItineraryStorage.generateTitle(answers, days),
-        days,
-        stops: itinerary,
-        profile: {
-          ...answers,
-          email: wantsEmail ? userEmail : undefined
-        },
-        location: locationData || undefined,
-        createdAt: now.toISOString(),
-        expiresAt: expiresAt || undefined,
-        views: 0,
-        isOffline: !isOnline
-      };
-
-      // Guardar localmente siempre
-      ItineraryStorage.saveLocal(savedItinerary);
-
-      // Intentar guardar en Firebase si está online
-      if (isOnline) {
-        try {
-          const response = await fetch('/api/itinerary/save', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(savedItinerary)
-          });
-
-          if (!response.ok) {
-            console.warn('No se pudo guardar en el servidor, pero está guardado localmente');
-          }
-        } catch (error) {
-          console.warn('Error al guardar en servidor:', error);
-        }
-      }
-
-      setSavedData(savedItinerary);
-      setSaved(true);
-    } catch (error) {
-      console.error('Error guardando:', error);
-      setError('Error al guardar el itinerario. Por favor intenta de nuevo.');
-    } finally {
-      setSaving(false);
-    }
+  const copyToClipboard = async ()=>{
+    try { await navigator.clipboard.writeText(shareUrl); setCopied(true); setTimeout(()=>setCopied(false), 1500); } catch {}
   };
 
-  const handleCopyLink = async () => {
-    if (!savedData) return;
-
-    const url = `${window.location.origin}/itinerary/${savedData.shortId}`;
-    
-    try {
-      await navigator.clipboard.writeText(url);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch (error) {
-      console.error('Error copiando:', error);
-    }
+  const downloadFile = (filename:string, content:string, type:string)=>{
+    const blob = new Blob([content], {type});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = filename; a.click();
+    URL.revokeObjectURL(url);
   };
 
-  const handleShare = async () => {
-    if (!savedData) return;
-
-    const url = `${window.location.origin}/itinerary/${savedData.shortId}`;
-    const text = `¡Mira mi itinerario de ${days} día${days > 1 ? 's' : ''} por el Atlántico!`;
-
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: savedData.title,
-          text,
-          url
-        });
-      } catch (error) {
-        console.error('Error compartiendo:', error);
-      }
-    } else {
-      handleCopyLink();
-    }
+  const downloadOfflineHTML = ()=>{
+    const html = `<!doctype html><html lang="es"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>Mi itinerario - Atlántico</title><style>body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial,sans-serif;margin:0;background:#0b0b0c;color:#eee}.wrap{max-width:900px;margin:0 auto;padding:16px 16px 40px}.card{background:#151517;border:1px solid #242428;border-radius:14px;padding:16px;margin:12px 0}.row{display:flex;gap:12px;align-items:center}.badge{display:inline-block;background:#e11d48;color:#fff;padding:4px 8px;border-radius:999px;font-size:12px}h1{font-size:22px;margin:8px 0 12px}h2{font-size:16px;margin:6px 0 8px;color:#fff}p,li,span,small{color:#b8b8be}img{max-width:100%;border-radius:10px;border:1px solid #242428}</style></head><body><div class="wrap"><div class="card"><span class="badge">Itinerario guardado</span><h1>Atlántico: tu aventura</h1><p id="meta"></p></div><div id="list"></div></div><script id="data" type="application/json">${JSON.stringify(payload)}</script><script>try{const d=JSON.parse(document.getElementById('data').textContent||'{}');const meta=document.getElementById('meta');const list=document.getElementById('list');const daysLabel=d.days===0?'Modo exploración':(d.days||1)+' día'+(((d.days||1)>1)?'s':'');meta.textContent='Duración: '+daysLabel+' • Lugares: '+(d.itinerary?.length||0);(d.itinerary||[]).forEach((s,i)=>{const card=document.createElement('div');card.className='card';card.innerHTML=\`<div class="row"><div class="badge">\${i+1}</div><h2 style="margin:0">\${s.name||'Destino'} <small>• \${s.municipality||''}</small></h2></div>\${s.imageUrl?'<img src="'+s.imageUrl+'" alt="foto" style="margin:10px 0" />':''}\${s.description?'<p>'+s.description+'</p>':''}<p><small>Tiempo sugerido: \${s.durationMinutes||60} min</small></p>\`;list.appendChild(card);});}catch(e){}</script></body></html>`;
+    downloadFile("itinerario-offline.html", html, "text/html;charset=utf-8");
   };
 
-  const handleDownloadQR = () => {
-    if (!savedData) return;
-
-    const svg = document.querySelector('#qr-code svg') as SVGElement;
-    if (!svg) return;
-
-    // Convertir SVG a canvas
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d');
-    const data = new XMLSerializer().serializeToString(svg);
-    const img = new Image();
-    
-    img.onload = () => {
-      canvas.width = img.width;
-      canvas.height = img.height;
-      ctx?.drawImage(img, 0, 0);
-      
-      // Descargar como PNG
-      const url = canvas.toDataURL('image/png');
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `itinerario-${savedData.shortId}.png`;
-      a.click();
-    };
-    
-    img.src = 'data:image/svg+xml;base64,' + btoa(data);
+  const webShare = async ()=>{
+    if (navigator.share) { try { await navigator.share({ title:"Mi itinerario - Atlántico", url:shareUrl }); } catch {} }
+    else { copyToClipboard(); }
   };
 
-  const shareUrl = savedData ? `${window.location.origin}/itinerary/${savedData.shortId}` : '';
+  if (!isOpen) return null;
 
   return (
     <AnimatePresence>
-      {isOpen && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50"
-          onClick={onClose}
-        >
-          <motion.div
-            initial={{ scale: 0.9, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            exit={{ scale: 0.9, opacity: 0 }}
-            className="bg-white rounded-2xl p-6 max-w-md w-full max-h-[90vh] overflow-y-auto"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Header */}
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-2xl font-bold">
-                {saved ? '¡Itinerario Guardado!' : 'Guardar Itinerario'}
-              </h2>
-              <button
-                onClick={onClose}
-                className="p-2 hover:bg-gray-100 rounded-lg transition"
-              >
-                <X className="w-5 h-5" />
+      <motion.div className="fixed inset-0 z-[120] flex items-end sm:items-center justify-center" initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}}>
+        <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose}/>
+        <motion.div initial={{y:40,opacity:0}} animate={{y:0,opacity:1}} exit={{y:40,opacity:0}} className="relative z-[121] w-full sm:max-w-lg bg-white rounded-t-2xl sm:rounded-2xl p-5 shadow-2xl">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-lg font-bold text-gray-900">Guardar & Compartir</h3>
+            <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full"><X className="w-5 h-5 text-gray-500"/></button>
+          </div>
+
+          <div className="mb-4">
+            <label className="text-sm text-gray-600 mb-1 block">Enlace para compartir</label>
+            <div className="flex gap-2">
+              <input value={shareUrl} readOnly className="flex-1 px-3 py-2 rounded-lg border border-gray-300 text-sm" onFocus={(e)=>e.currentTarget.select()}/>
+              <button onClick={copyToClipboard} className="px-3 py-2 rounded-lg border border-gray-300 hover:bg-gray-50" title="Copiar">
+                {copied ? <Check className="w-4 h-4 text-green-600"/> : <Copy className="w-4 h-4"/>}
+              </button>
+              <button onClick={webShare} className="px-3 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700" title="Compartir">
+                <Share2 className="w-4 h-4"/>
               </button>
             </div>
+          </div>
 
-            {/* Estado offline */}
-            {!isOnline && (
-              <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg flex items-center gap-2">
-                <WifiOff className="w-4 h-4 text-amber-600" />
-                <p className="text-sm text-amber-800">
-                  Sin conexión - Se guardará localmente y sincronizará cuando vuelvas a estar online
-                </p>
-              </div>
-            )}
+          <div className="grid grid-cols-1 sm:grid-cols-1 gap-3">
+            <button onClick={downloadOfflineHTML} className="flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-gray-900 text-white hover:bg-black">
+              <Download className="w-4 h-4"/> HTML offline
+            </button>
+          </div>
 
-            {!saved ? (
-              <div className="space-y-4">
-                {/* Título personalizable */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Nombre del itinerario
-                  </label>
-                  <input
-                    type="text"
-                    value={customTitle}
-                    onChange={(e) => setCustomTitle(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
-                    placeholder="Mi aventura por el Atlántico..."
-                  />
-                </div>
-
-                {/* Opción de email */}
-                <div className="space-y-3">
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={wantsEmail}
-                      onChange={(e) => setWantsEmail(e.target.checked)}
-                      className="w-4 h-4 text-red-600 rounded focus:ring-red-500"
-                    />
-                    <span className="text-sm">
-                      Guardar permanentemente con mi email (opcional)
-                    </span>
-                  </label>
-
-                  {wantsEmail && (
-                    <input
-                      type="email"
-                      value={userEmail}
-                      onChange={(e) => setUserEmail(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
-                      placeholder="tu@email.com"
-                    />
-                  )}
-                </div>
-
-                {/* Info sobre duración */}
-                <div className="p-3 bg-blue-50 rounded-lg">
-                  <p className="text-sm text-blue-800">
-                    {wantsEmail && userEmail ? (
-                      <>
-                        <strong>Guardado permanente:</strong> Tu itinerario se guardará 
-                        permanentemente y podrás acceder a él en cualquier momento.
-                      </>
-                    ) : (
-                      <>
-                        <strong>Guardado temporal:</strong> Tu itinerario se guardará por 
-                        6 meses. Puedes agregar tu email para guardarlo permanentemente.
-                      </>
-                    )}
-                  </p>
-                </div>
-
-                {/* Botón guardar */}
-                <button
-                  onClick={handleSave}
-                  disabled={saving || (wantsEmail && !userEmail)}
-                  className="w-full bg-gradient-to-r from-red-600 to-red-700 text-white px-6 py-3 rounded-full font-semibold disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-lg transition-all flex items-center justify-center gap-2"
-                >
-                  {saving ? (
-                    <>
-                      <Loader2 className="w-5 h-5 animate-spin" />
-                      Guardando...
-                    </>
-                  ) : (
-                    <>
-                      <Sparkles className="w-5 h-5" />
-                      Guardar Itinerario
-                    </>
-                  )}
-                </button>
-
-                {error && (
-                  <p className="text-sm text-red-600 text-center">{error}</p>
-                )}
-              </div>
-            ) : (
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="space-y-6"
-              >
-                {/* Success message */}
-                <div className="flex items-center gap-3 text-green-600 bg-green-50 p-4 rounded-lg">
-                  <Check className="w-6 h-6" />
-                  <div>
-                    <p className="font-semibold">¡Guardado exitosamente!</p>
-                    <p className="text-sm text-green-700">
-                      Código: <strong>{savedData?.shortId}</strong>
-                    </p>
-                  </div>
-                </div>
-
-                {/* QR Code */}
-                <div className="flex flex-col items-center gap-4">
-                  <div id="qr-code" className="p-4 bg-white rounded-lg shadow-md">
-                    <QRCode
-                      value={shareUrl}
-                      size={200}
-                      level="H"
-                      includeMargin={true}
-                    />
-                  </div>
-                  <button
-                    onClick={handleDownloadQR}
-                    className="text-sm text-gray-600 hover:text-gray-800 flex items-center gap-1"
-                  >
-                    <Download className="w-4 h-4" />
-                    Descargar QR
-                  </button>
-                </div>
-
-                {/* Share options */}
-                <div className="space-y-3">
-                  <div className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg">
-                    <input
-                      type="text"
-                      value={shareUrl}
-                      readOnly
-                      className="flex-1 bg-transparent text-sm"
-                    />
-                    <button
-                      onClick={handleCopyLink}
-                      className="p-2 hover:bg-gray-200 rounded transition"
-                    >
-                      {copied ? (
-                        <Check className="w-4 h-4 text-green-600" />
-                      ) : (
-                        <Copy className="w-4 h-4" />
-                      )}
-                    </button>
-                  </div>
-
-                  <button
-                    onClick={handleShare}
-                    className="w-full bg-blue-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-blue-700 transition flex items-center justify-center gap-2"
-                  >
-                    <Share2 className="w-4 h-4" />
-                    Compartir Itinerario
-                  </button>
-                </div>
-
-                {/* Info adicional */}
-                <div className="text-sm text-gray-600 space-y-1">
-                  <p>✓ Acceso sin crear cuenta</p>
-                  <p>✓ Disponible offline una vez cargado</p>
-                  <p>✓ {savedData?.expiresAt ? 'Válido por 6 meses' : 'Guardado permanentemente'}</p>
-                </div>
-              </motion.div>
-            )}
-          </motion.div>
+          <p className="text-xs text-gray-500 mt-3">El enlace incluye tu itinerario (comprimido). El archivo HTML funciona sin internet.</p>
         </motion.div>
-      )}
+      </motion.div>
     </AnimatePresence>
   );
 }
