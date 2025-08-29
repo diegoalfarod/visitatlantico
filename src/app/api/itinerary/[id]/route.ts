@@ -1,4 +1,5 @@
-// app/api/itinerary/[id]/route.ts
+// src/app/api/itinerary/[id]/route.ts
+
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(
@@ -6,86 +7,128 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    const { id } = params;
+    const itineraryId = params.id;
     
-    // Intentar obtener de Firebase
-    const projectId = "visitatlantico-f5c09";
-    const url = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/generated_itineraries/${id}`;
-    
-    const response = await fetch(url);
-    
-    if (!response.ok) {
-      // Intentar buscar en itinerarios_creados
-      const altUrl = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/itinerarios_creados/${id}`;
-      const altResponse = await fetch(altUrl);
+    if (!itineraryId) {
+      return NextResponse.json(
+        { error: "ID de itinerario requerido" },
+        { status: 400 }
+      );
+    }
+
+    console.log(`Recuperando itinerario con ID: ${itineraryId}`);
+
+    // Buscar en Firebase
+    if (process.env.FIREBASE_SERVICE_JSON) {
+      const { getFirestore } = await import("firebase-admin/firestore");
+      const { initializeApp, getApps, cert } = await import("firebase-admin/app");
       
-      if (!altResponse.ok) {
+      const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_JSON);
+      const app = getApps().length ? getApps()[0] : initializeApp({ credential: cert(serviceAccount) });
+      const db = getFirestore(app);
+
+      const doc = await db.collection("generated_itineraries").doc(itineraryId).get();
+      
+      if (!doc.exists) {
+        console.error(`Itinerario no encontrado: ${itineraryId}`);
         return NextResponse.json(
           { error: "Itinerario no encontrado" },
           { status: 404 }
         );
       }
+
+      const data = doc.data();
       
-      // Devolver datos básicos si está en itinerarios_creados
-      const altData = await altResponse.json();
-      return NextResponse.json({
-        id,
-        status: "pending",
-        message: "El itinerario está siendo generado..."
-      });
+      // Validar estructura de datos
+      if (!data) {
+        console.error("Documento vacío en Firebase");
+        return NextResponse.json(
+          { error: "Datos de itinerario inválidos" },
+          { status: 500 }
+        );
+      }
+
+      // Si tiene el formato antiguo (itinerary array), necesita conversión
+      if (data.itinerary && Array.isArray(data.itinerary) && !data.days) {
+        console.log("Detectado formato antiguo, convirtiendo...");
+        
+        // Importar el conversor dinámicamente
+        const { convertItineraryToFrontendFormat } = await import('@/lib/itinerary-converter');
+        
+        const converted = convertItineraryToFrontendFormat(
+          data.itinerary,
+          data.profile || { days: 3 }
+        );
+        
+        // Actualizar el documento en Firebase con el nuevo formato
+        try {
+          await db.collection("generated_itineraries").doc(itineraryId).update({
+            days: converted.days,
+            metadata: {
+              ...data.metadata,
+              formatUpdated: true,
+              updatedAt: new Date()
+            }
+          });
+          console.log("Formato actualizado en Firebase");
+        } catch (updateError) {
+          console.error("Error actualizando formato:", updateError);
+        }
+        
+        // Retornar el formato convertido
+        return NextResponse.json({
+          id: itineraryId,
+          profile: data.profile || {},
+          days: converted.days,
+          metadata: {
+            ...data.metadata,
+            generatedAt: data.createdAt?.toDate?.()?.toISOString() || new Date().toISOString(),
+            totalActivities: converted.days.reduce((acc: number, day: any) => 
+              acc + (day.activities?.length || 0), 0
+            )
+          }
+        });
+      }
+
+      // Si ya tiene el formato correcto (days)
+      if (data.days && Array.isArray(data.days)) {
+        return NextResponse.json({
+          id: itineraryId,
+          profile: data.profile || {},
+          days: data.days,
+          metadata: {
+            ...data.metadata,
+            generatedAt: data.createdAt?.toDate?.()?.toISOString() || 
+                        data.metadata?.generatedAt || 
+                        new Date().toISOString(),
+            totalActivities: data.days.reduce((acc: number, day: any) => 
+              acc + (day.activities?.length || 0), 0
+            )
+          }
+        });
+      }
+
+      // Si no tiene ningún formato reconocible
+      console.error("Estructura de datos no reconocida:", Object.keys(data));
+      return NextResponse.json(
+        { error: "Formato de itinerario no reconocido" },
+        { status: 500 }
+      );
     }
-    
-    const data = await response.json();
-    
-    // Transformar los datos de Firebase al formato esperado
-    const fields = data.fields;
-    const itinerary = fields.itinerary?.arrayValue?.values?.map((item: any) => {
-      const f = item.mapValue.fields;
-      return {
-        id: f.id?.stringValue,
-        name: f.name?.stringValue,
-        day: f.day?.integerValue || 1,
-        dayTitle: f.dayTitle?.stringValue,
-        startTime: f.startTime?.stringValue,
-        endTime: f.endTime?.stringValue,
-        lat: f.lat?.doubleValue,
-        lng: f.lng?.doubleValue,
-        description: f.description?.stringValue,
-        municipality: f.municipality?.stringValue,
-        category: f.category?.stringValue,
-        durationMinutes: f.durationMinutes?.integerValue || 60,
-        estimatedCost: f.estimatedCost?.integerValue || 0,
-        crowdLevel: f.crowdLevel?.stringValue || "medium",
-        tip: f.tip?.stringValue,
-        mustTry: f.mustTry?.arrayValue?.values?.map((v: any) => v.stringValue) || [],
-        distance: f.distance?.doubleValue || 0,
-        imageUrl: f.imageUrl?.stringValue,
-        rating: f.rating?.doubleValue,
-        address: f.address?.stringValue
-      };
-    }) || [];
-    
-    const profile = {
-      days: fields.profile?.mapValue?.fields?.days?.integerValue,
-      email: fields.profile?.mapValue?.fields?.email?.stringValue,
-      interests: fields.profile?.mapValue?.fields?.interests?.arrayValue?.values?.map((v: any) => v.stringValue) || [],
-      tripType: fields.profile?.mapValue?.fields?.tripType?.stringValue,
-      budget: fields.profile?.mapValue?.fields?.budget?.stringValue,
-      locationRange: fields.profile?.mapValue?.fields?.locationRange?.stringValue
-    };
-    
-    return NextResponse.json({
-      id,
-      profile,
-      itinerary,
-      createdAt: fields.createdAt?.timestampValue,
-      status: fields.status?.stringValue || "generated"
-    });
-    
-  } catch (error) {
-    console.error("Error fetching itinerary:", error);
+
+    // Si no hay Firebase configurado
     return NextResponse.json(
-      { error: "Error al obtener el itinerario" },
+      { error: "Servicio de base de datos no disponible" },
+      { status: 503 }
+    );
+
+  } catch (error: any) {
+    console.error("Error recuperando itinerario:", error);
+    return NextResponse.json(
+      { 
+        error: "Error al recuperar el itinerario", 
+        details: process.env.NODE_ENV === 'development' ? error.message : undefined 
+      },
       { status: 500 }
     );
   }

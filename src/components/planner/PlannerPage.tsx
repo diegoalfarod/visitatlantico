@@ -1,114 +1,32 @@
-//src/components/planner/PlannerPage.tsx
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { 
-  X, ChevronLeft, ChevronRight, MapPin, Calendar, Users, 
-  Heart, DollarSign, Mail, Sparkles, Waves, Camera,
-  Coffee, Trees, ShoppingBag, Music, Utensils, Building,
-  Navigation, Plane, Home, Umbrella, Shield, Info,
-  Clock, Star, Map, Activity
+  X, ChevronLeft, ChevronRight, MapPin, Plane, Umbrella, Shield, Info,
+  Sparkles, Waves, Navigation, DollarSign, Mail
 } from "lucide-react";
-import { RiGovernmentLine, RiMapPin2Line, RiTimeLine } from "react-icons/ri";
-
-/* ──────────────────────────────────────────────────────────────────────────
-   Tipos de datos mejorados con ubicación
-   ────────────────────────────────────────────────────────────────────────── */
-export type UserLocation = {
-  lat: number;
-  lng: number;
-  name?: string;
-};
-
-export type TravelerProfile = {
-  days: number;
-  startLocation?: UserLocation | string;
-  locationRange: "barranquilla" | "todo_atlantico";
-  interests: string[];
-  tripType: "solo" | "pareja" | "familia" | "amigos" | "negocios";
-  budget: "economico" | "moderado" | "premium";
-  email: string;
-};
+import { RiGovernmentLine } from "react-icons/ri";
+import { ATLANTICO_INTERESTS, TRIP_TYPES, BUDGET_OPTIONS, TRAVEL_PACE, TRAVEL_DISTANCE, PREDEFINED_LOCATIONS } from "@/config/planner-options";
+import { generateItinerary } from "@/services/itinerary-generator";
+import { saveItineraryRequest } from "@/services/firebase-service";
+import type { TravelerProfile } from "@/types/planner";
 
 type Props = {
   open: boolean;
   onOpenChange: (v: boolean) => void;
 };
 
-/* ──────────────────────────────────────────────────────────────────────────
-   Constantes consistentes con el sitio
-   ────────────────────────────────────────────────────────────────────────── */
-const PREDEFINED_LOCATIONS = [
-  { 
-    id: "barranquilla_centro", 
-    label: "Centro de Barranquilla", 
-    icon: MapPin,
-    description: "Zona hotelera y comercial",
-    coords: { lat: 10.9878, lng: -74.7889 }
-  },
-  { 
-    id: "aeropuerto", 
-    label: "Aeropuerto E. Cortissoz", 
-    icon: Plane,
-    description: "Llegando al Atlántico",
-    coords: { lat: 10.8896, lng: -74.7808 }
-  },
-  {
-    id: "puerto_colombia",
-    label: "Puerto Colombia",
-    icon: Umbrella,
-    description: "Zona de playas",
-    coords: { lat: 10.9878, lng: -74.9547 }
-  },
-  {
-    id: "boca_de_ceniza",
-    label: "Bocas de Ceniza",
-    icon: Waves,
-    description: "Donde el río encuentra el mar",
-    coords: { lat: 11.0600, lng: -74.8500 }
-  }
-];
-
-const INTERESTS = [
-  { id: "relax", label: "Relax & Playa", icon: Waves },
-  { id: "cultura", label: "Cultura e Historia", icon: Building },
-  { id: "aventura", label: "Aventura", icon: MapPin },
-  { id: "gastronomia", label: "Gastronomía", icon: Utensils },
-  { id: "artesanias", label: "Artesanías", icon: Heart },
-  { id: "ritmos", label: "Música y Baile", icon: Music },
-  { id: "festivales", label: "Festivales", icon: Star },
-  { id: "deportes-acuaticos", label: "Deportes Acuáticos", icon: Activity },
-  { id: "ecoturismo", label: "Ecoturismo", icon: Trees },
-  { id: "malecon", label: "Ruta Malecón", icon: Map },
-];
-
-const TRIP_TYPES = [
-  { id: "solo", label: "Viajo Solo", icon: Users, description: "Aventura personal" },
-  { id: "pareja", label: "En Pareja", icon: Heart, description: "Romance y experiencias" },
-  { id: "familia", label: "Con Familia", icon: Users, description: "Actividades para todos" },
-  { id: "amigos", label: "Con Amigos", icon: Users, description: "Diversión grupal" },
-  { id: "negocios", label: "Negocios", icon: Building, description: "Viaje profesional" },
-];
-
-const BUDGET_OPTIONS = [
-  { id: "economico", label: "Económico", icon: DollarSign, description: "Experiencias accesibles" },
-  { id: "moderado", label: "Moderado", icon: DollarSign, description: "Confort y calidad" },
-  { id: "premium", label: "Premium", icon: Star, description: "Lo mejor del Atlántico" },
-];
-
 const DEFAULT_PROFILE: TravelerProfile = {
   days: 3,
   startLocation: undefined,
-  locationRange: "barranquilla",
   interests: [],
   tripType: "familia",
   budget: "moderado",
+  travelPace: "moderado",
+  maxDistance: "cerca",
   email: "",
 };
 
-/* ──────────────────────────────────────────────────────────────────────────
-   Utilidades de geolocalización
-   ────────────────────────────────────────────────────────────────────────── */
 function isInAtlantico(coords: { lat: number; lng: number }): boolean {
   const atlanticoBounds = {
     north: 11.1500,
@@ -125,24 +43,21 @@ function isInAtlantico(coords: { lat: number; lng: number }): boolean {
   );
 }
 
-/* ──────────────────────────────────────────────────────────────────────────
-   Validación
-   ────────────────────────────────────────────────────────────────────────── */
 function validateStep(stepIndex: number, profile: TravelerProfile): string | null {
   switch (stepIndex) {
     case 0:
-      return profile.days < 1 || profile.days > 30 ? "Selecciona entre 1 y 30 días" : null;
+      return profile.days < 1 || profile.days > 14 ? "Selecciona entre 1 y 14 días" : null;
     case 1:
-      return null; // Ubicación es opcional
+      return null; // Ubicación opcional
     case 2:
-      return null; // La ubicación siempre tiene un valor por defecto
+      if (profile.interests.length === 0) return "Selecciona al menos un interés";
+      if (profile.interests.length > 3) return `Máximo 3 intereses (tienes ${profile.interests.length})`;
+      return null;
     case 3:
-      return profile.interests.length === 0 ? "Selecciona al menos un interés" : null;
+      return null; // Tipo de viaje siempre tiene valor
     case 4:
-      return null; // Trip type siempre tiene valor
+      return null; // Estilo siempre tiene valores
     case 5:
-      return null; // Budget siempre tiene valor
-    case 6:
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       return !emailRegex.test(profile.email) ? "Ingresa un email válido" : null;
     default:
@@ -150,9 +65,6 @@ function validateStep(stepIndex: number, profile: TravelerProfile): string | nul
   }
 }
 
-/* ──────────────────────────────────────────────────────────────────────────
-   Componente principal - Estilo consistente con el sitio
-   ────────────────────────────────────────────────────────────────────────── */
 export default function PlannerPage({ open, onOpenChange }: Props) {
   const [profile, setProfile] = useState<TravelerProfile>(DEFAULT_PROFILE);
   const [step, setStep] = useState(0);
@@ -164,7 +76,36 @@ export default function PlannerPage({ open, onOpenChange }: Props) {
 
   const sheetRef = useRef<HTMLDivElement>(null);
 
-  /* ── Función para solicitar ubicación ── */
+  // Restaurar progreso guardado
+  useEffect(() => {
+    if (typeof window !== 'undefined' && open) {
+      const saved = sessionStorage.getItem('plannerProgress');
+      if (saved) {
+        try {
+          const data = JSON.parse(saved);
+          // Solo restaurar si tiene menos de 30 minutos
+          if (Date.now() - data.timestamp < 30 * 60 * 1000) {
+            setProfile(data.profile);
+            setStep(data.step);
+          }
+        } catch (e) {
+          console.error('Error restaurando progreso:', e);
+        }
+      }
+    }
+  }, [open]);
+
+  // Guardar progreso
+  useEffect(() => {
+    if (typeof window !== 'undefined' && open) {
+      sessionStorage.setItem('plannerProgress', JSON.stringify({
+        profile,
+        step,
+        timestamp: Date.now()
+      }));
+    }
+  }, [profile, step, open]);
+
   const requestLocationPermission = useCallback(async () => {
     setLocationStatus('requesting');
     setLocationMessage(null);
@@ -216,7 +157,6 @@ export default function PlannerPage({ open, onOpenChange }: Props) {
     }
   }, []);
 
-  /* ── Animación de entrada/salida ── */
   useEffect(() => {
     if (open) {
       setIsAnimating(true);
@@ -230,13 +170,11 @@ export default function PlannerPage({ open, onOpenChange }: Props) {
     };
   }, [open]);
 
-  /* ── Navegación ── */
-  const totalSteps = 7;
+  const totalSteps = 6;
   const canGoBack = step > 0;
   const isLastStep = step === totalSteps - 1;
 
   const goNext = useCallback(() => {
-    // Para el paso 1 (ubicación), permitir continuar si ya hay una selección
     if (step === 1 && (profile.startLocation || locationStatus === 'granted')) {
       setError(null);
       setStep(step + 1);
@@ -269,6 +207,8 @@ export default function PlannerPage({ open, onOpenChange }: Props) {
       setError(null);
       setLocationStatus('idle');
       setLocationMessage(null);
+      setProfile(DEFAULT_PROFILE);
+      sessionStorage.removeItem('plannerProgress');
     }, 300);
   }, [onOpenChange]);
 
@@ -280,114 +220,43 @@ export default function PlannerPage({ open, onOpenChange }: Props) {
     }
     
     setIsSubmitting(true);
+    setError(null);
+    
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 120000); // 2 minutos timeout
     
     try {
-      // Importación dinámica de Firebase
-      const { initializeApp, getApps } = await import("firebase/app");
-      const { getFirestore, collection, addDoc, serverTimestamp } = await import("firebase/firestore");
-      
-      const firebaseConfig = {
-        apiKey: "AIzaSyB_KbSPZjdXgR_u8r-c6NZ8oxR85loKvUU",
-        authDomain: "visitatlantico-f5c09.firebaseapp.com",
-        projectId: "visitatlantico-f5c09",
-        storageBucket: "visitatlantico-f5c09.firebasestorage.app",
-        messagingSenderId: "1097999694057",
-        appId: "1:1097999694057:web:2e01d75dabe931d24dd878",
-        measurementId: "G-P11NC2E1RQ"
-      };
-      
-      const app = !getApps().length ? initializeApp(firebaseConfig) : getApps()[0];
-      const db = getFirestore(app);
-      
-      // 1. Guardar solicitud inicial en Firebase
-      const itineraryRequestData = {
-        days: profile.days,
-        email: profile.email,
-        startLocation: profile.startLocation 
-          ? typeof profile.startLocation === 'object'
-            ? {
-                lat: profile.startLocation.lat,
-                lng: profile.startLocation.lng,
-                name: profile.startLocation.name || 'Ubicación actual'
-              }
-            : profile.startLocation
-          : null,
-        locationRange: profile.locationRange,
-        interests: profile.interests || [],
-        tripType: profile.tripType,
-        budget: profile.budget,
-        createdAt: serverTimestamp(),
-        status: 'pending',
-        source: 'web_planner',
-        userAgent: typeof window !== 'undefined' ? window.navigator.userAgent : null,
-        screenSize: typeof window !== 'undefined' 
-          ? `${window.screen.width}x${window.screen.height}` 
-          : null,
-        completionTime: Date.now(),
-        stepsCompleted: totalSteps,
-        language: 'es'
-      };
-      
-      console.log("Guardando solicitud inicial...");
-      const docRef = await addDoc(collection(db, "itinerarios_creados"), itineraryRequestData);
-      const requestId = docRef.id;
+      // 1. Guardar solicitud en Firebase
+      const requestId = await saveItineraryRequest(profile);
       console.log("Solicitud guardada con ID:", requestId);
       
-      // 2. Llamar al endpoint para generar el itinerario
-      console.log("Generando itinerario con IA...");
-      const generateResponse = await fetch('/api/itinerary/generate', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          profile: {
-            ...profile,
-            itineraryRequestId: requestId
-          },
-          preferences: {
-            pace: 'normal',
-            timePreference: 'normal'
-          }
-        })
-      });
+      // 2. Generar itinerario usando el servicio
+      const result = await generateItinerary(profile, requestId, controller.signal);
       
-      if (!generateResponse.ok) {
-        throw new Error('Error al generar el itinerario');
+      if (!result.success) {
+        throw new Error(result.error || 'Error al generar el itinerario');
       }
       
-      const { itinerary, itineraryId } = await generateResponse.json();
-      console.log("Itinerario generado exitosamente:", itineraryId);
-      
-      // 3. Actualizar el estado del documento
-      await addDoc(collection(db, "itinerarios_creados", requestId, "updates"), {
-        status: 'completed',
-        generatedItineraryId: itineraryId,
-        updatedAt: serverTimestamp()
-      });
-      
-      // 4. Guardar en localStorage para acceso rápido
+      // 3. Guardar en localStorage para acceso rápido
       if (typeof window !== 'undefined') {
         localStorage.setItem('lastItinerary', JSON.stringify({
-          id: itineraryId,
+          id: result.itineraryId,
           requestId,
-          itinerary,
+          itinerary: result.itinerary,
           profile,
           createdAt: Date.now()
         }));
       }
       
-      // 5. Cerrar modal y navegar al itinerario
+      // 4. Limpiar sessionStorage
+      sessionStorage.removeItem('plannerProgress');
+      
+      // 5. Cerrar modal y navegar
       setIsSubmitting(false);
       close();
       
-      // NAVEGACIÓN CORREGIDA: Redirigir directamente al itinerario
       if (typeof window !== 'undefined') {
-        // Opción 1: Navegación directa (recomendada)
-        window.location.href = `/itinerary/${itineraryId}`;
-        
-        // Opción 2: Abrir en nueva pestaña (alternativa)
-        // window.open(`/itinerary/${itineraryId}`, '_blank');
+        window.location.href = `/itinerary/${result.itineraryId}`;
       }
       
     } catch (error: any) {
@@ -396,23 +265,25 @@ export default function PlannerPage({ open, onOpenChange }: Props) {
       
       let errorMessage = "Error al generar el itinerario.";
       
-      if (error.message?.includes('Firebase')) {
+      if (error.name === 'AbortError') {
+        errorMessage = "La generación tardó demasiado. Por favor intenta nuevamente.";
+      } else if (error.message?.includes('Firebase')) {
         errorMessage = "Error de conexión con la base de datos.";
       } else if (error.message?.includes('fetch')) {
         errorMessage = "Error de conexión con el servidor.";
-      } else if (error.code === 'permission-denied') {
-        errorMessage = "No tienes permisos para esta acción.";
+      } else if (error.message) {
+        errorMessage = error.message;
       }
       
       setError(errorMessage);
-      alert(`${errorMessage}\n\nPor favor intenta nuevamente o contacta soporte.`);
+    } finally {
+      clearTimeout(timeoutId);
     }
   };
 
-  /* ── Progress Bar ── */
   const progressPercentage = ((step + 1) / totalSteps) * 100;
 
-  /* ── Step Components ── */
+  // Steps definidos en el componente para mantener reactividad
   const steps = [
     // Step 0: Días
     {
@@ -432,14 +303,14 @@ export default function PlannerPage({ open, onOpenChange }: Props) {
             <input
               type="range"
               min="1"
-              max="30"
+              max="14"
               value={profile.days}
               onChange={(e) => setProfile(p => ({ ...p, days: parseInt(e.target.value) }))}
               className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
             />
             <div className="flex justify-between text-xs text-gray-500 mt-2">
               <span>1 día</span>
-              <span>30 días</span>
+              <span>14 días</span>
             </div>
           </div>
           
@@ -458,17 +329,27 @@ export default function PlannerPage({ open, onOpenChange }: Props) {
               </button>
             ))}
           </div>
+
+          <div className="p-3 bg-blue-50 rounded-xl border border-blue-200">
+            <p className="text-xs text-blue-700">
+              💡 <strong>Tip:</strong> {
+                profile.days <= 2 ? "Perfecto para conocer lo esencial de Barranquilla" :
+                profile.days <= 4 ? "Ideal para Barranquilla y playas cercanas" :
+                profile.days <= 7 ? "Tiempo para explorar todo el departamento con calma" :
+                "Podrás vivir el Atlántico como un local"
+              }
+            </p>
+          </div>
         </div>
       )
     },
     
-    // Step 1: Ubicación actual (OPCIONAL)
+    // Step 1: Ubicación
     {
       title: "¿Desde dónde comenzamos?",
       subtitle: "Optimizaremos tu ruta según tu punto de partida",
       content: (
         <div className="space-y-3">
-          {/* Botón de ubicación actual */}
           <button
             onClick={requestLocationPermission}
             disabled={locationStatus === 'requesting'}
@@ -509,7 +390,6 @@ export default function PlannerPage({ open, onOpenChange }: Props) {
             </div>
           </button>
 
-          {/* Mensaje de estado */}
           {locationMessage && (
             <div className={`p-2 rounded-lg text-xs border ${
               locationStatus === 'granted' 
@@ -520,14 +400,12 @@ export default function PlannerPage({ open, onOpenChange }: Props) {
             </div>
           )}
 
-          {/* Separador */}
           <div className="flex items-center gap-2 my-2">
             <div className="flex-1 h-px bg-gray-200" />
             <span className="text-xs text-gray-500">o elige un punto</span>
             <div className="flex-1 h-px bg-gray-200" />
           </div>
 
-          {/* Puntos predefinidos - 2x2 grid más compacto */}
           <div className="grid grid-cols-2 gap-2">
             {PREDEFINED_LOCATIONS.map((location) => {
               const Icon = location.icon;
@@ -558,10 +436,12 @@ export default function PlannerPage({ open, onOpenChange }: Props) {
             })}
           </div>
 
-          {/* Botón de omitir */}
           <button
             onClick={() => {
-              setProfile(p => ({ ...p, startLocation: undefined }));
+              setProfile(p => ({ 
+                ...p, 
+                startLocation: 'barranquilla_centro'
+              }));
               goNext();
             }}
             className="w-full py-1.5 text-xs text-gray-500 hover:text-gray-700 transition"
@@ -569,7 +449,6 @@ export default function PlannerPage({ open, onOpenChange }: Props) {
             Omitir este paso →
           </button>
 
-          {/* Nota de privacidad más compacta */}
           <div className="flex items-start gap-1.5 p-2 bg-gray-50 rounded border border-gray-200">
             <Shield size={12} className="text-gray-400 mt-0.5" />
             <p className="text-[10px] text-gray-600">
@@ -580,108 +459,99 @@ export default function PlannerPage({ open, onOpenChange }: Props) {
       )
     },
     
-    // Step 2: Alcance del viaje
+    // Step 2: Intereses
     {
-      title: "¿Qué tanto quieres explorar?",
-      subtitle: "Podemos enfocarnos en Barranquilla o todo el departamento",
+      title: "¿Qué te llama del Atlántico?",
+      subtitle: "Elige hasta 3 experiencias principales",
       content: (
-        <div className="grid gap-4">
-          <button
-            onClick={() => setProfile(p => ({ ...p, locationRange: "barranquilla" }))}
-            className={`p-6 rounded-2xl border transition-all duration-300 ${
-              profile.locationRange === "barranquilla"
-                ? 'border-red-500 bg-red-50'
-                : 'border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50'
-            }`}
-          >
-            <div className="flex items-start gap-4">
-              <div className={`p-3 rounded-xl ${
-                profile.locationRange === "barranquilla" ? 'bg-red-600' : 'bg-gray-800'
-              }`}>
-                <MapPin size={24} className="text-white" />
-              </div>
-              <div className="flex-1 text-left">
-                <h3 className="font-bold text-lg text-gray-900">Solo Barranquilla</h3>
-                <p className="text-sm text-gray-600 mt-1">
-                  La Puerta de Oro: cultura, gastronomía y el río Magdalena
-                </p>
-              </div>
-            </div>
-          </button>
-          
-          <button
-            onClick={() => setProfile(p => ({ ...p, locationRange: "todo_atlantico" }))}
-            className={`p-6 rounded-2xl border transition-all duration-300 ${
-              profile.locationRange === "todo_atlantico"
-                ? 'border-red-500 bg-red-50'
-                : 'border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50'
-            }`}
-          >
-            <div className="flex items-start gap-4">
-              <div className={`p-3 rounded-xl ${
-                profile.locationRange === "todo_atlantico" ? 'bg-red-600' : 'bg-gray-800'
-              }`}>
-                <Map size={24} className="text-white" />
-              </div>
-              <div className="flex-1 text-left">
-                <h3 className="font-bold text-lg text-gray-900">Todo el Atlántico</h3>
-                <p className="text-sm text-gray-600 mt-1">
-                  Playas de Puerto Colombia, pueblos históricos y aventuras
-                </p>
-              </div>
-            </div>
-          </button>
-        </div>
-      )
-    },
-    
-    // Step 3: Intereses
-    {
-      title: "¿Qué te gustaría experimentar?",
-      subtitle: "Selecciona todos tus intereses",
-      content: (
-        <div className="grid grid-cols-2 gap-2">
-          {INTERESTS.map((interest) => {
-            const Icon = interest.icon;
-            const isSelected = profile.interests.includes(interest.id);
-            return (
+        <div className="space-y-4">
+          <div className="flex justify-between items-center px-2">
+            <span className="text-sm text-gray-600">
+              {profile.interests.length}/3 seleccionados
+            </span>
+            {profile.interests.length > 0 && (
               <button
-                key={interest.id}
-                onClick={() => {
-                  setProfile(p => ({
-                    ...p,
-                    interests: isSelected
-                      ? p.interests.filter(i => i !== interest.id)
-                      : [...p.interests, interest.id]
-                  }));
-                }}
-                className={`p-3 rounded-xl border transition-all duration-300 ${
-                  isSelected
-                    ? 'border-red-500 bg-red-50'
-                    : 'border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50'
-                }`}
+                onClick={() => setProfile(p => ({ ...p, interests: [] }))}
+                className="text-xs text-gray-500 hover:text-gray-700"
               >
-                <div className="flex flex-col items-center gap-1.5">
-                  <div className={`p-2.5 rounded-lg ${isSelected ? 'bg-red-600' : 'bg-gray-800'}`}>
-                    <Icon size={20} className="text-white" />
-                  </div>
-                  <span className={`text-xs font-medium text-center leading-tight ${isSelected ? 'text-gray-900' : 'text-gray-600'}`}>
-                    {interest.label}
-                  </span>
-                </div>
+                Limpiar selección
               </button>
-            );
-          })}
+            )}
+          </div>
+
+          <div className="grid grid-cols-2 gap-2">
+            {ATLANTICO_INTERESTS.map((interest) => {
+              const Icon = interest.icon;
+              const isSelected = profile.interests.includes(interest.id);
+              const isDisabled = !isSelected && profile.interests.length >= 3;
+              
+              return (
+                <button
+                  key={interest.id}
+                  onClick={() => {
+                    if (isDisabled) return;
+                    setProfile(p => ({
+                      ...p,
+                      interests: isSelected
+                        ? p.interests.filter(i => i !== interest.id)
+                        : [...p.interests, interest.id]
+                    }));
+                  }}
+                  disabled={isDisabled}
+                  className={`p-3 rounded-xl border transition-all duration-300 relative ${
+                    isSelected
+                      ? 'border-red-500 bg-red-50 ring-2 ring-red-500 ring-opacity-30'
+                      : isDisabled
+                      ? 'border-gray-100 bg-gray-50 opacity-50 cursor-not-allowed'
+                      : 'border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50'
+                  }`}
+                >
+                  <div className="flex flex-col items-center gap-2">
+                    <div className={`p-2.5 rounded-lg ${
+                      isSelected ? 'bg-red-600' : isDisabled ? 'bg-gray-400' : 'bg-gray-800'
+                    }`}>
+                      <Icon size={20} className="text-white" />
+                    </div>
+                    <div className="space-y-0.5">
+                      <p className={`text-xs font-semibold text-center leading-tight ${
+                        isSelected ? 'text-gray-900' : 'text-gray-700'
+                      }`}>
+                        {interest.label}
+                      </p>
+                      <p className="text-[10px] text-gray-500 text-center leading-tight">
+                        {interest.description}
+                      </p>
+                    </div>
+                    {isSelected && (
+                      <div className="absolute top-2 right-2">
+                        <div className="w-5 h-5 bg-red-600 rounded-full flex items-center justify-center">
+                          <span className="text-white text-[10px] font-bold">
+                            {profile.interests.indexOf(interest.id) + 1}
+                          </span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="p-3 bg-amber-50 rounded-xl border border-amber-200">
+            <p className="text-xs text-amber-700">
+              💡 <strong>Tip:</strong> El orden importa. Tu primera selección tendrá prioridad en el itinerario.
+            </p>
+          </div>
         </div>
       )
     },
     
-    // Step 4: Tipo de viaje
+    // Step 3: Tipo de viaje
     {
-      title: "¿Con quién viajas?",
-      subtitle: "Personalizaremos las actividades según tu compañía",
+      title: "¿Cómo viajas?",
+      subtitle: "Personalizaremos las actividades según tu grupo",
       content: (
-        <div className="space-y-2.5">
+        <div className="space-y-3">
           {TRIP_TYPES.map((type) => {
             const Icon = type.icon;
             const isSelected = profile.tripType === type.id;
@@ -689,20 +559,20 @@ export default function PlannerPage({ open, onOpenChange }: Props) {
               <button
                 key={type.id}
                 onClick={() => setProfile(p => ({ ...p, tripType: type.id as any }))}
-                className={`w-full p-3 rounded-xl border transition-all duration-300 ${
+                className={`w-full p-4 rounded-xl border transition-all duration-300 ${
                   isSelected
-                    ? 'border-red-500 bg-red-50'
+                    ? 'border-red-500 bg-red-50 ring-2 ring-red-500 ring-opacity-20'
                     : 'border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50'
                 }`}
               >
                 <div className="flex items-center gap-3">
-                  <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${
+                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${
                     isSelected ? 'bg-red-600' : 'bg-gray-800'
                   }`}>
-                    <Icon size={20} className="text-white" />
+                    <Icon size={24} className="text-white" />
                   </div>
                   <div className="flex-1 text-left">
-                    <h3 className="font-semibold text-sm text-gray-900">{type.label}</h3>
+                    <h3 className="font-semibold text-gray-900">{type.label}</h3>
                     <p className="text-xs text-gray-600">{type.description}</p>
                   </div>
                   {isSelected && (
@@ -716,47 +586,108 @@ export default function PlannerPage({ open, onOpenChange }: Props) {
       )
     },
     
-    // Step 5: Presupuesto
+    // Step 4: Estilo combinado
     {
-      title: "¿Cuál es tu presupuesto?",
-      subtitle: "Te recomendaremos lugares acordes a tu rango",
+      title: "Define tu estilo de viaje",
+      subtitle: "Ajustaremos todo a tus preferencias",
       content: (
-        <div className="space-y-3">
-          {BUDGET_OPTIONS.map((budget) => {
-            const Icon = budget.icon;
-            const isSelected = profile.budget === budget.id;
-            return (
-              <button
-                key={budget.id}
-                onClick={() => setProfile(p => ({ ...p, budget: budget.id as any }))}
-                className={`w-full p-4 rounded-xl border transition-all duration-300 ${
-                  isSelected
-                    ? 'border-red-500 bg-red-50'
-                    : 'border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50'
-                }`}
-              >
-                <div className="flex items-center gap-3">
-                  <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${
-                    isSelected ? 'bg-red-600' : 'bg-gray-800'
-                  }`}>
-                    <Icon size={20} className="text-white" />
-                  </div>
-                  <div className="flex-1 text-left">
-                    <h3 className="font-semibold text-gray-900">{budget.label}</h3>
-                    <p className="text-xs text-gray-600">{budget.description}</p>
-                  </div>
-                  {isSelected && (
-                    <ChevronRight size={18} className="text-red-600 flex-shrink-0" />
-                  )}
-                </div>
-              </button>
-            );
-          })}
+        <div className="space-y-6">
+          {/* Presupuesto */}
+          <div>
+            <h4 className="text-sm font-semibold text-gray-700 mb-2">Presupuesto</h4>
+            <div className="grid grid-cols-3 gap-2">
+              {BUDGET_OPTIONS.map((budget) => {
+                const isSelected = profile.budget === budget.id;
+                return (
+                  <button
+                    key={budget.id}
+                    onClick={() => setProfile(p => ({ ...p, budget: budget.id as any }))}
+                    className={`p-3 rounded-lg border transition-all duration-300 ${
+                      isSelected
+                        ? 'border-red-500 bg-red-50'
+                        : 'border-gray-200 bg-white hover:border-gray-300'
+                    }`}
+                  >
+                    <div className="flex flex-col items-center gap-1">
+                      <div className={`${isSelected ? 'text-red-600' : 'text-gray-600'}`}>
+                        {Array.from({ length: budget.priceLevel }, (_, i) => (
+                          <DollarSign key={i} size={20} className="inline" />
+                        ))}
+                      </div>
+                      <span className="text-xs font-medium">{budget.label}</span>
+                      <span className="text-[10px] text-gray-500 text-center">{budget.description}</span>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Ritmo */}
+          <div>
+            <h4 className="text-sm font-semibold text-gray-700 mb-2">Ritmo del viaje</h4>
+            <div className="grid grid-cols-3 gap-2">
+              {TRAVEL_PACE.map((pace) => {
+                const Icon = pace.icon;
+                const isSelected = profile.travelPace === pace.id;
+                return (
+                  <button
+                    key={pace.id}
+                    onClick={() => setProfile(p => ({ ...p, travelPace: pace.id as any }))}
+                    className={`p-3 rounded-lg border transition-all duration-300 ${
+                      isSelected
+                        ? 'border-red-500 bg-red-50'
+                        : 'border-gray-200 bg-white hover:border-gray-300'
+                    }`}
+                  >
+                    <div className="flex flex-col items-center gap-1">
+                      <Icon size={20} className={isSelected ? 'text-red-600' : 'text-gray-600'} />
+                      <span className="text-xs font-medium">{pace.label}</span>
+                      <span className="text-[10px] text-gray-500 text-center">{pace.description}</span>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Distancia */}
+          <div>
+            <h4 className="text-sm font-semibold text-gray-700 mb-2">¿Qué tanto explorar?</h4>
+            <div className="space-y-2">
+              {TRAVEL_DISTANCE.map((distance) => {
+                const Icon = distance.icon;
+                const isSelected = profile.maxDistance === distance.id;
+                return (
+                  <button
+                    key={distance.id}
+                    onClick={() => setProfile(p => ({ ...p, maxDistance: distance.id as any }))}
+                    className={`w-full p-3 rounded-lg border transition-all duration-300 ${
+                      isSelected
+                        ? 'border-red-500 bg-red-50'
+                        : 'border-gray-200 bg-white hover:border-gray-300'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <Icon size={18} className={isSelected ? 'text-red-600' : 'text-gray-600'} />
+                      <div className="flex-1 text-left">
+                        <span className="text-sm font-medium text-gray-900">{distance.label}</span>
+                        <p className="text-xs text-gray-500">{distance.description}</p>
+                      </div>
+                      {isSelected && (
+                        <div className="w-2 h-2 bg-red-600 rounded-full" />
+                      )}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
         </div>
       )
     },
     
-    // Step 6: Email
+    // Step 5: Email
     {
       title: "¿Dónde enviamos tu itinerario?",
       subtitle: "Te llegará personalizado y listo para usar",
@@ -776,55 +707,51 @@ export default function PlannerPage({ open, onOpenChange }: Props) {
             />
           </div>
 
-          {/* Preview del itinerario */}
-          <div className="bg-gray-50 rounded-2xl p-4 border border-gray-200">
-            <h4 className="font-semibold text-gray-900 mb-3">Tu itinerario incluirá:</h4>
-            <ul className="space-y-2 text-sm text-gray-600">
-              {profile.startLocation && (
-                <li className="flex items-center gap-2">
-                  <span className="text-red-600">✓</span>
+          <div className="bg-gradient-to-br from-red-50 to-orange-50 rounded-2xl p-4 border border-red-200">
+            <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+              <Sparkles size={16} className="text-red-600" />
+              Tu itinerario personalizado incluirá:
+            </h4>
+            <ul className="space-y-2 text-sm text-gray-700">
+              <li className="flex items-start gap-2">
+                <span className="text-red-600 mt-0.5">✓</span>
+                <span>
+                  <strong>{profile.days} {profile.days === 1 ? 'día' : 'días'}</strong> con{' '}
+                  {TRAVEL_PACE.find(p => p.id === profile.travelPace)?.activitiesPerDay || 3} 
+                  {' '}actividades diarias
+                </span>
+              </li>
+              {profile.interests.length > 0 && (
+                <li className="flex items-start gap-2">
+                  <span className="text-red-600 mt-0.5">✓</span>
                   <span>
-                    Rutas optimizadas desde {
-                      typeof profile.startLocation === 'object' 
-                        ? 'tu ubicación actual'
-                        : PREDEFINED_LOCATIONS.find(l => l.id === profile.startLocation)?.label
-                    }
+                    Enfocado en: {profile.interests.map(id => 
+                      ATLANTICO_INTERESTS.find(i => i.id === id)?.label
+                    ).filter(Boolean).join(', ')}
                   </span>
                 </li>
               )}
-              <li className="flex items-center gap-2">
-                <span className="text-red-600">✓</span>
-                Agenda día por día con horarios optimizados
+              <li className="flex items-start gap-2">
+                <span className="text-red-600 mt-0.5">✓</span>
+                <span>
+                  Lugares {BUDGET_OPTIONS.find(b => b.id === profile.budget)?.label.toLowerCase()} 
+                  {' '}en un radio de {TRAVEL_DISTANCE.find(d => d.id === profile.maxDistance)?.radiusKm}km
+                </span>
               </li>
-              <li className="flex items-center gap-2">
-                <span className="text-red-600">✓</span>
-                Recomendaciones gastronómicas según presupuesto
+              <li className="flex items-start gap-2">
+                <span className="text-red-600 mt-0.5">✓</span>
+                <span>Mapa interactivo con rutas optimizadas</span>
               </li>
-              <li className="flex items-center gap-2">
-                <span className="text-red-600">✓</span>
-                Tips locales y cómo llegar a cada lugar
-              </li>
-              <li className="flex items-center gap-2">
-                <span className="text-red-600">✓</span>
-                Mapa interactivo con todos los puntos
+              <li className="flex items-start gap-2">
+                <span className="text-red-600 mt-0.5">✓</span>
+                <span>Tips locales y horarios de cada lugar</span>
               </li>
             </ul>
           </div>
 
-          {/* Resumen de preferencias */}
-          <div className="p-3 bg-white rounded-xl border border-gray-200">
-            <p className="text-xs text-gray-600 mb-2 font-semibold">Tu viaje:</p>
-            <div className="flex flex-wrap gap-2">
-              <span className="px-2 py-1 bg-gray-100 rounded-lg text-xs text-gray-700">
-                {profile.days} {profile.days === 1 ? 'día' : 'días'}
-              </span>
-              <span className="px-2 py-1 bg-gray-100 rounded-lg text-xs text-gray-700">
-                {TRIP_TYPES.find(t => t.id === profile.tripType)?.label}
-              </span>
-              <span className="px-2 py-1 bg-gray-100 rounded-lg text-xs text-gray-700">
-                Presupuesto {profile.budget}
-              </span>
-            </div>
+          <div className="text-center text-xs text-gray-500">
+            <Shield size={16} className="inline mr-1" />
+            Generado con IA y datos oficiales del Atlántico
           </div>
         </div>
       )
@@ -835,7 +762,6 @@ export default function PlannerPage({ open, onOpenChange }: Props) {
 
   return (
     <>
-      {/* Overlay */}
       <div
         className={`fixed inset-0 z-[70] bg-black/50 backdrop-blur-sm transition-opacity duration-300 ${
           isAnimating ? 'opacity-100' : 'opacity-0'
@@ -843,7 +769,6 @@ export default function PlannerPage({ open, onOpenChange }: Props) {
         onClick={close}
       />
 
-      {/* Modal */}
       <div
         ref={sheetRef}
         className={`fixed inset-x-4 top-1/2 -translate-y-1/2 z-[80] max-w-lg mx-auto bg-white rounded-2xl shadow-2xl overflow-hidden transition-all duration-300 border border-gray-200 ${
@@ -851,7 +776,6 @@ export default function PlannerPage({ open, onOpenChange }: Props) {
         }`}
         style={{ maxHeight: '90vh' }}
       >
-        {/* Header - Estilo consistente con el sitio */}
         <div className="relative bg-gradient-to-b from-gray-900 to-gray-800 p-6 text-white border-b border-gray-700">
           <button
             onClick={close}
@@ -860,24 +784,22 @@ export default function PlannerPage({ open, onOpenChange }: Props) {
             <X size={18} />
           </button>
           
-          {/* Badge oficial */}
           <div className="inline-flex items-center gap-2 bg-red-900/20 border border-red-800/30 text-red-400 px-3 py-1.5 rounded-full text-xs font-medium mb-3">
             <RiGovernmentLine className="text-sm" />
             <span>Sistema Oficial de Planificación</span>
           </div>
           
           <div className="pr-8">
-            <h2 className="text-2xl font-bold mb-1" style={{ textShadow: "2px 2px 4px rgba(0,0,0,0.8)" }}>
+            <h2 className="text-2xl font-bold mb-1">
               Planifica tu <span className="text-yellow-400">Viaje</span>
             </h2>
             <p className="text-gray-300 text-sm">Tu aventura personalizada en el Atlántico</p>
           </div>
           
-          {/* Progress bar */}
           <div className="mt-4">
             <div className="h-1 bg-black/20 rounded-full overflow-hidden">
               <div 
-                className="h-full bg-red-600 rounded-full transition-all duration-500"
+                className="h-full bg-gradient-to-r from-red-600 to-orange-500 rounded-full transition-all duration-500"
                 style={{ width: `${progressPercentage}%` }}
               />
             </div>
@@ -888,7 +810,6 @@ export default function PlannerPage({ open, onOpenChange }: Props) {
           </div>
         </div>
 
-        {/* Body */}
         <div className="overflow-y-auto bg-gray-50" style={{ maxHeight: 'calc(90vh - 280px)', minHeight: '300px' }}>
           <div className="p-6">
             <div className="mb-6">
@@ -904,14 +825,13 @@ export default function PlannerPage({ open, onOpenChange }: Props) {
           </div>
         </div>
 
-        {/* Error message */}
         {error && (
-          <div className="mx-6 mb-4 px-4 py-3 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm">
+          <div className="mx-6 mb-4 px-4 py-3 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm flex items-center gap-2">
+            <AlertCircle size={16} />
             {error}
           </div>
         )}
 
-        {/* Footer */}
         <div className="p-6 bg-white border-t border-gray-200 flex gap-3">
           <button
             onClick={goBack}
@@ -931,7 +851,7 @@ export default function PlannerPage({ open, onOpenChange }: Props) {
           {!isLastStep ? (
             <button
               onClick={goNext}
-              className="flex-1 py-3 rounded-full font-semibold bg-red-600 text-white hover:bg-red-700 shadow-lg transition-all duration-300"
+              className="flex-1 py-3 rounded-full font-semibold bg-gradient-to-r from-red-600 to-red-500 text-white hover:from-red-700 hover:to-red-600 shadow-lg transition-all duration-300"
             >
               <div className="flex items-center justify-center gap-2">
                 Siguiente
@@ -942,16 +862,19 @@ export default function PlannerPage({ open, onOpenChange }: Props) {
             <button
               onClick={handleSubmit}
               disabled={isSubmitting}
-              className="flex-1 py-3 rounded-full font-semibold bg-red-600 text-white hover:bg-red-700 shadow-lg transition-all duration-300 disabled:opacity-50"
+              className="flex-1 py-3 rounded-full font-semibold bg-gradient-to-r from-red-600 to-orange-500 text-white hover:from-red-700 hover:to-orange-600 shadow-lg transition-all duration-300 disabled:opacity-50"
             >
               {isSubmitting ? (
-                <div className="flex items-center justify-center gap-2">
-                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  Generando...
+                <div className="flex flex-col items-center justify-center gap-1">
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    <span>Generando tu itinerario...</span>
+                  </div>
+                  <span className="text-[10px] opacity-80">(esto puede tomar 1-2 minutos)</span>
                 </div>
               ) : (
                 <div className="flex items-center justify-center gap-2">
-                  <RiMapPin2Line size={18} />
+                  <Sparkles size={18} />
                   Crear mi itinerario
                 </div>
               )}
@@ -960,26 +883,26 @@ export default function PlannerPage({ open, onOpenChange }: Props) {
         </div>
       </div>
 
-      {/* Custom styles consistentes con el sitio */}
       <style jsx global>{`
         .slider::-webkit-slider-thumb {
           appearance: none;
-          width: 20px;
-          height: 20px;
-          background: #dc2626;
+          width: 24px;
+          height: 24px;
+          background: linear-gradient(135deg, #dc2626, #f97316);
           border-radius: 50%;
           cursor: pointer;
-          box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+          box-shadow: 0 2px 8px rgba(220, 38, 38, 0.3);
+          border: 2px solid white;
         }
         
         .slider::-moz-range-thumb {
-          width: 20px;
-          height: 20px;
-          background: #dc2626;
+          width: 24px;
+          height: 24px;
+          background: linear-gradient(135deg, #dc2626, #f97316);
           border-radius: 50%;
           cursor: pointer;
-          box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-          border: none;
+          box-shadow: 0 2px 8px rgba(220, 38, 38, 0.3);
+          border: 2px solid white;
         }
       `}</style>
     </>
