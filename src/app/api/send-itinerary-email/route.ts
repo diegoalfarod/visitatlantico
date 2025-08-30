@@ -372,7 +372,7 @@ export async function POST(request: Request) {
 
     // Enviar el correo con Resend
     const { data, error } = await resend.emails.send({
-      from: 'Sistema de Turismo Atlántico <onboarding@resend.dev>', // Cambia cuando verifiques tu dominio
+      from: 'Sistema de Turismo Atlántico <noreply@visitatlantico.com>', // Cambia cuando verifiques tu dominio
       to: [email],
       subject: `Itinerario Oficial - ${profile.days} ${profile.days === 1 ? 'día' : 'días'} en el Atlántico [Ref: ${itineraryId.slice(0, 8).toUpperCase()}]`,
       html: emailHtml,
