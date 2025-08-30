@@ -3,6 +3,7 @@
 import { useState, useMemo } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
+import PlannerPage from "@/components/planner/PlannerPage";
 import {
   Plane,
   TreePine,
@@ -18,6 +19,8 @@ import {
   FileText,
   ChevronRight,
   X,
+  Sparkles,
+  Calendar,
 } from "lucide-react";
 import { RiGovernmentLine } from "react-icons/ri";
 
@@ -50,6 +53,9 @@ export default function SustainabilityBanner() {
 
   // === MODAL CALCULADORA ===
   const [calcOpen, setCalcOpen] = useState(false);
+  
+  // === MODAL PLANNER ===
+  const [plannerOpen, setPlannerOpen] = useState(false);
 
   // Entradas
   const [flightKm, setFlightKm] = useState<number>(0);
@@ -161,20 +167,25 @@ export default function SustainabilityBanner() {
       kind: "jimmy",
     },
     {
-      icon: <Calculator className="w-5 h-5 text-purple-600" />,
-      title: "Calculadora Huella",
-      subtitle: "Mide tu impacto",
-      size: "Online",
-      kind: "calc",
+      icon: (
+        <div className="relative">
+          <Calendar className="w-5 h-5 text-purple-600" />
+          <Sparkles className="w-3 h-3 text-yellow-500 absolute -top-1 -right-1" />
+        </div>
+      ),
+      title: "Planificador con IA",
+      subtitle: "Crea tu itinerario perfecto",
+      size: "Gratis",
+      kind: "planner",
     },
   ];
 
-  // Datos de impacto
+  // Datos de impacto - Mejorado para móvil
   const impactStats = [
-    { number: "23", label: "Municipios", color: "text-red-600" },
-    { number: "5,000+", label: "Empleos locales", color: "text-amber-600" },
-    { number: "40%", label: "Menos residuos", color: "text-green-600" },
-    { number: "15", label: "Ecosistemas", color: "text-blue-600" },
+    { number: "23", label: "Municipios", color: "text-red-600", icon: <MapPin className="w-4 h-4" /> },
+    { number: "5,000+", label: "Empleos locales", color: "text-amber-600", icon: <Users className="w-4 h-4" /> },
+    { number: "40%", label: "Menos residuos", color: "text-green-600", icon: <Recycle className="w-4 h-4" /> },
+    { number: "15", label: "Ecosistemas", color: "text-blue-600", icon: <TreePine className="w-4 h-4" /> },
   ];
 
   /* Handlers Recursos */
@@ -192,6 +203,10 @@ export default function SustainabilityBanner() {
     }
     if (kind === "calc") {
       setCalcOpen(true);
+      return;
+    }
+    if (kind === "planner") {
+      setPlannerOpen(true);
       return;
     }
     // otros recursos se manejan por <a>/<Link>
@@ -238,30 +253,57 @@ export default function SustainabilityBanner() {
           </p>
         </motion.div>
 
-        {/* Stats Bar */}
+        {/* Stats Bar - Mejorado para móvil */}
         <motion.div
-          className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-8 mb-10 p-6 
-                     bg-gray-50 border border-gray-200 rounded-2xl"
+          className="mb-10"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2, duration: 0.6 }}
         >
-          {impactStats.map((stat, idx) => (
-            <div key={idx} className="text-center">
-              <div className={`text-xl sm:text-2xl font-bold ${stat.color}`}>{stat.number}</div>
-              <div className="text-xs text-gray-600">{stat.label}</div>
+          <div className="bg-gradient-to-br from-gray-50 to-white border border-gray-200 rounded-2xl p-6 shadow-sm">
+            {/* Grid de estadísticas - 2x2 en móvil */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 sm:gap-6 mb-6">
+              {impactStats.map((stat, idx) => (
+                <motion.div
+                  key={idx}
+                  className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm hover:shadow-md transition-shadow"
+                  whileHover={{ y: -2 }}
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: 0.3 + idx * 0.05 }}
+                >
+                  <div className={`${stat.color} mb-2 opacity-60`}>
+                    {stat.icon}
+                  </div>
+                  <div className={`text-2xl sm:text-3xl font-bold ${stat.color} mb-1`}>
+                    {stat.number}
+                  </div>
+                  <div className="text-xs sm:text-sm text-gray-600 font-medium">
+                    {stat.label}
+                  </div>
+                </motion.div>
+              ))}
             </div>
-          ))}
 
-          <div className="hidden sm:block w-px h-8 bg-gray-300" />
-
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-green-600 to-green-700 rounded-full flex items-center justify-center shadow-lg">
-              <RiGovernmentLine className="text-white text-xl" />
-            </div>
-            <div className="text-left">
-              <div className="text-sm font-semibold text-gray-900">EcoTurismo</div>
-              <div className="text-xs text-gray-500">Gobernación del Atlántico</div>
+            {/* Sección de Gobernación - Separada */}
+            <div className="pt-4 border-t border-gray-200">
+              <div className="flex items-center justify-center gap-3">
+                <motion.div 
+                  className="w-12 h-12 bg-gradient-to-br from-green-600 to-green-700 rounded-full flex items-center justify-center shadow-lg"
+                  whileHover={{ scale: 1.1, rotate: 5 }}
+                  transition={{ type: "spring", stiffness: 300 }}
+                >
+                  <RiGovernmentLine className="text-white text-2xl" />
+                </motion.div>
+                <div className="text-left">
+                  <div className="text-sm sm:text-base font-semibold text-gray-900">
+                    Programa EcoTurismo
+                  </div>
+                  <div className="text-xs sm:text-sm text-gray-500">
+                    Gobernación del Atlántico
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </motion.div>
@@ -340,7 +382,7 @@ export default function SustainabilityBanner() {
               const isEco = resource.kind === "eco";
               const isGuide = resource.kind === "pdf";
               const isJimmy = resource.kind === "jimmy";
-              const isCalc = resource.kind === "calc";
+              const isPlanner = resource.kind === "planner";
 
               const CardInner = (
                 <div className="flex flex-col items-center text-center">
@@ -398,7 +440,16 @@ export default function SustainabilityBanner() {
                     >
                       {CardInner}
                     </Link>
-                  ) : isJimmy || isCalc ? (
+                  ) : isPlanner ? (
+                    // Abre el modal del planificador de viajes con IA
+                    <button
+                      type="button"
+                      className="block w-full text-left"
+                      onClick={() => handleResourceClick(resource.kind)}
+                    >
+                      {CardInner}
+                    </button>
+                  ) : isJimmy ? (
                     <button
                       type="button"
                       className="block w-full text-left"
@@ -651,6 +702,9 @@ export default function SustainabilityBanner() {
           display: none;
         }
       `}</style>
+
+      {/* PlannerPage Modal */}
+      <PlannerPage open={plannerOpen} onOpenChange={setPlannerOpen} />
     </section>
   );
 }

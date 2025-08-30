@@ -15,6 +15,7 @@ export default function Home() {
       <Navbar />
       <main className="min-h-screen bg-background flex flex-col">
         <HeroCarousel />
+       
         <QuickFilters />
 
         {/* Divider decorativo institucional */}
