@@ -3,13 +3,14 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { 
   X, ChevronLeft, ChevronRight, MapPin, Plane, Umbrella, Shield, Info,
-  Sparkles, Waves, Navigation, DollarSign, Mail
+  Sparkles, Waves, Navigation, DollarSign, Mail, AlertCircle
 } from "lucide-react";
 import { RiGovernmentLine } from "react-icons/ri";
 import { ATLANTICO_INTERESTS, TRIP_TYPES, BUDGET_OPTIONS, TRAVEL_PACE, TRAVEL_DISTANCE, PREDEFINED_LOCATIONS } from "@/config/planner-options";
 import { generateItinerary } from "@/services/itinerary-generator";
 import { saveItineraryRequest } from "@/services/firebase-service";
 import type { TravelerProfile } from "@/types/planner";
+import { sendItineraryEmail } from '@/services/email-service'; 
 
 type Props = {
   open: boolean;
@@ -237,7 +238,20 @@ export default function PlannerPage({ open, onOpenChange }: Props) {
         throw new Error(result.error || 'Error al generar el itinerario');
       }
       
-      // 3. Guardar en localStorage para acceso rápido
+      // 3. Enviar correo con el link (sin bloquear la UI)
+      sendItineraryEmail(profile.email, result.itineraryId, profile)
+        .then((emailResult) => {
+          if (emailResult.success) {
+            console.log('Correo enviado exitosamente a:', profile.email);
+          } else {
+            console.error('Error enviando correo:', emailResult.error);
+          }
+        })
+        .catch((error) => {
+          console.error('Error inesperado enviando correo:', error);
+        });
+      
+      // 4. Guardar en localStorage para acceso rápido
       if (typeof window !== 'undefined') {
         localStorage.setItem('lastItinerary', JSON.stringify({
           id: result.itineraryId,
@@ -248,10 +262,10 @@ export default function PlannerPage({ open, onOpenChange }: Props) {
         }));
       }
       
-      // 4. Limpiar sessionStorage
+      // 5. Limpiar sessionStorage
       sessionStorage.removeItem('plannerProgress');
       
-      // 5. Cerrar modal y navegar
+      // 6. Cerrar modal y navegar
       setIsSubmitting(false);
       close();
       
