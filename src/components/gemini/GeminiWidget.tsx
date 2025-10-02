@@ -5,7 +5,7 @@ import dynamic from "next/dynamic";
 import Image from "next/image";
 import { sendChatMessage, createUserMessage } from "@/lib/geminiService";
 import type { ChatMessage } from "@/types/geminiChat";
-import { Shield, ChevronUp } from "lucide-react";
+import { Shield, MessageCircle, X } from "lucide-react";
 
 // Carga diferida del ChatWindow para evitar SSR
 const ChatWindow = dynamic(() => import("./ChatWindow"), {
@@ -64,27 +64,26 @@ export default function GeminiWidget() {
   const [mounted, setMounted] = useState(false);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
   const [viewportHeight, setViewportHeight] = useState(0);
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [hasShownIntro, setHasShownIntro] = useState(false);
 
-  const hasModalOpen = false; // si luego detectas otros modales, cámbialo
+  const hasModalOpen = false;
 
-  /** -------- Scroll lock robusto (sin saltos) -------- */
+  /** -------- Scroll lock robusto -------- */
   const scrollYRef = useRef(0);
   const prevScrollBehaviorRef = useRef<string>("");
 
   const lockBodyScroll = () => {
-    // guarda Y y evita reflow por scroll bar (padding-right)
     scrollYRef.current = window.pageYOffset || document.documentElement.scrollTop || 0;
     const scrollbarW = window.innerWidth - document.documentElement.clientWidth;
     if (scrollbarW > 0) {
       document.body.style.paddingRight = `${scrollbarW}px`;
     }
 
-    // desactiva smooth scroll durante la restauración
     const html = document.documentElement;
     prevScrollBehaviorRef.current = html.style.scrollBehavior || "";
     html.style.scrollBehavior = "auto";
 
-    // fija el body en su sitio
     document.body.style.position = "fixed";
     document.body.style.top = `-${scrollYRef.current}px`;
     document.body.style.left = "0";
@@ -98,7 +97,6 @@ export default function GeminiWidget() {
     const html = document.documentElement;
     const y = scrollYRef.current || 0;
 
-    // limpia estilos primero
     document.body.style.overflow = "";
     document.body.style.position = "";
     document.body.style.top = "";
@@ -108,12 +106,9 @@ export default function GeminiWidget() {
     document.body.style.paddingRight = "";
     document.body.classList.remove("chat-open");
 
-    // restaura posición exactamente donde estaba (sin smooth)
     requestAnimationFrame(() => {
       window.scrollTo(0, y);
-      // fallback por si el frame todavía no aplicó layout (Safari/iOS)
       setTimeout(() => window.scrollTo(0, y), 0);
-      // restaura el comportamiento de scroll original del html
       html.style.scrollBehavior = prevScrollBehaviorRef.current;
     });
   };
@@ -123,12 +118,29 @@ export default function GeminiWidget() {
     setMounted(true);
   }, []);
 
-  /** -------- Cerrar si hay otro modal (placeholder) -------- */
+  /** -------- Progressive disclosure: expandir brevemente después de 3 segundos -------- */
+  useEffect(() => {
+    if (!mounted || hasShownIntro || open || hasModalOpen) return;
+
+    const timer = setTimeout(() => {
+      setIsExpanded(true);
+      setHasShownIntro(true);
+
+      // Colapsar después de 4 segundos
+      setTimeout(() => {
+        setIsExpanded(false);
+      }, 4000);
+    }, 3000);
+
+    return () => clearTimeout(timer);
+  }, [mounted, hasShownIntro, open, hasModalOpen]);
+
+  /** -------- Cerrar si hay otro modal -------- */
   useEffect(() => {
     if (hasModalOpen && open) setOpen(false);
   }, [hasModalOpen, open]);
 
-  /** -------- Medidas de viewport/teclado para ChatWindow -------- */
+  /** -------- Medidas de viewport/teclado -------- */
   useEffect(() => {
     if (!mounted) return;
 
@@ -158,7 +170,7 @@ export default function GeminiWidget() {
     };
   }, [mounted]);
 
-  /** -------- Aplica/Quita lock de scroll al abrir/cerrar -------- */
+  /** -------- Lock de scroll -------- */
   useEffect(() => {
     if (!mounted) return;
     if (open) {
@@ -166,13 +178,12 @@ export default function GeminiWidget() {
     } else {
       unlockBodyScroll();
     }
-    // cleanup si desmonta abierto
     return () => {
       if (open) unlockBodyScroll();
     };
   }, [open, mounted]);
 
-  /** -------- Mensaje de bienvenida una sola vez al abrir -------- */
+  /** -------- Mensaje de bienvenida -------- */
   useEffect(() => {
     if (open && messages.length === 0 && mounted) {
       const welcome = {
@@ -225,14 +236,17 @@ export default function GeminiWidget() {
     [messages, open, mounted]
   );
 
-  /** -------- Cambiar estado open/cerrar desde ChatWindow -------- */
+  /** -------- Cambiar estado open -------- */
   const handleOpenChange = (newOpen: boolean) => {
     if (newOpen && hasModalOpen) return;
     setOpen(newOpen);
-    if (newOpen) setHasNewMessage(false);
+    if (newOpen) {
+      setHasNewMessage(false);
+      setIsExpanded(false);
+    }
   };
 
-  /** -------- Abrir chat desde fuera (SustainabilityBanner) -------- */
+  /** -------- Abrir chat desde fuera -------- */
   useEffect(() => {
     if (typeof window === "undefined") return;
 
@@ -252,66 +266,99 @@ export default function GeminiWidget() {
     };
   }, []);
 
-  /** -------- Barra inferior para abrir el chat -------- */
-  const BottomBar = () => {
+  /** -------- FAB Premium -------- */
+  const FloatingButton = () => {
     if (!mounted || open) return null;
 
     return (
       <div
-        className={`fixed bottom-0 left-0 right-0 z-[50] safe-area-padding transition-all duration-300 ${
-          hasModalOpen ? "opacity-0 pointer-events-none translate-y-full" : "opacity-100"
+        className={`fixed bottom-6 right-6 z-[50] transition-all duration-300 ${
+          hasModalOpen ? "opacity-0 pointer-events-none scale-75" : "opacity-100 scale-100"
         }`}
+        style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
         data-chatbot="jimmy"
       >
+        {/* Botón principal */}
         <button
           onClick={() => setOpen(true)}
+          onMouseEnter={() => !hasShownIntro && setIsExpanded(true)}
+          onMouseLeave={() => !hasShownIntro && setIsExpanded(false)}
           disabled={hasModalOpen}
-          className="w-full bg-white border-t border-gray-200 shadow-lg hover:shadow-xl transition-all duration-300 group disabled:opacity-50 disabled:cursor-not-allowed"
+          className={`group relative flex items-center gap-3 bg-gradient-to-br from-red-600 to-red-700 text-white shadow-2xl hover:shadow-red-500/50 transition-all duration-500 ease-out disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105 ${
+            isExpanded ? "rounded-full px-6 py-4 pr-20" : "rounded-full p-0 w-16 h-16"
+          } ${!hasShownIntro && !hasModalOpen ? "animate-bounce-once" : ""}`}
         >
-          <div className="container mx-auto px-4 py-3">
-            <div className="flex items-center justify-between">
-              {/* Izquierda */}
-              <div className="flex items-center gap-3">
-                <div className="relative">
-                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-gray-50 to-gray-100 border-2 border-gray-200 flex items-center justify-center group-hover:border-red-500 transition-all duration-300">
-                    <Image src="/jimmy-avatar.png" alt="Jimmy" width={32} height={32} className="rounded-full" />
-                  </div>
-                  <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 border-2 border-white rounded-full" />
-                  {hasNewMessage && !hasModalOpen && (
-                    <div className="absolute -top-1 -right-1 h-3 w-3 bg-red-500 rounded-full animate-pulse border-2 border-white" />
-                  )}
-                </div>
+          {/* Avatar container - siempre visible */}
+          <div className="relative flex-shrink-0">
+            <div
+              className={`relative rounded-full bg-white/10 backdrop-blur-sm border-2 border-white/20 flex items-center justify-center overflow-hidden transition-all duration-500 ${
+                isExpanded ? "w-12 h-12" : "w-16 h-16"
+              }`}
+            >
+              <Image
+                src="/jimmy-avatar.png"
+                alt="Jimmy"
+                width={isExpanded ? 40 : 56}
+                height={isExpanded ? 40 : 56}
+                className="rounded-full object-cover"
+              />
+              
+              {/* Glow effect */}
+              <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/5 to-white/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+            </div>
 
-                <div className="flex flex-col">
-                  <h3 className="text-base font-bold text-gray-800 flex items-center gap-1">
-                    ¿Necesitas ayuda?
-                    <Shield size={14} className="text-red-600" />
-                  </h3>
-                  <p className="text-sm text-gray-600">
-                    {hasModalOpen ? "Jimmy estará disponible pronto" : "Jimmy está aquí para asistirte"}
-                  </p>
-                </div>
-              </div>
+            {/* Status indicator */}
+            <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-green-400 border-2 border-white rounded-full shadow-lg animate-pulse" />
 
-              {/* Derecha */}
-              <div className="flex items-center gap-2">
-                {hasNewMessage && !hasModalOpen && (
-                  <span className="bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-full animate-pulse">
-                    Nuevo
-                  </span>
-                )}
-                <ChevronUp size={24} className={`transition-colors duration-300 ${hasModalOpen ? "text-gray-300" : "text-gray-400"}`} />
+            {/* New message badge */}
+            {hasNewMessage && !hasModalOpen && (
+              <div className="absolute -top-1 -right-1 min-w-[20px] h-5 bg-yellow-400 border-2 border-white rounded-full flex items-center justify-center animate-pulse shadow-lg">
+                <span className="text-xs font-bold text-red-900 px-1">1</span>
               </div>
+            )}
+          </div>
+
+          {/* Texto expandido */}
+          <div
+            className={`overflow-hidden transition-all duration-500 ${
+              isExpanded ? "max-w-[200px] opacity-100" : "max-w-0 opacity-0"
+            }`}
+          >
+            <div className="whitespace-nowrap">
+              <p className="text-sm font-bold leading-tight">¿Necesitas ayuda?</p>
+              <p className="text-xs opacity-90 leading-tight mt-0.5">Chatea con Jimmy</p>
             </div>
           </div>
+
+          {/* Shield icon cuando expandido */}
+          {isExpanded && (
+            <div className="absolute right-4 opacity-80">
+              <Shield size={20} className="text-white" />
+            </div>
+          )}
+
+          {/* Message icon cuando colapsado - centrado */}
+          {!isExpanded && (
+            <div className="absolute inset-0 flex items-center justify-center">
+              <MessageCircle size={28} className="text-white drop-shadow-lg" />
+            </div>
+          )}
+
+          {/* Ripple effect on hover */}
+          <div className="absolute inset-0 rounded-full bg-white opacity-0 group-hover:opacity-10 transition-opacity duration-300" />
         </button>
+
+        {/* Pulse ring animation - solo cuando no está expandido */}
+        {!isExpanded && !hasShownIntro && !hasModalOpen && (
+          <div className="absolute inset-0 rounded-full bg-red-500 opacity-75 animate-ping-slow pointer-events-none" />
+        )}
       </div>
     );
   };
 
   return (
     <>
-      <BottomBar />
+      <FloatingButton />
 
       {mounted && (
         <div
@@ -333,8 +380,40 @@ export default function GeminiWidget() {
         </div>
       )}
 
-      {/* Safe area iOS */}
+      {/* Custom animations */}
       <style jsx global>{`
+        @keyframes bounce-once {
+          0%, 100% {
+            transform: translateY(0);
+          }
+          50% {
+            transform: translateY(-10px);
+          }
+        }
+
+        @keyframes ping-slow {
+          0% {
+            transform: scale(1);
+            opacity: 0.75;
+          }
+          50% {
+            transform: scale(1.1);
+            opacity: 0.5;
+          }
+          100% {
+            transform: scale(1.2);
+            opacity: 0;
+          }
+        }
+
+        .animate-bounce-once {
+          animation: bounce-once 2s ease-in-out 1;
+        }
+
+        .animate-ping-slow {
+          animation: ping-slow 2s cubic-bezier(0, 0, 0.2, 1) infinite;
+        }
+
         .safe-area-padding {
           padding-bottom: env(safe-area-inset-bottom);
         }

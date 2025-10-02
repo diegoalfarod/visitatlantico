@@ -20,7 +20,7 @@ export default function Navbar() {
 
   const links = [
     { href: "/destinations", label: "Destinos", icon: HiLocationMarker },
-    { href: "/experiences", label: "Experiencias", icon: RiGovernmentLine },
+   // { href: "/experiences", label: "Experiencias", icon: RiGovernmentLine },
     { href: "/gastronomy", label: "Gastronomía", icon: HiGlobeAlt },
   ];
 
