@@ -110,7 +110,7 @@ const GastronomiaPage = () => {
     fetchData();
   }, []);
 
-  // Filtrar platos por categoría - CORREGIDO
+  // Filtrar platos por categoría
   const platosFiltrados = filtroCategoria === "Todos" 
     ? platosTipicos 
     : platosTipicos.filter(plato => {
@@ -169,11 +169,10 @@ const GastronomiaPage = () => {
     window.open(googleCalendarUrl, '_blank');
   };
 
-  // Función para manejar el cambio de filtro - CORREGIDO
+  // Función para manejar el cambio de filtro
   const handleFilterChange = (categoria: string) => {
     setFiltroCategoria(categoria);
     setShowAllPlatos(false);
-    // Forzar re-render
     setTimeout(() => {
       const element = document.getElementById('platos-tipicos');
       if (element) {
@@ -182,7 +181,7 @@ const GastronomiaPage = () => {
     }, 100);
   };
 
-  // Animaciones mejoradas - MÁS RÁPIDAS
+  // Animaciones mejoradas - CORREGIDAS para TypeScript con "as const"
   const fadeInUp = {
     hidden: { opacity: 0, y: 20 },
     visible: { 
@@ -190,7 +189,7 @@ const GastronomiaPage = () => {
       y: 0,
       transition: {
         duration: 0.3,
-        ease: [0.645, 0.045, 0.355, 1.0]
+        ease: [0.645, 0.045, 0.355, 1.0] as [number, number, number, number]
       }
     }
   };
@@ -213,7 +212,7 @@ const GastronomiaPage = () => {
       opacity: 1,
       transition: {
         duration: 0.25,
-        ease: "easeOut"
+        ease: "easeOut" as const
       }
     }
   };
@@ -267,7 +266,7 @@ const GastronomiaPage = () => {
             <motion.div
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, ease: [0.645, 0.045, 0.355, 1.0] }}
+              transition={{ duration: 0.5, ease: "easeOut" }}
             >
               <motion.div
                 initial={{ scale: 0, opacity: 0 }}
@@ -364,8 +363,8 @@ const GastronomiaPage = () => {
                   <div className="flex items-start gap-4 bg-yellow-50 p-6 rounded-2xl border border-yellow-100">
                     <FaQuoteLeft className="text-3xl text-yellow-600 flex-shrink-0 mt-1" />
                     <p className="italic text-gray-700">
-                      "Cada plato cuenta una historia, cada sabor es un viaje a través 
-                      del tiempo y las tradiciones de nuestra gente."
+                      &ldquo;Cada plato cuenta una historia, cada sabor es un viaje a través 
+                      del tiempo y las tradiciones de nuestra gente.&rdquo;
                     </p>
                   </div>
                   
@@ -546,7 +545,7 @@ const GastronomiaPage = () => {
               })}
             </motion.div>
 
-            {/* Grid de Platos Premium */}
+            {/* Grid de Platos Premium - CORRECCIÓN DEL BUG */}
             {loading ? (
               <div className="flex justify-center py-20">
                 <motion.div 
@@ -563,7 +562,7 @@ const GastronomiaPage = () => {
               >
                 <div className="text-6xl mb-6">🍽️</div>
                 <p className="text-gray-600 text-lg mb-6">
-                  No se encontraron platos para la categoría "{filtroCategoria}"
+                  No se encontraron platos para la categoría &ldquo;{filtroCategoria}&rdquo;
                 </p>
                 <button
                   onClick={() => handleFilterChange("Todos")}
@@ -573,17 +572,21 @@ const GastronomiaPage = () => {
                 </button>
               </motion.div>
             ) : (
+              /* 
+               * CORRECCIÓN PRINCIPAL DEL BUG:
+               * 1. Cambiado de whileInView="visible" a animate="visible"
+               * 2. Añadido showAllPlatos al key para forzar re-animación cuando cambia
+               */
               <motion.div 
                 className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"
                 variants={staggerContainer}
                 initial="hidden"
-                whileInView="visible"
-                viewport={{ once: true }}
-                key={filtroCategoria} // CORRECCIÓN: Forzar re-render cuando cambie el filtro
+                animate="visible"
+                key={`${filtroCategoria}-${showAllPlatos}`}
               >
                 {platosVisibles.map((plato) => (
                   <motion.div 
-                    key={`${plato.id}-${filtroCategoria}`} // CORRECCIÓN: Key único por filtro
+                    key={plato.id}
                     variants={scaleIn}
                     className="group relative"
                     onMouseEnter={() => setHoveredCard(plato.id)}
@@ -732,12 +735,17 @@ const GastronomiaPage = () => {
                 />
               </div>
             ) : (
+              /* 
+               * CORRECCIÓN DEL BUG PARA FESTIVALES:
+               * Mismo cambio que para platos - de whileInView a animate
+               * y añadido showAllFestivales al key
+               */
               <motion.div 
                 className="grid grid-cols-1 lg:grid-cols-2 gap-8"
                 variants={staggerContainer}
                 initial="hidden"
-                whileInView="visible"
-                viewport={{ once: true }}
+                animate="visible"
+                key={`festivales-${showAllFestivales}`}
               >
                 {festivalesVisibles.map((festival) => (
                   <motion.div 
