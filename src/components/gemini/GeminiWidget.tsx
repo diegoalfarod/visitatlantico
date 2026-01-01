@@ -3,16 +3,37 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import dynamic from "next/dynamic";
 import Image from "next/image";
+import { motion } from "framer-motion";
 import { sendChatMessage, createUserMessage } from "@/lib/geminiService";
 import type { ChatMessage } from "@/types/geminiChat";
-import { Shield, MessageCircle, X } from "lucide-react";
+import { Shield, MessageCircle, Sparkles } from "lucide-react";
+
+// =============================================================================
+// PALETA INSTITUCIONAL - Gobernación del Atlántico
+// Principal: #E40E20, #D31A2B
+// Neutros: #4A4F55, #7A858C, #C1C5C8
+// Dorado accent: #eab308
+// =============================================================================
 
 // Carga diferida del ChatWindow para evitar SSR
 const ChatWindow = dynamic(() => import("./ChatWindow"), {
   ssr: false,
   loading: () => (
-    <div className="fixed inset-0 z-[60] bg-white flex items-center justify-center">
-      <div className="text-gray-600">Cargando asistente virtual...</div>
+    <div className="fixed inset-0 z-[60] bg-black/60 backdrop-blur-md flex items-center justify-center">
+      <motion.div 
+        initial={{ opacity: 0, scale: 0.9 }}
+        animate={{ opacity: 1, scale: 1 }}
+        className="bg-white rounded-2xl p-6 shadow-2xl flex flex-col items-center gap-4"
+      >
+        <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#E40E20] to-[#D31A2B] p-0.5 shadow-lg shadow-red-500/25">
+          <div className="w-full h-full rounded-[14px] bg-white flex items-center justify-center">
+            <div className="w-8 h-8 animate-spin rounded-full border-3 border-[#C1C5C8] border-t-[#E40E20]" />
+          </div>
+        </div>
+        <p className="text-[#4A4F55] font-medium" style={{ fontFamily: "'Merriweather Sans', sans-serif" }}>
+          Cargando asistente...
+        </p>
+      </motion.div>
     </div>
   ),
 });
@@ -64,16 +85,13 @@ export default function GeminiWidget() {
   const [mounted, setMounted] = useState(false);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
   const [viewportHeight, setViewportHeight] = useState(0);
-  const [isExpanded, setIsExpanded] = useState(false);
-  const [hasShownIntro, setHasShownIntro] = useState(false);
-
-  const hasModalOpen = false;
+  const [isHovered, setIsHovered] = useState(false);
 
   /** -------- Scroll lock robusto -------- */
   const scrollYRef = useRef(0);
   const prevScrollBehaviorRef = useRef<string>("");
 
-  const lockBodyScroll = () => {
+  const lockBodyScroll = useCallback(() => {
     scrollYRef.current = window.pageYOffset || document.documentElement.scrollTop || 0;
     const scrollbarW = window.innerWidth - document.documentElement.clientWidth;
     if (scrollbarW > 0) {
@@ -91,9 +109,9 @@ export default function GeminiWidget() {
     document.body.style.width = "100%";
     document.body.style.overflow = "hidden";
     document.body.classList.add("chat-open");
-  };
+  }, []);
 
-  const unlockBodyScroll = () => {
+  const unlockBodyScroll = useCallback(() => {
     const html = document.documentElement;
     const y = scrollYRef.current || 0;
 
@@ -111,40 +129,26 @@ export default function GeminiWidget() {
       setTimeout(() => window.scrollTo(0, y), 0);
       html.style.scrollBehavior = prevScrollBehaviorRef.current;
     });
-  };
+  }, []);
 
   /** -------- Montaje -------- */
   useEffect(() => {
     setMounted(true);
-  }, []);
-
-  /** -------- Progressive disclosure: expandir brevemente después de 3 segundos -------- */
-  useEffect(() => {
-    if (!mounted || hasShownIntro || open || hasModalOpen) return;
-
-    const timer = setTimeout(() => {
-      setIsExpanded(true);
-      setHasShownIntro(true);
-
-      // Colapsar después de 4 segundos
-      setTimeout(() => {
-        setIsExpanded(false);
-      }, 4000);
-    }, 3000);
-
-    return () => clearTimeout(timer);
-  }, [mounted, hasShownIntro, open, hasModalOpen]);
-
-  /** -------- Cerrar si hay otro modal -------- */
-  useEffect(() => {
-    if (hasModalOpen && open) setOpen(false);
-  }, [hasModalOpen, open]);
+    return () => {
+      // Cleanup on unmount
+      unlockBodyScroll();
+    };
+  }, [unlockBodyScroll]);
 
   /** -------- Medidas de viewport/teclado -------- */
   useEffect(() => {
     if (!mounted) return;
 
+    const controller = new AbortController();
+
     const updateViewport = () => {
+      if (controller.signal.aborted) return;
+      
       const vv = window.visualViewport;
       if (!vv) return;
       const keyboardVisible = window.innerHeight - vv.height > 50;
@@ -152,22 +156,14 @@ export default function GeminiWidget() {
       setViewportHeight(vv.height);
     };
 
-    const handleResize = () => updateViewport();
-
     if (window.visualViewport) {
-      window.visualViewport.addEventListener("resize", handleResize);
-      window.visualViewport.addEventListener("scroll", handleResize);
+      window.visualViewport.addEventListener("resize", updateViewport, { signal: controller.signal });
+      window.visualViewport.addEventListener("scroll", updateViewport, { signal: controller.signal });
       updateViewport();
     }
-    window.addEventListener("resize", handleResize);
+    window.addEventListener("resize", updateViewport, { signal: controller.signal });
 
-    return () => {
-      if (window.visualViewport) {
-        window.visualViewport.removeEventListener("resize", handleResize);
-        window.visualViewport.removeEventListener("scroll", handleResize);
-      }
-      window.removeEventListener("resize", handleResize);
-    };
+    return () => controller.abort();
   }, [mounted]);
 
   /** -------- Lock de scroll -------- */
@@ -178,10 +174,7 @@ export default function GeminiWidget() {
     } else {
       unlockBodyScroll();
     }
-    return () => {
-      if (open) unlockBodyScroll();
-    };
-  }, [open, mounted]);
+  }, [open, mounted, lockBodyScroll, unlockBodyScroll]);
 
   /** -------- Mensaje de bienvenida -------- */
   useEffect(() => {
@@ -190,8 +183,9 @@ export default function GeminiWidget() {
         id: generateId(),
         role: "assistant",
         text:
-          "¡Bienvenido al asistente virtual de la Gobernación del Atlántico! 🏛️" +
-          "<br/><br/>Soy Jimmy, tu guía oficial para información turística, cultural y de servicios del departamento." +
+          "¡Bienvenido al portal turístico del <strong>Atlántico</strong>! 🌴" +
+          "<br/><br/>Soy <strong>Jimmy</strong>, tu asistente virtual oficial de la Gobernación." +
+          "<br/><br/>Estoy aquí para ayudarte a descubrir los mejores destinos, eventos culturales, gastronomía y servicios de nuestro departamento." +
           "<br/><br/>¿En qué puedo ayudarte hoy?",
         timestamp: Date.now(),
       } as ChatMessage;
@@ -237,14 +231,12 @@ export default function GeminiWidget() {
   );
 
   /** -------- Cambiar estado open -------- */
-  const handleOpenChange = (newOpen: boolean) => {
-    if (newOpen && hasModalOpen) return;
+  const handleOpenChange = useCallback((newOpen: boolean) => {
     setOpen(newOpen);
     if (newOpen) {
       setHasNewMessage(false);
-      setIsExpanded(false);
     }
-  };
+  }, []);
 
   /** -------- Abrir chat desde fuera -------- */
   useEffect(() => {
@@ -266,92 +258,102 @@ export default function GeminiWidget() {
     };
   }, []);
 
-  /** -------- FAB Premium -------- */
+  /** -------- FAB Simple y Estático -------- */
   const FloatingButton = () => {
     if (!mounted || open) return null;
 
     return (
       <div
-        className={`fixed bottom-6 right-6 z-[50] transition-all duration-300 ${
-          hasModalOpen ? "opacity-0 pointer-events-none scale-75" : "opacity-100 scale-100"
-        }`}
+        className="fixed bottom-6 right-6 z-[50]"
         style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
         data-chatbot="jimmy"
       >
-        {/* Botón principal */}
+        {/* Botón principal - siempre visible */}
         <button
           onClick={() => setOpen(true)}
-          onMouseEnter={() => !hasShownIntro && setIsExpanded(true)}
-          onMouseLeave={() => !hasShownIntro && setIsExpanded(false)}
-          disabled={hasModalOpen}
-          className={`group relative flex items-center gap-3 bg-gradient-to-br from-red-600 to-red-700 text-white shadow-2xl hover:shadow-red-500/50 transition-all duration-500 ease-out disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105 ${
-            isExpanded ? "rounded-full px-6 py-4 pr-20" : "rounded-full p-0 w-16 h-16"
-          } ${!hasShownIntro && !hasModalOpen ? "animate-bounce-once" : ""}`}
+          onMouseEnter={() => setIsHovered(true)}
+          onMouseLeave={() => setIsHovered(false)}
+          aria-label="Abrir chat con Jimmy - Asistente Virtual"
+          className="
+            group relative flex items-center justify-center
+            w-16 h-16 rounded-full
+            bg-gradient-to-br from-[#E40E20] to-[#D31A2B] 
+            text-white shadow-2xl shadow-red-500/30
+            transition-transform duration-200 ease-out
+            hover:scale-105 active:scale-95
+          "
         >
-          {/* Avatar container - siempre visible */}
-          <div className="relative flex-shrink-0">
-            <div
-              className={`relative rounded-full bg-white/10 backdrop-blur-sm border-2 border-white/20 flex items-center justify-center overflow-hidden transition-all duration-500 ${
-                isExpanded ? "w-12 h-12" : "w-16 h-16"
-              }`}
-            >
+          {/* Glow effect on hover */}
+          <div 
+            className={`
+              absolute inset-0 bg-white rounded-full 
+              transition-opacity duration-200
+              ${isHovered ? 'opacity-10' : 'opacity-0'}
+            `}
+          />
+
+          {/* Avatar container */}
+          <div className="relative z-10">
+            <div className="
+              w-16 h-16 rounded-full bg-white/20 backdrop-blur-sm 
+              border-2 border-white/30 flex items-center justify-center 
+              overflow-hidden
+            ">
               <Image
                 src="/jimmy-avatar.png"
                 alt="Jimmy"
-                width={isExpanded ? 40 : 56}
-                height={isExpanded ? 40 : 56}
+                width={52}
+                height={52}
                 className="rounded-full object-cover"
+                priority
               />
-              
-              {/* Glow effect */}
-              <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/5 to-white/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
             </div>
 
-            {/* Status indicator */}
-            <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-green-400 border-2 border-white rounded-full shadow-lg animate-pulse" />
+            {/* Status indicator - siempre visible */}
+            <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-emerald-400 border-2 border-white rounded-full shadow-lg flex items-center justify-center">
+              <Sparkles size={8} className="text-white" />
+            </div>
 
             {/* New message badge */}
-            {hasNewMessage && !hasModalOpen && (
-              <div className="absolute -top-1 -right-1 min-w-[20px] h-5 bg-yellow-400 border-2 border-white rounded-full flex items-center justify-center animate-pulse shadow-lg">
-                <span className="text-xs font-bold text-red-900 px-1">1</span>
+            {hasNewMessage && (
+              <div className="absolute -top-1 -right-1 min-w-[22px] h-[22px] bg-amber-400 border-2 border-white rounded-full flex items-center justify-center shadow-lg animate-pulse">
+                <span className="text-xs font-bold text-amber-900 px-1">1</span>
               </div>
             )}
           </div>
 
-          {/* Texto expandido */}
-          <div
-            className={`overflow-hidden transition-all duration-500 ${
-              isExpanded ? "max-w-[200px] opacity-100" : "max-w-0 opacity-0"
-            }`}
-          >
-            <div className="whitespace-nowrap">
-              <p className="text-sm font-bold leading-tight">¿Necesitas ayuda?</p>
-              <p className="text-xs opacity-90 leading-tight mt-0.5">Chatea con Jimmy</p>
-            </div>
+          {/* Message icon overlay */}
+          <div className="absolute inset-0 flex items-center justify-center z-20 pointer-events-none">
+            <MessageCircle size={26} className="text-white drop-shadow-lg" />
           </div>
-
-          {/* Shield icon cuando expandido */}
-          {isExpanded && (
-            <div className="absolute right-4 opacity-80">
-              <Shield size={20} className="text-white" />
-            </div>
-          )}
-
-          {/* Message icon cuando colapsado - centrado */}
-          {!isExpanded && (
-            <div className="absolute inset-0 flex items-center justify-center">
-              <MessageCircle size={28} className="text-white drop-shadow-lg" />
-            </div>
-          )}
-
-          {/* Ripple effect on hover */}
-          <div className="absolute inset-0 rounded-full bg-white opacity-0 group-hover:opacity-10 transition-opacity duration-300" />
         </button>
 
-        {/* Pulse ring animation - solo cuando no está expandido */}
-        {!isExpanded && !hasShownIntro && !hasModalOpen && (
-          <div className="absolute inset-0 rounded-full bg-red-500 opacity-75 animate-ping-slow pointer-events-none" />
-        )}
+        {/* Tooltip en hover - solo desktop */}
+        <div 
+          className={`
+            absolute right-full mr-3 top-1/2 -translate-y-1/2 pointer-events-none
+            transition-all duration-200
+            ${isHovered ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-2'}
+          `}
+        >
+          <div className="bg-white rounded-xl px-4 py-2.5 shadow-xl border border-[#C1C5C8]/20 whitespace-nowrap">
+            <p 
+              className="text-sm font-semibold text-[#4A4F55]"
+              style={{ fontFamily: "'Poppins', sans-serif" }}
+            >
+              Chatea con Jimmy
+            </p>
+            <p 
+              className="text-xs text-[#7A858C] flex items-center gap-1"
+              style={{ fontFamily: "'Merriweather Sans', sans-serif" }}
+            >
+              <Shield size={10} className="text-[#E40E20]" />
+              Asistente AI
+            </p>
+          </div>
+          {/* Arrow */}
+          <div className="absolute top-1/2 -translate-y-1/2 -right-1.5 w-3 h-3 bg-white border-r border-b border-[#C1C5C8]/20 transform rotate-[-45deg]" />
+        </div>
       </div>
     );
   };
@@ -361,63 +363,17 @@ export default function GeminiWidget() {
       <FloatingButton />
 
       {mounted && (
-        <div
-          className={`transition-all duration-300 ${
-            hasModalOpen ? "opacity-0 pointer-events-none" : "opacity-100 pointer-events-auto"
-          }`}
-          data-chatbot="jimmy"
-        >
-          <ChatWindow
-            open={open && !hasModalOpen}
-            onOpenChange={handleOpenChange}
-            messages={messages}
-            typing={typing}
-            suggestions={suggestions}
-            onSend={handleSend}
-            keyboardHeight={keyboardHeight}
-            viewportHeight={viewportHeight}
-          />
-        </div>
+        <ChatWindow
+          open={open}
+          onOpenChange={handleOpenChange}
+          messages={messages}
+          typing={typing}
+          suggestions={suggestions}
+          onSend={handleSend}
+          keyboardHeight={keyboardHeight}
+          viewportHeight={viewportHeight}
+        />
       )}
-
-      {/* Custom animations */}
-      <style jsx global>{`
-        @keyframes bounce-once {
-          0%, 100% {
-            transform: translateY(0);
-          }
-          50% {
-            transform: translateY(-10px);
-          }
-        }
-
-        @keyframes ping-slow {
-          0% {
-            transform: scale(1);
-            opacity: 0.75;
-          }
-          50% {
-            transform: scale(1.1);
-            opacity: 0.5;
-          }
-          100% {
-            transform: scale(1.2);
-            opacity: 0;
-          }
-        }
-
-        .animate-bounce-once {
-          animation: bounce-once 2s ease-in-out 1;
-        }
-
-        .animate-ping-slow {
-          animation: ping-slow 2s cubic-bezier(0, 0, 0.2, 1) infinite;
-        }
-
-        .safe-area-padding {
-          padding-bottom: env(safe-area-inset-bottom);
-        }
-      `}</style>
     </>
   );
 }

@@ -1,22 +1,31 @@
 import "@/styles/globals.css";
 import "../styles/planner.css";
 
-import { Poppins, Merriweather_Sans } from "next/font/google";
+import { Josefin_Sans, Montserrat } from "next/font/google";
 import { ReactNode } from "react";
 import type { Metadata } from "next";
 
 import ClientInitializer from "@/components/ClientInitializer";
-import GeminiWidget from "@/components/gemini/GeminiWidget";  // 👈 import directo
+import GeminiWidget from "@/components/gemini/GeminiWidget";
 
-const poppins = Poppins({
+// =============================================================================
+// TIPOGRAFÍAS - Marca Atlántico
+// Josefin Sans: Títulos, navegación, CTAs
+// Montserrat: Cuerpo de texto, descripciones
+// =============================================================================
+
+const josefinSans = Josefin_Sans({
   subsets: ["latin"],
-  weight: ["400", "600", "700"],
-  variable: "--font-poppins",
+  weight: ["300", "400", "500", "600", "700"],
+  variable: "--font-josefin",
+  display: "swap",
 });
-const merriweatherSans = Merriweather_Sans({
+
+const montserrat = Montserrat({
   subsets: ["latin"],
-  weight: ["400", "600", "700"],
-  variable: "--font-merriweather-sans",
+  weight: ["400", "500", "600", "700"],
+  variable: "--font-montserrat",
+  display: "swap",
 });
 
 export const metadata: Metadata = {
@@ -57,7 +66,7 @@ export const metadata: Metadata = {
 export function generateViewport() {
   return {
     viewport: "width=device-width, initial-scale=1",
-    themeColor: "#006994",
+    themeColor: "#007BC4", // Azul Barranquero
   };
 }
 
@@ -65,13 +74,13 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html
       lang="es"
-      className={`${poppins.variable} ${merriweatherSans.variable}`}
+      className={`${josefinSans.variable} ${montserrat.variable}`}
     >
       <head>
         <link rel="canonical" href="https://visitatlantico.com" />
       </head>
 
-      <body className="font-sans">
+      <body className="font-montserrat antialiased">
         <ClientInitializer />
         {children}
 

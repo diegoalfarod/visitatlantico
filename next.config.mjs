@@ -6,7 +6,9 @@ const nextConfig = {
     domains: [
       'firebasestorage.googleapis.com', 
       'lh3.googleusercontent.com',
-      'maps.googleapis.com', // Añadido para las imágenes de Google Maps
+      'maps.googleapis.com',
+      'images.unsplash.com',
+      'appdevelopi.s3.us-east-1.amazonaws.com', // ✨ Agregado para S3
     ],
     
     /* patrones remotos (subdominios variables y APIs) */
@@ -40,17 +42,26 @@ const nextConfig = {
         protocol: "https",
         hostname: "firebasestorage.googleapis.com",
         pathname: "/**",
-      }
+      },
+      {
+        protocol: "https",
+        hostname: "images.unsplash.com",
+        pathname: "/**",
+      },
+      {
+        protocol: "https",
+        hostname: "appdevelopi.s3.us-east-1.amazonaws.com", // ✨ Agregado para S3
+        pathname: "/**",
+      },
     ],
   },
   experimental: {
-    optimizeCss: false // Deshabilitado para evitar el error de critters
+    optimizeCss: false
   },
   eslint: {
     ignoreDuringBuilds: true,
   },
   typescript: {
-    // Temporalmente ignorar errores de TypeScript para poder hacer deploy
     ignoreBuildErrors: true,
   },
   webpack: (config) => {

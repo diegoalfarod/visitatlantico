@@ -1,357 +1,498 @@
-// components/HeroCarousel.tsx
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect, useCallback, useRef } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
-import { motion } from "framer-motion";
-import { HiPlay, HiChevronLeft, HiChevronRight } from "react-icons/hi";
-import { RiMapPin2Line, RiCalendarLine } from "react-icons/ri";
-import { BsPlayCircleFill } from "react-icons/bs";
-import PlannerPage from "@/components/planner/PlannerPage"; // ⟵ usa el PlannerPage nuevo
+import Link from "next/link";
+import { 
+  GiPalmTree, 
+  GiWaveSurfer,
+  GiDrum,
+  GiSunrise
+} from "react-icons/gi";
+import { TbBuildingBridge2 } from "react-icons/tb";
 
-const videoSrc =
-  "https://appdevelopi.s3.us-east-1.amazonaws.com/AtlanticoEsMas/ATLA%CC%81NTICO+ES+MA%CC%81S+Extra+Compreso.mp4";
+// =============================================================================
+// PALETA - Marca Atlántico Turismo
+// =============================================================================
+const COLORS = {
+  azulBarranquero: "#007BC4",
+  rojoCayena: "#D31A2B",
+  naranjaSalinas: "#EA5B13",
+  amarilloArepa: "#F39200",
+  verdeBijao: "#008D39",
+  beigeIraca: "#B8A88A",
+};
 
-interface Slide {
-  image: string;
-  title: string;
-  subtitle: string;
-  description: string;
-  buttonText: string;
-  link: string;
-}
-
-const slides: Slide[] = [
+// =============================================================================
+// SLIDES - Experiencias del Atlántico (sin Carnaval, reordenado)
+// =============================================================================
+const slides = [
   {
-    image:
-      "https://firebasestorage.googleapis.com/v0/b/visitatlantico-f5c09.firebasestorage.app/o/carnaval-de-barranquilla.jpg?alt=media&token=a0896aee-9567-4506-9272-c5b67f5f5398",
-    title: "Cultura y tradición en cada rincón",
-    subtitle: "Patrimonio Cultural de la Humanidad",
-    description: "Vive la auténtica experiencia caribeña con la calidez de nuestra gente.",
-    buttonText: "Planifica tu Visita",
-    link: "/planner", // ⟵ usaremos esto para decidir abrir el modal
+    id: 1,
+    image: "https://firebasestorage.googleapis.com/v0/b/visitatlantico-f5c09.firebasestorage.app/o/Mujer%20en%20Campo%20Floral%20mariposa%202.png?alt=media&token=9d598de3-a3d8-4407-922a-6a0126bb4df6",
+    icon: GiSunrise,
+    location: "Campo Atlántico",
+    title: "Descubre",
+    subtitle: "lo mágico",
+    description: "Tradiciones ancestrales en cada rincón de nuestra tierra",
+    accent: COLORS.amarilloArepa,
+    position: "center",
+    tagline: "Tierra de Mariposas",
   },
   {
-    image:
-      "https://appdevelopi.s3.us-east-1.amazonaws.com/AtlanticoEsMas/Parque+Cienaga+De+Mallorquin.jpeg",
-    title: "Naturaleza viva del Caribe",
-    subtitle: "Biodiversidad y Ecoturismo",
-    description: "Descubre ecosistemas únicos y playas paradisíacas en el corazón del Caribe.",
-    buttonText: "Explorar Destinos",
-    link: "/destinations",
+    id: 2,
+    image: "https://appdevelopi.s3.us-east-1.amazonaws.com/AtlanticoEsMas/Parque+Cienaga+De+Mallorquin.jpeg",
+    icon: GiPalmTree,
+    location: "Ciénaga de Mallorquín",
+    title: "Vive la",
+    subtitle: "Naturaleza",
+    description: "Manglares, aves y atardeceres que pintan el cielo de fuego",
+    accent: COLORS.verdeBijao,
+    position: "center",
+    tagline: "Santuario Natural",
+  },
+  {
+    id: 3,
+    image: "https://firebasestorage.googleapis.com/v0/b/visitatlantico-f5c09.firebasestorage.app/o/Muelle_1888_Nocturna.jpg?alt=media&token=f04dc293-9a06-43fa-82f2-6244cd4e44f6",
+    icon: TbBuildingBridge2,
+    location: "Puerto Colombia",
+    title: "Noches de",
+    subtitle: "historia",
+    description: "Donde el pasado y presente se encuentran bajo las estrellas",
+    accent: COLORS.naranjaSalinas,
+    position: "center",
+    tagline: "Muelle Histórico 1888",
+  },
+  {
+    id: 4,
+    image: "https://firebasestorage.googleapis.com/v0/b/visitatlantico-f5c09.firebasestorage.app/o/SALINAS%20DEL%20REY%20%20(2)B.jpg?alt=media&token=37590d7d-c860-41b3-b07c-d60853359022",
+    icon: GiWaveSurfer,
+    location: "Salinas del Rey",
+    title: "Viento y",
+    subtitle: "libertad",
+    description: "El paraíso del kitesurf en el Caribe colombiano",
+    accent: COLORS.azulBarranquero,
+    position: "top",
+    tagline: "Capital del Viento",
   },
 ];
 
+// =============================================================================
+// KEN BURNS - Movimiento cinematográfico
+// =============================================================================
+const kenBurnsVariants = [
+  { initial: { scale: 1.0, x: "0%", y: "0%" }, animate: { scale: 1.1, x: "2%", y: "1%" } },
+  { initial: { scale: 1.08, x: "2%", y: "0%" }, animate: { scale: 1.0, x: "-1%", y: "0.5%" } },
+  { initial: { scale: 1.1, x: "0%", y: "2%" }, animate: { scale: 1.02, x: "1%", y: "-1%" } },
+  { initial: { scale: 1.0, x: "-1%", y: "-1%" }, animate: { scale: 1.08, x: "1.5%", y: "1.5%" } },
+];
+
+// =============================================================================
+// COMPONENT
+// =============================================================================
 export default function HeroCarousel() {
   const [currentSlide, setCurrentSlide] = useState(0);
-  const [isVideoPlaying, setIsVideoPlaying] = useState(false);
-  const [autoPlay, setAutoPlay] = useState(true);
-  const [showPlannerModal, setShowPlannerModal] = useState(false);
-  const router = useRouter();
+  const [isAutoPlaying, setIsAutoPlaying] = useState(true);
+  const [isLoaded, setIsLoaded] = useState(false);
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const SLIDE_DURATION = 10000; // 10 segundos (antes 8s, +2s más lento)
 
   useEffect(() => {
-    if (!autoPlay || isVideoPlaying) return;
-    const interval = setInterval(() => {
+    setIsLoaded(true);
+  }, []);
+
+  const startAutoPlay = useCallback(() => {
+    if (intervalRef.current) clearInterval(intervalRef.current);
+    intervalRef.current = setInterval(() => {
       setCurrentSlide((prev) => (prev + 1) % slides.length);
-    }, 8000);
-    return () => clearInterval(interval);
-  }, [autoPlay, isVideoPlaying]);
+    }, SLIDE_DURATION);
+  }, []);
 
-  const nextSlide = () => {
-    setCurrentSlide((prev) => (prev + 1) % slides.length);
-    setAutoPlay(false);
+  useEffect(() => {
+    if (isAutoPlaying) startAutoPlay();
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
+  }, [isAutoPlaying, startAutoPlay]);
+
+  const goToSlide = (index: number) => {
+    setCurrentSlide(index);
+    if (isAutoPlaying) startAutoPlay();
   };
 
-  const prevSlide = () => {
-    setCurrentSlide((prev) => (prev - 1 + slides.length) % slides.length);
-    setAutoPlay(false);
-  };
-
-  const handleVideoPlay = () => {
-    setIsVideoPlaying(true);
-    setAutoPlay(false);
-  };
-
-  const handleVideoPause = () => {
-    setIsVideoPlaying(false);
-    setAutoPlay(true);
-  };
-
-  // ⟵ ahora decide por el link
-  const handlePlannerClick = useCallback(() => {
-    if (slides[currentSlide].link === "/planner") {
-      setShowPlannerModal(true);
-    } else {
-      router.push(slides[currentSlide].link);
-    }
-  }, [currentSlide, router]);
+  const currentData = slides[currentSlide];
+  const kenBurns = kenBurnsVariants[currentSlide % kenBurnsVariants.length];
+  const IconComponent = currentData.icon;
 
   return (
-    <>
-      <section
-        className="relative w-full overflow-hidden"
-        style={{
-          minHeight: "calc(100vh - var(--navbar-height, 80px))",
-          marginTop: "var(--navbar-height, 80px)",
-        }}
-      >
-        {/* Background Images */}
-        <div className="absolute inset-0">
-          {slides.map((slide, index) => (
-            <motion.div
-              key={index}
-              initial={{ opacity: 0 }}
-              animate={{
-                opacity: index === currentSlide ? 1 : 0,
-              }}
-              transition={{ duration: 1.2 }}
-              className="absolute inset-0 w-full h-full"
-            >
-              <Image
-                src={slide.image}
-                alt=""
-                fill
-                className="object-cover object-center"
-                priority={index === 0}
-                unoptimized
-              />
-              <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/50 to-black/60" />
-            </motion.div>
-          ))}
-        </div>
+    <section className="relative w-full h-screen overflow-hidden bg-black">
+      {/* ============================================================= */}
+      {/* BACKGROUND - Ken Burns Effect */}
+      {/* ============================================================= */}
+      <AnimatePresence mode="sync">
+        <motion.div
+          key={currentSlide}
+          className="absolute inset-0"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 1.5, ease: [0.22, 1, 0.36, 1] }}
+        >
+          <motion.div
+            className="absolute inset-0 will-change-transform"
+            initial={kenBurns.initial}
+            animate={kenBurns.animate}
+            transition={{ duration: SLIDE_DURATION / 1000, ease: "linear" }}
+          >
+            <Image
+              src={currentData.image}
+              alt={currentData.title}
+              fill
+              priority
+              quality={90}
+              className="object-cover"
+              style={{ objectPosition: currentData.position }}
+              sizes="100vw"
+            />
+          </motion.div>
+        </motion.div>
+      </AnimatePresence>
 
-        {/* Main Content */}
-        <div className="relative z-20 min-h-[calc(100vh-var(--navbar-height,80px))] flex items-center justify-center">
-          <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 pb-20 sm:pb-8">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-12 items-start lg:items-center">
-              {/* Left Content - Text */}
+      {/* ============================================================= */}
+      {/* OVERLAYS - Cinematográficos con mejor legibilidad */}
+      {/* ============================================================= */}
+      
+      {/* Bottom gradient - más fuerte para legibilidad */}
+      <div 
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          background: "linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.5) 30%, rgba(0,0,0,0.1) 50%, rgba(0,0,0,0) 65%, rgba(0,0,0,0.05) 100%)"
+        }}
+      />
+      
+      {/* Left gradient for text - más pronunciado */}
+      <div 
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          background: "linear-gradient(to right, rgba(0,0,0,0.6) 0%, rgba(0,0,0,0.3) 35%, rgba(0,0,0,0.1) 50%, transparent 65%)"
+        }}
+      />
+
+      {/* Color accent overlay */}
+      <motion.div 
+        className="absolute inset-0 pointer-events-none mix-blend-overlay"
+        animate={{ 
+          background: `linear-gradient(135deg, ${currentData.accent}15 0%, transparent 50%)` 
+        }}
+        transition={{ duration: 1 }}
+      />
+
+      {/* ============================================================= */}
+      {/* DECORATIVE ELEMENTS - Cultura Atlántico */}
+      {/* ============================================================= */}
+      
+      {/* Floating cultural patterns - Top right */}
+      <motion.div 
+        className="absolute top-32 right-8 lg:right-16 z-10 hidden lg:block"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: isLoaded ? 0.15 : 0, y: 0 }}
+        transition={{ delay: 1, duration: 1 }}
+      >
+        <svg width="120" height="120" viewBox="0 0 120 120" fill="none">
+          {/* Patrón inspirado en las artesanías de Galapa */}
+          <circle cx="60" cy="60" r="55" stroke="white" strokeWidth="1" strokeDasharray="4 4"/>
+          <circle cx="60" cy="60" r="40" stroke="white" strokeWidth="1"/>
+          <circle cx="60" cy="60" r="25" stroke="white" strokeWidth="1" strokeDasharray="2 2"/>
+          <path d="M60 5 L60 25 M60 95 L60 115 M5 60 L25 60 M95 60 L115 60" stroke="white" strokeWidth="1"/>
+        </svg>
+      </motion.div>
+
+      {/* Wave pattern - Bottom decorative */}
+      <div className="absolute bottom-0 left-0 right-0 h-32 pointer-events-none overflow-hidden">
+        <motion.svg 
+          className="absolute bottom-0 w-full h-24 text-white/5"
+          viewBox="0 0 1440 100" 
+          preserveAspectRatio="none"
+          initial={{ y: 100 }}
+          animate={{ y: 0 }}
+          transition={{ delay: 0.5, duration: 1 }}
+        >
+          <path 
+            d="M0,50 C360,100 720,0 1080,50 C1260,75 1380,75 1440,50 L1440,100 L0,100 Z" 
+            fill="currentColor"
+          />
+        </motion.svg>
+      </div>
+
+      {/* ============================================================= */}
+      {/* MAIN CONTENT */}
+      {/* ============================================================= */}
+      <div className="relative z-10 h-full flex flex-col justify-end">
+        <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 w-full pb-32 sm:pb-36 lg:pb-44">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={currentSlide}
+              className="max-w-4xl"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.5 }}
+            >
+              {/* Icon + Location Tag */}
               <motion.div
-                className="text-white text-center lg:text-left order-2 lg:order-1"
-                key={currentSlide}
+                className="flex items-center gap-3 mb-5"
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.8, delay: 0.2 }}
+                transition={{ duration: 0.6, delay: 0.1 }}
               >
-                {/* Title Section */}
-                <div className="mb-6">
-                  <motion.h1
-                    className="text-3xl sm:text-4xl md:text-5xl lg:text-5xl xl:text-6xl font-bold leading-tight"
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.3, duration: 0.8 }}
-                    style={{
-                      textShadow:
-                        "2px 2px 4px rgba(0,0,0,0.8), 4px 4px 8px rgba(0,0,0,0.6)",
+                <motion.div 
+                  className="flex items-center justify-center w-10 h-10 rounded-full"
+                  style={{ backgroundColor: `${currentData.accent}30` }}
+                  whileHover={{ scale: 1.1 }}
+                >
+                  <IconComponent 
+                    className="text-xl"
+                    style={{ color: currentData.accent }}
+                  />
+                </motion.div>
+                <div className="flex flex-col">
+                  <span 
+                    className="text-[10px] font-semibold tracking-[0.3em] uppercase"
+                    style={{ 
+                      fontFamily: "'Josefin Sans', sans-serif",
+                      color: currentData.accent 
                     }}
                   >
-                    <span className="text-white">
-                      {slides[currentSlide].title.split(" ").map((word, index, array) => {
-                        const highlightWords = ["Atlántico", "Caribe", "Colombiano"];
-                        const isHighlighted = highlightWords.includes(word);
-                        const isLastWords = index >= array.length - 2;
-                        return (
-                          <span key={index}>
-                            {isHighlighted || isLastWords ? (
-                              <span className="text-yellow-400">{word}</span>
-                            ) : (
-                              word
-                            )}
-                            {index < array.length - 1 && " "}
-                          </span>
-                        );
-                      })}
-                    </span>
+                    {currentData.location}
+                  </span>
+                  <span 
+                    className="text-[10px] tracking-[0.2em] uppercase text-white/50"
+                    style={{ fontFamily: "'Josefin Sans', sans-serif" }}
+                  >
+                    {currentData.tagline}
+                  </span>
+                </div>
+              </motion.div>
+
+              {/* Main Title */}
+              <div className="space-y-0 mb-5">
+                <div className="overflow-hidden">
+                  <motion.h1
+                    className="text-5xl sm:text-6xl lg:text-8xl font-light text-white leading-[0.9] tracking-[-0.02em]"
+                    style={{ 
+                      fontFamily: "'Josefin Sans', sans-serif",
+                      textShadow: "0 2px 10px rgba(0,0,0,0.3)"
+                    }}
+                    initial={{ y: "100%" }}
+                    animate={{ y: 0 }}
+                    transition={{ duration: 0.7, delay: 0.15, ease: [0.22, 1, 0.36, 1] }}
+                  >
+                    {currentData.title}
                   </motion.h1>
                 </div>
-
-                {/* Description */}
-                <motion.p
-                  className="text-base sm:text-lg text-white leading-relaxed mb-8"
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.4, duration: 0.8 }}
-                  style={{ textShadow: "1px 1px 3px rgba(0,0,0,0.8)" }}
-                >
-                  {slides[currentSlide].description}
-                </motion.p>
-
-                {/* Action Buttons */}
-                <motion.div
-                  className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start mb-8"
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.6, duration: 0.8 }}
-                >
-                  {/* Botón principal (abre planner si link === /planner) */}
-                  <motion.button
-                    onClick={handlePlannerClick}
-                    className="w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-4 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-full shadow-xl transition-all duration-300"
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
+                <div className="overflow-hidden">
+                  <motion.h2
+                    className="text-5xl sm:text-6xl lg:text-8xl font-bold leading-[0.9] tracking-[-0.02em]"
+                    style={{ 
+                      fontFamily: "'Josefin Sans', sans-serif",
+                      color: currentData.accent,
+                      textShadow: "0 2px 15px rgba(0,0,0,0.4)"
+                    }}
+                    initial={{ y: "100%" }}
+                    animate={{ y: 0 }}
+                    transition={{ duration: 0.7, delay: 0.25, ease: [0.22, 1, 0.36, 1] }}
                   >
-                    <span className="flex items-center justify-center gap-2 sm:gap-3">
-                      <RiMapPin2Line className="text-lg sm:text-xl" />
-                      {slides[currentSlide].buttonText}
-                    </span>
-                  </motion.button>
-
-                  {/* Botón secundario SOLO en el slide 1 (índice 0) */}
-                  {currentSlide === 0 && (
-                    <motion.button
-                      onClick={() => router.push("/destinations")}
-                      className="w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-4 bg-gray-800 hover:bg-gray-700 border border-gray-600 text-white font-semibold rounded-full transition-all duration-300"
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                    >
-                      <span className="flex items-center justify-center gap-2 sm:gap-3">
-                        <RiCalendarLine className="text-lg sm:text-xl" />
-                        Ver Destinos
-                      </span>
-                    </motion.button>
-                  )}
-                </motion.div>
-
-                {/* Stats Section */}
-                <motion.div
-                  className="flex justify-center lg:justify-start"
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.7, duration: 0.8 }}
-                >
-                  <div className="inline-flex items-center gap-4 sm:gap-6 bg-black/40 backdrop-blur-sm border border-gray-700 rounded-2xl px-5 sm:px-6 py-3 sm:py-4">
-                    <div className="text-center">
-                      <div className="text-xl sm:text-2xl font-bold text-red-400">23</div>
-                      <div className="text-xs text-gray-400">Municipios</div>
-                    </div>
-                    <div className="w-px h-6 bg-gray-600" />
-                    <div className="text-center">
-                      <div className="text-xl sm:text-2xl font-bold text-red-400">50+</div>
-                      <div className="text-xs text-gray-400">Destinos</div>
-                    </div>
-                    <div className="w-px h-6 bg-gray-600" />
-                    <div className="text-center">
-                      <div className="text-xl sm:text-2xl font-bold text-red-400">2M+</div>
-                      <div className="text-xs text-gray-400">Visitantes</div>
-                    </div>
-                  </div>
-                </motion.div>
-              </motion.div>
-
-              {/* Right Content - Video */}
-              <motion.div
-                className="relative order-1 lg:order-2"
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.8, delay: 0.3 }}
-              >
-                <div className="relative max-w-sm sm:max-w-md mx-auto lg:max-w-full">
-                  <div className="relative bg-gray-900 rounded-lg p-0.5 shadow-2xl border border-gray-700">
-                    <div className="relative w-full aspect-video rounded-lg overflow-hidden">
-                      <video
-                        id="hero-video"
-                        src={videoSrc}
-                        controls
-                        poster={slides[currentSlide].image}
-                        className="w-full h-full object-cover"
-                        onPlay={handleVideoPlay}
-                        onPause={handleVideoPause}
-                        onEnded={handleVideoPause}
-                      />
-
-                      {!isVideoPlaying && (
-                        <motion.div
-                          className="absolute inset-0 flex items-center justify-center bg-black/40"
-                          initial={{ opacity: 0 }}
-                          animate={{ opacity: 1 }}
-                          exit={{ opacity: 0 }}
-                        >
-                          <motion.button
-                            whileHover={{ scale: 1.1 }}
-                            whileTap={{ scale: 0.95 }}
-                            onClick={() => {
-                              const video = document.getElementById(
-                                "hero-video"
-                              ) as HTMLVideoElement;
-                              video?.play();
-                            }}
-                          >
-                            <div className="w-12 h-12 sm:w-14 sm:h-14 lg:w-16 lg:h-16 bg-red-600 hover:bg-red-700 rounded-full flex items-center justify-center shadow-2xl transition-colors duration-300">
-                              <BsPlayCircleFill className="text-xl sm:text-2xl lg:text-3xl text-white ml-0.5" />
-                            </div>
-                          </motion.button>
-                        </motion.div>
-                      )}
-                    </div>
-
-                    <div className="absolute bottom-1.5 sm:bottom-2 left-2 right-2">
-                      <div className="bg-black/70 backdrop-blur-sm rounded-md px-2 py-1">
-                        <p className="text-white text-[10px] sm:text-xs lg:text-sm font-medium flex items-center justify-center gap-1.5">
-                          <span className="w-1 h-1 sm:w-1.5 sm:h-1.5 bg-red-500 rounded-full animate-pulse" />
-                          Video Oficial
-                        </p>
-                      </div>
-                    </div>
-                  </div>
+                    {currentData.subtitle}
+                  </motion.h2>
                 </div>
+              </div>
+
+              {/* Description */}
+              <motion.p
+                className="text-base sm:text-lg text-white/80 max-w-lg leading-relaxed mb-8"
+                style={{ 
+                  fontFamily: "'Montserrat', sans-serif",
+                  textShadow: "0 1px 8px rgba(0,0,0,0.3)"
+                }}
+                initial={{ opacity: 0, y: 15 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: 0.4 }}
+              >
+                {currentData.description}
+              </motion.p>
+
+              {/* CTA Buttons */}
+              <motion.div
+                initial={{ opacity: 0, y: 15 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: 0.5 }}
+                className="flex flex-wrap items-center gap-4"
+              >
+                {/* Primary CTA */}
+                <Link
+                  href="/destinations"
+                  className="group inline-flex items-center gap-3 px-6 py-3 rounded-full transition-all duration-300"
+                  style={{ 
+                    fontFamily: "'Josefin Sans', sans-serif",
+                    background: `linear-gradient(135deg, ${COLORS.naranjaSalinas}, ${COLORS.rojoCayena})`,
+                  }}
+                >
+                  <span className="text-white font-semibold text-sm sm:text-base">
+                    Explorar Atlántico
+                  </span>
+                  <motion.span 
+                    className="text-white"
+                    whileHover={{ x: 3 }}
+                  >
+                    →
+                  </motion.span>
+                </Link>
+
+                {/* Secondary CTA */}
+                <Link
+                  href="/eventos"
+                  className="group inline-flex items-center gap-2 px-5 py-3 rounded-full border border-white/30 hover:border-white/60 hover:bg-white/10 transition-all duration-300"
+                  style={{ fontFamily: "'Josefin Sans', sans-serif" }}
+                >
+                  <GiDrum className="text-lg text-white/70 group-hover:text-white" />
+                  <span className="text-white/90 font-medium text-sm">
+                    Ver eventos
+                  </span>
+                </Link>
               </motion.div>
-            </div>
-          </div>
+            </motion.div>
+          </AnimatePresence>
         </div>
+      </div>
 
-        {/* Navigation Controls */}
-        <div className="absolute bottom-2 sm:bottom-4 md:bottom-6 lg:bottom-8 left-1/2 z-30 flex -translate-x-1/2 items-center gap-3 sm:gap-4">
-          <motion.button
-            onClick={prevSlide}
-            aria-label="Anterior"
-            className="w-10 h-10 sm:w-12 sm:h-12 bg-black/50 backdrop-blur-sm border border-gray-600 rounded-full flex items-center justify-center text-white hover:bg-black/70 transition-all duration-300"
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.95 }}
+      {/* ============================================================= */}
+      {/* SLIDE NAVIGATION - Vertical Right */}
+      {/* ============================================================= */}
+      <div className="absolute right-6 sm:right-8 top-1/2 -translate-y-1/2 z-20 hidden md:flex flex-col items-end gap-3">
+        {slides.map((slide, index) => {
+          const SlideIcon = slide.icon;
+          const isActive = index === currentSlide;
+          
+          return (
+            <button
+              key={slide.id}
+              onClick={() => goToSlide(index)}
+              className="group flex items-center gap-3 transition-all duration-300"
+              aria-label={`Ir a ${slide.location}`}
+            >
+              {/* Label - appears on hover or active */}
+              <motion.span 
+                className="text-xs font-medium tracking-wide opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                style={{ 
+                  fontFamily: "'Josefin Sans', sans-serif",
+                  color: isActive ? currentData.accent : 'rgba(255,255,255,0.6)',
+                  opacity: isActive ? 1 : undefined,
+                }}
+              >
+                {slide.location}
+              </motion.span>
+              
+              {/* Icon indicator */}
+              <motion.div
+                className="flex items-center justify-center rounded-full transition-all duration-300"
+                style={{
+                  width: isActive ? "40px" : "32px",
+                  height: isActive ? "40px" : "32px",
+                  backgroundColor: isActive ? `${currentData.accent}30` : 'rgba(255,255,255,0.1)',
+                  border: isActive ? `2px solid ${currentData.accent}` : '1px solid rgba(255,255,255,0.2)',
+                }}
+                whileHover={{ scale: 1.1 }}
+              >
+                <SlideIcon 
+                  className="transition-all duration-300"
+                  style={{ 
+                    fontSize: isActive ? "18px" : "14px",
+                    color: isActive ? currentData.accent : 'rgba(255,255,255,0.5)',
+                  }}
+                />
+              </motion.div>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* ============================================================= */}
+      {/* MOBILE INDICATORS */}
+      {/* ============================================================= */}
+      <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-20 md:hidden">
+        <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-black/30 backdrop-blur-sm">
+          {slides.map((slide, index) => {
+            const SlideIcon = slide.icon;
+            const isActive = index === currentSlide;
+            
+            return (
+              <button
+                key={slide.id}
+                onClick={() => goToSlide(index)}
+                className="relative p-1.5 transition-all duration-300"
+                aria-label={`Ir a ${slide.location}`}
+              >
+                <SlideIcon 
+                  style={{ 
+                    fontSize: "16px",
+                    color: isActive ? currentData.accent : 'rgba(255,255,255,0.4)',
+                  }}
+                />
+                {isActive && (
+                  <motion.div
+                    className="absolute -bottom-1 left-1/2 w-1 h-1 rounded-full -translate-x-1/2"
+                    style={{ backgroundColor: currentData.accent }}
+                    layoutId="mobileIndicator"
+                  />
+                )}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* ============================================================= */}
+      {/* PROGRESS BAR - Bottom */}
+      {/* ============================================================= */}
+      <div className="absolute bottom-0 left-0 right-0 h-1 bg-white/10 z-20">
+        <motion.div
+          className="h-full origin-left"
+          style={{ backgroundColor: currentData.accent }}
+          initial={{ scaleX: 0 }}
+          animate={{ scaleX: 1 }}
+          transition={{ duration: SLIDE_DURATION / 1000, ease: "linear" }}
+          key={currentSlide}
+        />
+      </div>
+
+      {/* ============================================================= */}
+      {/* CORNER INFO - Slide counter */}
+      {/* ============================================================= */}
+      <div className="absolute bottom-8 left-6 sm:left-8 lg:left-12 z-20 hidden sm:flex items-center gap-4">
+        <div 
+          className="flex items-baseline gap-1"
+          style={{ fontFamily: "'Josefin Sans', sans-serif" }}
+        >
+          <span 
+            className="text-3xl font-light"
+            style={{ color: currentData.accent }}
           >
-            <HiChevronLeft className="text-lg sm:text-xl" />
-          </motion.button>
-
-          <div className="flex gap-2 sm:gap-3">
-            {slides.map((_, index) => (
-              <motion.button
-                key={index}
-                onClick={() => setCurrentSlide(index)}
-                className={`h-2 sm:h-2.5 rounded-full transition-all duration-300 ${
-                  index === currentSlide
-                    ? "w-8 sm:w-10 bg-red-500"
-                    : "w-2 sm:w-2.5 bg-gray-500 hover:bg-gray-400"
-                }`}
-                whileHover={{ scale: 1.2 }}
-                whileTap={{ scale: 0.9 }}
-              />
-            ))}
-          </div>
-
-          <motion.button
-            onClick={nextSlide}
-            aria-label="Siguiente"
-            className="w-10 h-10 sm:w-12 sm:h-12 bg-black/50 backdrop-blur-sm border border-gray-600 rounded-full flex items-center justify-center text-white hover:bg-black/70 transition-all duration-300"
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.95 }}
-          >
-            <HiChevronRight className="text-lg sm:text-xl" />
-          </motion.button>
+            {String(currentSlide + 1).padStart(2, "0")}
+          </span>
+          <span className="text-white/30 text-sm mx-1">/</span>
+          <span className="text-white/30 text-sm">{String(slides.length).padStart(2, "0")}</span>
         </div>
-
-        {/* Progress Bar */}
-        <div className="absolute top-0 left-0 right-0 z-30">
-          <motion.div
-            className="h-1 bg-red-500"
-            initial={{ scaleX: 0 }}
-            animate={{ scaleX: autoPlay && !isVideoPlaying ? 1 : 0 }}
-            transition={{ duration: 8, ease: "linear" }}
-            style={{ transformOrigin: "left" }}
-          />
-        </div>
-      </section>
-
-      {/* Planner Modal (nuevo) */}
-      <PlannerPage open={showPlannerModal} onOpenChange={setShowPlannerModal} />
-    </>
+        
+        {/* Mini tagline */}
+        <div className="h-4 w-px bg-white/20" />
+        <span 
+          className="text-xs text-white/40 tracking-wider uppercase"
+          style={{ fontFamily: "'Josefin Sans', sans-serif" }}
+        >
+          Atlántico es más
+        </span>
+      </div>
+    </section>
   );
 }
