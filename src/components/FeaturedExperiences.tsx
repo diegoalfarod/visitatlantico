@@ -17,6 +17,7 @@ import {
 import { allRoutes, TouristRoute, getRouteBySlug } from "@/data/routes-data";
 
 export { allRoutes, getRouteBySlug };
+export { allRoutes as itineraries }; // Alias for backwards compatibility
 export type { TouristRoute };
 
 // =============================================================================
