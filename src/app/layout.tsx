@@ -2,7 +2,7 @@ import "@/styles/globals.css";
 import "../styles/planner.css";
 
 import { Josefin_Sans, Montserrat } from "next/font/google";
-import { ReactNode } from "react";
+import { ReactNode, Suspense } from "react";
 import type { Metadata } from "next";
 
 import ClientInitializer from "@/components/ClientInitializer";
@@ -130,7 +130,9 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <ClientInitializer />
 
         {/* 🎯 Barra de progreso global */}
-        <TopLoadingBar />
+        <Suspense fallback={null}>
+          <TopLoadingBar />
+        </Suspense>
 
         {children}
 
