@@ -63,20 +63,131 @@ const MapView = dynamic(() => import("@/components/MapView"), {
 });
 
 // ============================================================================
-// SKELETON DEL MAPA
+// SKELETON DEL MAPA - Loading messages
 // ============================================================================
+const LOADING_MESSAGES = [
+  "Preparando el mapa interactivo...",
+  "Cargando destinos del Atlántico...",
+  "Ubicando lugares increíbles...",
+  "Casi listo para explorar...",
+];
+
 function MapSkeleton() {
+  const [loadingStep, setLoadingStep] = useState(0);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setLoadingStep((prev) => (prev + 1) % LOADING_MESSAGES.length);
+    }, 1500);
+
+    return () => clearInterval(interval);
+  }, []);
+
   return (
-    <div className="w-full h-[70vh] lg:h-[80vh] rounded-2xl bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-900 animate-pulse flex items-center justify-center">
-      <div className="text-center">
+    <div className="w-full h-[70vh] lg:h-[80vh] rounded-2xl bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-900 relative overflow-hidden flex items-center justify-center">
+      {/* Animated background patterns */}
+      <div className="absolute inset-0">
         <motion.div
-          animate={{ rotate: 360 }}
-          transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-          className="w-16 h-16 border-4 border-primary/20 border-t-primary rounded-full mx-auto mb-4"
+          animate={{
+            scale: [1, 1.2, 1],
+            opacity: [0.1, 0.2, 0.1],
+          }}
+          transition={{
+            duration: 3,
+            repeat: Infinity,
+            ease: "easeInOut",
+          }}
+          className="absolute top-1/4 left-1/4 w-64 h-64 rounded-full"
+          style={{ backgroundColor: COLORS.azulBarranquero }}
         />
-        <p className="text-slate-500 dark:text-slate-400 font-medium" style={{ fontFamily: "'Montserrat', sans-serif" }}>
-          Cargando mapa interactivo...
+        <motion.div
+          animate={{
+            scale: [1, 1.3, 1],
+            opacity: [0.1, 0.15, 0.1],
+          }}
+          transition={{
+            duration: 4,
+            repeat: Infinity,
+            ease: "easeInOut",
+            delay: 0.5,
+          }}
+          className="absolute bottom-1/4 right-1/4 w-80 h-80 rounded-full"
+          style={{ backgroundColor: COLORS.naranjaSalinas }}
+        />
+      </div>
+
+      {/* Loading content */}
+      <div className="text-center relative z-10 px-6">
+        {/* Animated map icon */}
+        <motion.div
+          animate={{
+            y: [0, -10, 0],
+          }}
+          transition={{
+            duration: 2,
+            repeat: Infinity,
+            ease: "easeInOut",
+          }}
+          className="mb-6"
+        >
+          <div className="relative inline-block">
+            <motion.div
+              animate={{ rotate: 360 }}
+              transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
+              className="w-20 h-20 border-4 rounded-full mx-auto"
+              style={{
+                borderColor: `${COLORS.azulBarranquero}30`,
+                borderTopColor: COLORS.azulBarranquero,
+              }}
+            />
+            <div
+              className="absolute inset-0 flex items-center justify-center"
+              style={{ color: COLORS.azulBarranquero }}
+            >
+              <MapPin size={32} className="animate-pulse" />
+            </div>
+          </div>
+        </motion.div>
+
+        {/* Loading message with animation */}
+        <AnimatePresence mode="wait">
+          <motion.p
+            key={loadingStep}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.3 }}
+            className="text-lg font-semibold text-slate-700 dark:text-slate-300 mb-2"
+            style={{ fontFamily: "'Josefin Sans', sans-serif" }}
+          >
+            {LOADING_MESSAGES[loadingStep]}
+          </motion.p>
+        </AnimatePresence>
+
+        <p
+          className="text-sm text-slate-500 dark:text-slate-400"
+          style={{ fontFamily: "'Montserrat', sans-serif" }}
+        >
+          Esto puede tomar unos segundos...
         </p>
+
+        {/* Progress indicator */}
+        <div className="mt-6 w-64 mx-auto">
+          <div className="h-1 bg-slate-300 dark:bg-slate-700 rounded-full overflow-hidden">
+            <motion.div
+              animate={{
+                x: ["-100%", "100%"],
+              }}
+              transition={{
+                duration: 1.5,
+                repeat: Infinity,
+                ease: "easeInOut",
+              }}
+              className="h-full w-1/3 rounded-full"
+              style={{ backgroundColor: COLORS.azulBarranquero }}
+            />
+          </div>
+        </div>
       </div>
     </div>
   );
