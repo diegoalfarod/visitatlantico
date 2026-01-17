@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import ComingSoon from "@/components/ComingSoon";
-import { Home, Map, Waves, Calendar } from "lucide-react";
 
 export const metadata: Metadata = {
   title:
@@ -48,10 +47,10 @@ export default function SalinasDelReyPage() {
       description="Estamos preparando una guía completa de Salinas del Rey, la primera playa deportiva de América con certificación Blue Flag. Muy pronto encontrarás información sobre deportes acuáticos, cómo llegar, escuelas de kitesurf, servicios y todo lo que necesitas para disfrutar de esta joya del Caribe colombiano."
       estimatedDate="Febrero 2026"
       relatedLinks={[
-        { href: "/", label: "Volver al inicio", icon: Home },
-        { href: "/playas", label: "Ver todas las playas", icon: Waves },
-        { href: "/destinations", label: "Explorar destinos", icon: Map },
-        { href: "/eventos", label: "Ver eventos", icon: Calendar },
+        { href: "/", label: "Volver al inicio", icon: "home" },
+        { href: "/playas", label: "Ver todas las playas", icon: "waves" },
+        { href: "/destinations", label: "Explorar destinos", icon: "map" },
+        { href: "/eventos", label: "Ver eventos", icon: "calendar" },
       ]}
     />
   );

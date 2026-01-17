@@ -9,6 +9,8 @@ import {
   Map,
   Sparkles,
   Calendar,
+  Waves,
+  Utensils,
 } from "lucide-react";
 
 const COLORS = {
@@ -20,6 +22,18 @@ const COLORS = {
   grisOscuro: "#0f0f1a",
 };
 
+// Map of icon names to components
+const ICON_MAP = {
+  home: Home,
+  map: Map,
+  calendar: Calendar,
+  waves: Waves,
+  utensils: Utensils,
+  arrowLeft: ArrowLeft,
+};
+
+type IconName = keyof typeof ICON_MAP;
+
 interface ComingSoonProps {
   pageName: string;
   description?: string;
@@ -27,7 +41,7 @@ interface ComingSoonProps {
   relatedLinks?: Array<{
     href: string;
     label: string;
-    icon?: React.ComponentType<{ className?: string }>;
+    icon?: IconName;
   }>;
 }
 
@@ -36,9 +50,9 @@ export default function ComingSoon({
   description = "Estamos trabajando en esta sección para ofrecerte la mejor experiencia.",
   estimatedDate,
   relatedLinks = [
-    { href: "/", label: "Volver al inicio", icon: Home },
-    { href: "/destinations", label: "Explorar destinos", icon: Map },
-    { href: "/eventos", label: "Ver eventos", icon: Calendar },
+    { href: "/", label: "Volver al inicio", icon: "home" },
+    { href: "/destinations", label: "Explorar destinos", icon: "map" },
+    { href: "/eventos", label: "Ver eventos", icon: "calendar" },
   ],
 }: ComingSoonProps) {
   return (
@@ -137,7 +151,7 @@ export default function ComingSoon({
 
               <div className="grid gap-3">
                 {relatedLinks.map((link, index) => {
-                  const Icon = link.icon || ArrowLeft;
+                  const Icon = link.icon ? ICON_MAP[link.icon] : ArrowLeft;
                   return (
                     <Link
                       key={index}

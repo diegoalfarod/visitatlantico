@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import ComingSoon from "@/components/ComingSoon";
-import { Home, Map, Calendar, Waves } from "lucide-react";
 
 export const metadata: Metadata = {
   title: "Carnaval de Barranquilla 2026 | Guía Completa y Fechas",
@@ -48,10 +47,10 @@ export default function CarnavalPage() {
       description="Estamos preparando una guía completa del Carnaval de Barranquilla 2026, el segundo carnaval más grande del mundo y Patrimonio UNESCO. Muy pronto encontrarás fechas, eventos, consejos de alojamiento, historia y todo lo que necesitas para vivir la fiesta más grande de Colombia."
       estimatedDate="Enero 2026"
       relatedLinks={[
-        { href: "/", label: "Volver al inicio", icon: Home },
-        { href: "/destinations", label: "Explorar destinos", icon: Map },
-        { href: "/eventos", label: "Ver eventos", icon: Calendar },
-        { href: "/playas", label: "Conocer las playas", icon: Waves },
+        { href: "/", label: "Volver al inicio", icon: "home" },
+        { href: "/destinations", label: "Explorar destinos", icon: "map" },
+        { href: "/eventos", label: "Ver eventos", icon: "calendar" },
+        { href: "/playas", label: "Conocer las playas", icon: "waves" },
       ]}
     />
   );

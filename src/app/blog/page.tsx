@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import ComingSoon from "@/components/ComingSoon";
-import { Home, Map, Calendar, Utensils } from "lucide-react";
 
 export const metadata: Metadata = {
   title: "Blog de Turismo del Atlántico | Guías y Consejos de Viaje",
@@ -35,10 +34,10 @@ export default function BlogPage() {
       description="Estamos preparando contenido exclusivo con guías de viaje, consejos prácticos y las mejores recomendaciones para descubrir el Atlántico. Muy pronto encontrarás artículos sobre playas, gastronomía, cultura y mucho más."
       estimatedDate="Febrero 2026"
       relatedLinks={[
-        { href: "/", label: "Volver al inicio", icon: Home },
-        { href: "/destinations", label: "Explorar destinos", icon: Map },
-        { href: "/eventos", label: "Ver eventos", icon: Calendar },
-        { href: "/ruta23", label: "Ruta gastronómica", icon: Utensils },
+        { href: "/", label: "Volver al inicio", icon: "home" },
+        { href: "/destinations", label: "Explorar destinos", icon: "map" },
+        { href: "/eventos", label: "Ver eventos", icon: "calendar" },
+        { href: "/ruta23", label: "Ruta gastronómica", icon: "utensils" },
       ]}
     />
   );
