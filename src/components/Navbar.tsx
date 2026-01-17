@@ -75,6 +75,12 @@ const links = [
     icon: HiOutlineShieldCheck,
     color: COLORS.azulBarranquero,
   },
+  {
+    href: "/blog",
+    label: "Blog",
+    icon: HiOutlineSparkles,
+    color: COLORS.rojoCayena,
+  },
 ];
 
 // =============================================================================
