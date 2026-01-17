@@ -12,6 +12,10 @@ import {
   GoogleTagManager,
   GoogleTagManagerNoScript,
 } from "@/components/GoogleTagManager";
+import {
+  OrganizationSchema,
+  WebSiteSchema,
+} from "@/components/schemas/OrganizationSchema";
 
 // =============================================================================
 // TIPOGRAFÍAS - Marca Atlántico
@@ -36,11 +40,11 @@ const montserrat = Montserrat({
 export const metadata: Metadata = {
   metadataBase: new URL("https://visitatlantico.com"),
   title: {
-    default: "VisitAtlántico | Descubre el Caribe Colombiano",
+    default: "VisitAtlántico | Turismo en el Caribe Colombiano 🌴",
     template: "%s | VisitAtlántico",
   },
   description:
-    "Portal oficial de turismo del Atlántico, Colombia. Carnaval de Barranquilla, playas Blue Flag, gastronomía caribeña y ecoturismo. Descubre 17 municipios llenos de cultura, aventura y tradición.",
+    "Descubre el Atlántico: Carnaval de Barranquilla (Patrimonio UNESCO), playas Blue Flag certificadas, gastronomía caribeña auténtica y 17 municipios llenos de cultura. Tu aventura en el Caribe colombiano comienza aquí.",
   keywords: [
     "turismo atlántico colombia",
     "carnaval de barranquilla",
@@ -78,26 +82,35 @@ export const metadata: Metadata = {
     siteName: "VisitAtlántico",
     locale: "es_CO",
     type: "website",
-    title: "VisitAtlántico | Descubre el Caribe Colombiano",
+    title: "VisitAtlántico | Turismo en el Caribe Colombiano 🌴",
     description:
-      "Portal oficial de turismo del Atlántico. Carnaval de Barranquilla UNESCO, playas Blue Flag, gastronomía y cultura caribeña.",
+      "✨ Carnaval de Barranquilla (UNESCO) | 🏖️ Playas Blue Flag | 🍽️ Gastronomía Caribeña | 🎭 17 Municipios de Cultura y Tradición. Planifica tu viaje perfecto al Atlántico, Colombia.",
     url: "https://visitatlantico.com",
     images: [
       {
-        url: "/og-atlantico.jpg",
+        url: "/images/og-image-main.jpg",
         width: 1200,
         height: 630,
-        alt: "Atlántico, Colombia - Carnaval, Playas y Cultura Caribeña",
+        alt: "Atlántico, Colombia - Carnaval de Barranquilla, Playas Blue Flag y Cultura Caribeña",
+        type: "image/jpeg",
+      },
+      {
+        url: "/images/og-image-carnaval.jpg",
+        width: 1200,
+        height: 630,
+        alt: "Carnaval de Barranquilla - Patrimonio UNESCO",
+        type: "image/jpeg",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "VisitAtlántico | Descubre el Caribe Colombiano",
-    description:
-      "Carnaval de Barranquilla, playas Blue Flag y gastronomía caribeña. Explora el Atlántico.",
-    images: ["/og-atlantico.jpg"],
+    site: "@visitatlantico",
     creator: "@visitatlantico",
+    title: "VisitAtlántico | Turismo en el Caribe Colombiano 🌴",
+    description:
+      "🎉 Carnaval UNESCO | 🏖️ Playas Blue Flag | 🌮 Gastronomía Auténtica. Descubre 17 municipios llenos de magia en el Atlántico, Colombia.",
+    images: ["/images/og-image-main.jpg"],
   },
   verification: {
     google: "tu-codigo-de-verificacion-google",
@@ -121,6 +134,9 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <link rel="canonical" href="https://visitatlantico.com" />
         {/* Google Tag Manager */}
         <GoogleTagManager />
+        {/* Structured Data for SEO */}
+        <OrganizationSchema />
+        <WebSiteSchema />
       </head>
 
       <body className="font-montserrat antialiased">
