@@ -14,7 +14,7 @@
     "moduleResolution": "bundler",
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "jsx": "preserve",
+    "jsx": "react-jsx",
     "incremental": true,
     "baseUrl": ".",
     "paths": {
@@ -40,8 +40,12 @@
     "**/*.ts",
     "**/*.tsx",
     ".next/types/**/*.ts",
-    "scripts/**/*.json"
-, "src/app/destinations/[id]/page.js", "src/app/shared/[id]/page.tsx", "src/app/destinations/page.jsx"  ],
+    "scripts/**/*.json",
+    "src/app/destinations/[id]/page.js",
+    "src/app/shared/[id]/page.tsx",
+    "src/app/destinations/page.jsx",
+    ".next/dev/types/**/*.ts"
+  ],
   "exclude": [
     "node_modules"
   ]

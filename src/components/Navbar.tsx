@@ -136,19 +136,20 @@ export default function Navbar() {
         ref={navbarRef}
         className="fixed top-0 left-0 right-0 z-50"
         style={{
-          background: scrolled 
-            ? 'rgba(255, 255, 255, 0.95)'
+          background: scrolled
+            ? 'rgba(255, 255, 255, 0.8)'
             : 'transparent',
-          backdropFilter: scrolled ? 'blur(20px)' : 'none',
-          WebkitBackdropFilter: scrolled ? 'blur(20px)' : 'none',
-          boxShadow: scrolled 
-            ? '0 4px 20px rgba(0, 0, 0, 0.08)' 
+          backdropFilter: scrolled ? 'blur(20px) saturate(180%)' : 'none',
+          WebkitBackdropFilter: scrolled ? 'blur(20px) saturate(180%)' : 'none',
+          boxShadow: scrolled
+            ? '0 8px 32px rgba(0, 0, 0, 0.08), 0 1px 0 rgba(255, 255, 255, 0.5) inset'
             : 'none',
-          transition: 'all 0.4s cubic-bezier(0.22, 1, 0.36, 1)',
+          borderBottom: scrolled ? '1px solid rgba(255, 255, 255, 0.2)' : 'none',
+          transition: 'all 0.5s cubic-bezier(0.22, 1, 0.36, 1)',
         }}
         initial={{ y: -100, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
-        transition={{ duration: 0.6, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
+        transition={{ duration: 0.8, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
       >
         <div className="max-w-7xl mx-auto flex items-center justify-between px-5 sm:px-8 py-3 lg:py-4">
           {/* Logo */}
@@ -269,8 +270,8 @@ export default function Navbar() {
           {/* Mobile Menu Button */}
           <button
             className="lg:hidden relative z-50 w-12 h-12 flex items-center justify-center rounded-full transition-colors"
-            style={{ 
-              backgroundColor: menuOpen ? 'rgba(255,255,255,0.1)' : 'transparent' 
+            style={{
+              backgroundColor: menuOpen ? 'rgba(255,255,255,0.1)' : 'transparent'
             }}
             onClick={() => setMenuOpen(!menuOpen)}
             aria-label={menuOpen ? "Cerrar menú" : "Abrir menú"}
@@ -278,7 +279,7 @@ export default function Navbar() {
             <div className="relative w-6 h-5 flex flex-col justify-between">
               <motion.span
                 className="block h-0.5 rounded-full origin-center"
-                style={{ backgroundColor: menuOpen ? '#ffffff' : (scrolled ? COLORS.grisOscuro : '#ffffff') }}
+                style={{ backgroundColor: menuOpen ? COLORS.grisOscuro : (scrolled ? COLORS.grisOscuro : '#ffffff') }}
                 animate={{
                   rotate: menuOpen ? 45 : 0,
                   y: menuOpen ? 9 : 0,
@@ -288,7 +289,7 @@ export default function Navbar() {
               />
               <motion.span
                 className="block h-0.5 rounded-full"
-                style={{ backgroundColor: menuOpen ? '#ffffff' : (scrolled ? COLORS.grisOscuro : '#ffffff') }}
+                style={{ backgroundColor: menuOpen ? COLORS.grisOscuro : (scrolled ? COLORS.grisOscuro : '#ffffff') }}
                 animate={{
                   opacity: menuOpen ? 0 : 1,
                   x: menuOpen ? 20 : 0,
@@ -297,7 +298,7 @@ export default function Navbar() {
               />
               <motion.span
                 className="block h-0.5 rounded-full origin-center"
-                style={{ backgroundColor: menuOpen ? '#ffffff' : (scrolled ? COLORS.grisOscuro : '#ffffff') }}
+                style={{ backgroundColor: menuOpen ? COLORS.grisOscuro : (scrolled ? COLORS.grisOscuro : '#ffffff') }}
                 animate={{
                   rotate: menuOpen ? -45 : 0,
                   y: menuOpen ? -9 : 0,

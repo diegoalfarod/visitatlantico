@@ -7,6 +7,11 @@ import type { Metadata } from "next";
 
 import ClientInitializer from "@/components/ClientInitializer";
 import GeminiWidget from "@/components/gemini/GeminiWidget";
+import TopLoadingBar from "@/components/TopLoadingBar";
+import {
+  GoogleTagManager,
+  GoogleTagManagerNoScript,
+} from "@/components/GoogleTagManager";
 
 // =============================================================================
 // TIPOGRAFÍAS - Marca Atlántico
@@ -29,37 +34,73 @@ const montserrat = Montserrat({
 });
 
 export const metadata: Metadata = {
-  title: "VisitAtlántico · Explora el paraíso costero",
-  description: "Descubre playas, cultura y aventuras en Atlántico, Colombia.",
-  robots: "index, follow",
+  metadataBase: new URL("https://visitatlantico.com"),
+  title: {
+    default: "VisitAtlántico | Descubre el Caribe Colombiano",
+    template: "%s | VisitAtlántico",
+  },
+  description:
+    "Portal oficial de turismo del Atlántico, Colombia. Carnaval de Barranquilla, playas Blue Flag, gastronomía caribeña y ecoturismo. Descubre 17 municipios llenos de cultura, aventura y tradición.",
+  keywords: [
+    "turismo atlántico colombia",
+    "carnaval de barranquilla",
+    "playas atlántico",
+    "salinas del rey blue flag",
+    "puerto velero kitesurf",
+    "turismo barranquilla",
+    "gastronomía caribeña",
+    "ecoturismo atlántico",
+    "qué hacer en barranquilla",
+    "mejores playas colombia",
+  ],
+  authors: [{ name: "VisitAtlántico" }],
+  creator: "VisitAtlántico",
+  publisher: "VisitAtlántico",
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+      "max-video-preview": -1,
+    },
+  },
   alternates: {
-    canonical: "https://visitatlantico.com",
+    canonical: "/",
     languages: {
-      es: "https://visitatlantico.com",
-      en: "https://en.visitatlantico.com",
+      "es-CO": "/es",
+      "en-US": "/en",
     },
   },
   openGraph: {
-    title: "VisitAtlántico · Explora el paraíso costero",
-    description: "Descubre playas, cultura y aventuras en Atlántico, Colombia.",
-    url: "https://visitatlantico.com",
     siteName: "VisitAtlántico",
-    images: [
-      {
-        url: "/og-image.jpg",
-        width: 1200,
-        height: 630,
-        alt: "Playas de Atlántico, Colombia",
-      },
-    ],
     locale: "es_CO",
     type: "website",
+    title: "VisitAtlántico | Descubre el Caribe Colombiano",
+    description:
+      "Portal oficial de turismo del Atlántico. Carnaval de Barranquilla UNESCO, playas Blue Flag, gastronomía y cultura caribeña.",
+    url: "https://visitatlantico.com",
+    images: [
+      {
+        url: "/og-atlantico.jpg",
+        width: 1200,
+        height: 630,
+        alt: "Atlántico, Colombia - Carnaval, Playas y Cultura Caribeña",
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "VisitAtlántico · Explora el paraíso costero",
-    description: "Descubre playas, cultura y aventuras en Atlántico, Colombia.",
-    images: ["/og-image.jpg"],
+    title: "VisitAtlántico | Descubre el Caribe Colombiano",
+    description:
+      "Carnaval de Barranquilla, playas Blue Flag y gastronomía caribeña. Explora el Atlántico.",
+    images: ["/og-atlantico.jpg"],
+    creator: "@visitatlantico",
+  },
+  verification: {
+    google: "tu-codigo-de-verificacion-google",
   },
 };
 
@@ -78,10 +119,19 @@ export default function RootLayout({ children }: { children: ReactNode }) {
     >
       <head>
         <link rel="canonical" href="https://visitatlantico.com" />
+        {/* Google Tag Manager */}
+        <GoogleTagManager />
       </head>
 
       <body className="font-montserrat antialiased">
+        {/* Google Tag Manager (noscript) */}
+        <GoogleTagManagerNoScript />
+
         <ClientInitializer />
+
+        {/* 🎯 Barra de progreso global */}
+        <TopLoadingBar />
+
         {children}
 
         {/* 💬 Widget flotante de Gemini */}

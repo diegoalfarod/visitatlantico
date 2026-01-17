@@ -1,32 +1,39 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  
-  // Necesario para Next.js 16
-  turbopack: {},
-  
+
   images: {
-    // Solo remotePatterns (domains está deprecado)
+    // Configuración optimizada para Core Web Vitals
     remotePatterns: [
-      { 
-        protocol: "https", 
-        hostname: "lh3.googleusercontent.com", 
-        pathname: "/**" 
+      {
+        protocol: "https",
+        hostname: "visitatlantico.com",
+        pathname: "/**"
       },
-      { 
-        protocol: "https", 
-        hostname: "lh4.googleusercontent.com", 
-        pathname: "/**" 
+      {
+        protocol: "https",
+        hostname: "cdn.visitatlantico.com",
+        pathname: "/**"
       },
-      { 
-        protocol: "https", 
-        hostname: "lh5.googleusercontent.com", 
-        pathname: "/**" 
+      {
+        protocol: "https",
+        hostname: "lh3.googleusercontent.com",
+        pathname: "/**"
       },
-      { 
-        protocol: "https", 
-        hostname: "lh6.googleusercontent.com", 
-        pathname: "/**" 
+      {
+        protocol: "https",
+        hostname: "lh4.googleusercontent.com",
+        pathname: "/**"
+      },
+      {
+        protocol: "https",
+        hostname: "lh5.googleusercontent.com",
+        pathname: "/**"
+      },
+      {
+        protocol: "https",
+        hostname: "lh6.googleusercontent.com",
+        pathname: "/**"
       },
       {
         protocol: "https",
@@ -49,6 +56,11 @@ const nextConfig = {
         pathname: "/**",
       },
     ],
+    // Formatos modernos para mejor performance
+    formats: ["image/avif", "image/webp"],
+    // Tamaños responsive optimizados
+    deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048],
+    imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
   },
   
   typescript: {
