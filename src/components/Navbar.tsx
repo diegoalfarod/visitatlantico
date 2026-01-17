@@ -7,7 +7,7 @@ import {
   HiOutlineCalendarDays,
   HiOutlineShieldCheck,
   HiOutlineSparkles,
-  HiOutlineMap
+  HiOutlineMap,
 } from "react-icons/hi2";
 import { IoRestaurantOutline } from "react-icons/io5";
 import { GiPartyFlags, GiWaveSurfer } from "react-icons/gi";
@@ -30,9 +30,11 @@ const COLORS = {
 };
 
 // =============================================================================
-// NAVIGATION LINKS
+// NAVIGATION LINKS - Reorganized by category
 // =============================================================================
-const links = [
+
+// Main navigation links (visible in navbar)
+const mainLinks = [
   {
     href: "/destinations",
     label: "Destinos",
@@ -52,12 +54,6 @@ const links = [
     color: COLORS.azulBarranquero,
   },
   {
-    href: "/mapa",
-    label: "Mapa",
-    icon: HiOutlineMap,
-    color: COLORS.azulBarranquero,
-  },
-  {
     href: "/eventos",
     label: "Eventos",
     icon: HiOutlineCalendarDays,
@@ -65,14 +61,18 @@ const links = [
   },
   {
     href: "/ruta23",
-    label: "Ruta 23",
+    label: "Gastronomía",
     icon: IoRestaurantOutline,
     color: COLORS.naranjaSalinas,
   },
+];
+
+// Secondary links for dropdown/mobile
+const secondaryLinks = [
   {
-    href: "/turismo-seguro",
-    label: "Turismo Seguro",
-    icon: HiOutlineShieldCheck,
+    href: "/mapa",
+    label: "Mapa Interactivo",
+    icon: HiOutlineMap,
     color: COLORS.azulBarranquero,
   },
   {
@@ -81,7 +81,16 @@ const links = [
     icon: HiOutlineSparkles,
     color: COLORS.rojoCayena,
   },
+  {
+    href: "/turismo-seguro",
+    label: "Turismo Seguro",
+    icon: HiOutlineShieldCheck,
+    color: COLORS.azulBarranquero,
+  },
 ];
+
+// All links combined for mobile menu
+const allLinks = [...mainLinks, ...secondaryLinks];
 
 // =============================================================================
 // PÁGINAS CON HERO DE FONDO CLARO
@@ -207,35 +216,37 @@ export default function Navbar() {
           </Link>
 
           {/* Desktop Navigation */}
-          <nav className="hidden lg:flex items-center gap-1">
-            {links.map(({ href, label, icon: Icon, color }) => (
+          <nav className="hidden lg:flex items-center gap-0.5">
+            {mainLinks.map(({ href, label, icon: Icon, color }) => (
               <Link
                 key={href}
                 href={href}
-                className="group relative px-4 py-2 rounded-full transition-all duration-300"
+                className="group relative px-3 py-2 rounded-lg transition-all duration-300"
                 style={{
                   fontFamily: "'Josefin Sans', sans-serif",
-                  color: scrolled 
+                  color: scrolled
                     ? (isActiveLink(href) ? color : COLORS.grisOscuro)
                     : (isActiveLink(href) ? '#ffffff' : 'rgba(255,255,255,0.85)'),
-                  backgroundColor: isActiveLink(href) 
+                  backgroundColor: isActiveLink(href)
                     ? (scrolled ? `${color}15` : 'rgba(255,255,255,0.15)')
                     : 'transparent',
                 }}
               >
-                <span className="flex items-center gap-2 text-sm font-medium">
-                  <Icon className="text-lg" />
+                <span className="flex items-center gap-1.5 text-sm font-medium">
+                  <Icon className="text-base" />
                   {label}
                 </span>
-                
+
                 {/* Hover underline */}
-                <motion.div
-                  className="absolute bottom-0 left-4 right-4 h-0.5 rounded-full origin-left"
-                  style={{ backgroundColor: scrolled ? color : '#ffffff' }}
-                  initial={{ scaleX: 0 }}
-                  whileHover={{ scaleX: 1 }}
-                  transition={{ duration: 0.3 }}
-                />
+                {!isActiveLink(href) && (
+                  <motion.div
+                    className="absolute bottom-1 left-3 right-3 h-0.5 rounded-full origin-left"
+                    style={{ backgroundColor: scrolled ? color : '#ffffff' }}
+                    initial={{ scaleX: 0 }}
+                    whileHover={{ scaleX: 1 }}
+                    transition={{ duration: 0.3 }}
+                  />
+                )}
               </Link>
             ))}
 
@@ -357,42 +368,94 @@ export default function Navbar() {
             />
 
             {/* Content */}
-            <div className="relative h-full flex flex-col px-6 pt-28 pb-10">
-              {/* Navigation Links - Clean & Simple */}
-              <nav className="flex-1 flex flex-col justify-center space-y-1">
-                {links.map(({ href, label, icon: Icon, color }, index) => (
-                  <motion.div
-                    key={href}
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: 0.1 + index * 0.05 }}
-                  >
-                    <Link
-                      href={href}
-                      className="flex items-center gap-4 py-4 group"
-                      style={{ fontFamily: "'Josefin Sans', sans-serif" }}
-                      onClick={() => setMenuOpen(false)}
-                    >
-                      <Icon 
-                        className="text-2xl transition-colors"
-                        style={{ color: isActiveLink(href) ? color : 'rgba(255,255,255,0.5)' }}
-                      />
-                      <span 
-                        className="text-2xl font-light transition-colors"
-                        style={{ color: isActiveLink(href) ? '#ffffff' : 'rgba(255,255,255,0.8)' }}
+            <div className="relative h-full flex flex-col px-6 pt-28 pb-10 overflow-y-auto">
+              {/* Navigation Links - Organized by category */}
+              <nav className="flex-1 space-y-6">
+                {/* Main Links */}
+                <div>
+                  <h3 className="text-xs font-semibold uppercase tracking-wider text-white/40 mb-3 px-2">Explora</h3>
+                  <div className="space-y-0.5">
+                    {mainLinks.map(({ href, label, icon: Icon, color }, index) => (
+                      <motion.div
+                        key={href}
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: 0.1 + index * 0.04 }}
                       >
-                        {label}
-                      </span>
-                      {isActiveLink(href) && (
-                        <motion.div 
-                          className="w-1.5 h-1.5 rounded-full ml-auto"
-                          style={{ backgroundColor: color }}
-                          layoutId="activeMenuDot"
-                        />
-                      )}
-                    </Link>
-                  </motion.div>
-                ))}
+                        <Link
+                          href={href}
+                          className="flex items-center gap-3 py-3 px-2 rounded-lg transition-colors"
+                          style={{
+                            fontFamily: "'Josefin Sans', sans-serif",
+                            backgroundColor: isActiveLink(href) ? 'rgba(255,255,255,0.1)' : 'transparent',
+                          }}
+                          onClick={() => setMenuOpen(false)}
+                        >
+                          <Icon
+                            className="text-xl transition-colors"
+                            style={{ color: isActiveLink(href) ? color : 'rgba(255,255,255,0.6)' }}
+                          />
+                          <span
+                            className="text-lg font-medium transition-colors"
+                            style={{ color: isActiveLink(href) ? '#ffffff' : 'rgba(255,255,255,0.85)' }}
+                          >
+                            {label}
+                          </span>
+                          {isActiveLink(href) && (
+                            <motion.div
+                              className="w-1.5 h-1.5 rounded-full ml-auto"
+                              style={{ backgroundColor: color }}
+                              layoutId="activeMenuDot"
+                            />
+                          )}
+                        </Link>
+                      </motion.div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Secondary Links */}
+                <div>
+                  <h3 className="text-xs font-semibold uppercase tracking-wider text-white/40 mb-3 px-2">Más</h3>
+                  <div className="space-y-0.5">
+                    {secondaryLinks.map(({ href, label, icon: Icon, color }, index) => (
+                      <motion.div
+                        key={href}
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: 0.3 + index * 0.04 }}
+                      >
+                        <Link
+                          href={href}
+                          className="flex items-center gap-3 py-3 px-2 rounded-lg transition-colors"
+                          style={{
+                            fontFamily: "'Josefin Sans', sans-serif",
+                            backgroundColor: isActiveLink(href) ? 'rgba(255,255,255,0.1)' : 'transparent',
+                          }}
+                          onClick={() => setMenuOpen(false)}
+                        >
+                          <Icon
+                            className="text-xl transition-colors"
+                            style={{ color: isActiveLink(href) ? color : 'rgba(255,255,255,0.6)' }}
+                          />
+                          <span
+                            className="text-lg font-medium transition-colors"
+                            style={{ color: isActiveLink(href) ? '#ffffff' : 'rgba(255,255,255,0.85)' }}
+                          >
+                            {label}
+                          </span>
+                          {isActiveLink(href) && (
+                            <motion.div
+                              className="w-1.5 h-1.5 rounded-full ml-auto"
+                              style={{ backgroundColor: color }}
+                              layoutId="activeMenuDot"
+                            />
+                          )}
+                        </Link>
+                      </motion.div>
+                    ))}
+                  </div>
+                </div>
               </nav>
 
               {/* Bottom Section */}
