@@ -1,36 +1,62 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { ArrowRight, ChevronLeft, ChevronRight, ExternalLink, Sparkles, MapPin, Utensils, Award, Calendar } from "lucide-react";
+import { motion, AnimatePresence, PanInfo } from "framer-motion";
+import { 
+  ArrowRight, 
+  ChevronLeft, 
+  ChevronRight, 
+  ExternalLink, 
+  MapPin, 
+  Utensils, 
+  Award, 
+  Calendar,
+  Flag,
+  Waves,
+  Leaf,
+  Globe,
+  Star,
+} from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 
 /* ============================================
-   PROMO BANNER - Diseño Moderno
+   PROMO BANNER - Editorial Magazine Style
    
-   Slides:
-   1. Tesoros del Atlántico - Con mockup del website
-   2. Ruta 23 - Sabores del Atlántico
-   3. Carnaval 2025
-   4. Ecoturismo
+   MOBILE: Editorial card-based layout with
+   asymmetric image compositions - NO full bg
+   
+   DESKTOP: Editorial side-by-side layout
    ============================================ */
+
+const AUTOPLAY_INTERVAL = 10000;
+const SWIPE_THRESHOLD = 50;
+
+const COLORS = {
+  azulBarranquero: "#007BC4",
+  rojoCayena: "#D31A2B",
+  naranjaSalinas: "#EA5B13",
+  amarilloArepa: "#F39200",
+  verdeBijao: "#008D39",
+  beigeIraca: "#B8A88A",
+  dorado: "#D4A853",
+  blueFlag: "#0077B6",
+};
+
+const EASE_CINEMATIC: [number, number, number, number] = [0.22, 1, 0.36, 1];
 
 interface PromoSlide {
   id: string;
-  type: "tesoros" | "ruta23" | "ecoturismo" | "default";
+  type: "tesoros" | "ruta23" | "blueflag" | "carnaval" | "ecoturismo";
   title: string;
   subtitle: string;
   description: string;
   cta: string;
-  ctaSecondary?: string;
   href: string;
-  hrefSecondary?: string;
   external?: boolean;
-  image: string;
-  mockupImage?: string;
   accentColor: string;
   features?: string[];
+  bgGradient: string;
 }
 
 const promoSlides: PromoSlide[] = [
@@ -39,531 +65,879 @@ const promoSlides: PromoSlide[] = [
     type: "tesoros",
     title: "Tesoros del Atlántico",
     subtitle: "Conecta · Descubre · Vive",
-    description: "Explora la plataforma oficial de turismo, cultura y experiencias auténticas del Caribe colombiano",
-    cta: "Visitar plataforma",
+    description: "La plataforma oficial de turismo del Caribe colombiano.",
+    cta: "Visitar",
     href: "https://tesorosdelatlantico.com",
     external: true,
-    image: "https://firebasestorage.googleapis.com/v0/b/visitatlantico-f5c09.firebasestorage.app/o/RutasImages%2FTesorosDelAtlantico%20Foto%20referencia.png?alt=media&token=6b469a26-641a-4e39-97e2-ef425779afab",
-    mockupImage: "https://firebasestorage.googleapis.com/v0/b/visitatlantico-f5c09.firebasestorage.app/o/RutasImages%2Fscreenshot%20tesoros%20del%20atlantico.png?alt=media&token=f8ced3de-b77b-4719-8727-b6eeacb9876b",
     accentColor: "#fbbf24",
-    features: ["Rutas turísticas", "Tiendas locales", "Eventos"],
+    features: ["23 municipios", "Rutas", "Tiendas"],
+    bgGradient: "from-amber-50 via-orange-50 to-yellow-50",
   },
   {
     id: "ruta23",
     type: "ruta23",
     title: "Ruta 23",
-    subtitle: "Iniciativa Primera Gestora Social",
-    description: "Un viaje gastronómico y cultural por los 23 municipios del Atlántico",
-    cta: "Explorar sabores",
+    subtitle: "Primera Gestora Social",
+    description: "Artesanías y gastronomía de los 23 municipios.",
+    cta: "Explorar",
     href: "/ruta23",
     external: false,
-    // Imagen de gastronomía/platos típicos del Atlántico
-    image: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=1200&q=80",
-    accentColor: "#E40E20",
-    features: ["50+ platos típicos", "900 artesanos", "19 países"],
+    accentColor: COLORS.rojoCayena,
+    features: ["900+ artesanos", "19 países", "Tonantzin"],
+    bgGradient: "from-slate-900 via-slate-800 to-slate-900",
+  },
+  {
+    id: "blueflag",
+    type: "blueflag",
+    title: "Blue Flag",
+    subtitle: "Salinas del Rey",
+    description: "Primera playa deportiva certificada en América.",
+    cta: "Conocer",
+    href: "/destinations/playa-de-salinas-del-rey",
+    external: false,
+    accentColor: COLORS.blueFlag,
+    features: ["Certificación FEE", "Calidad A+"],
+    bgGradient: "from-sky-50 via-cyan-50 to-blue-50",
   },
   {
     id: "carnaval",
-    type: "default",
+    type: "carnaval",
     title: "Carnaval 2025",
-    subtitle: "Patrimonio de la Humanidad",
-    description: "Vive la fiesta más grande de Colombia. Música, color y tradición en las calles de Barranquilla",
-    cta: "Ver programación",
+    subtitle: "Patrimonio UNESCO",
+    description: "La fiesta más grande de Colombia.",
+    cta: "Programación",
     href: "/eventos?categoria=carnaval",
     external: false,
-    image: "https://firebasestorage.googleapis.com/v0/b/visitatlantico-f5c09.firebasestorage.app/o/RutasImages%2FMarimondas-de-Barrio-Abajo.jpg?alt=media&token=935c0b1e-8425-45a2-b927-8f94c7e75322",
-    accentColor: "#E40E20",
+    accentColor: COLORS.rojoCayena,
+    features: ["1-4 Marzo", "500+ comparsas"],
+    bgGradient: "from-red-50 via-orange-50 to-yellow-50",
   },
   {
     id: "ecoturismo",
     type: "ecoturismo",
     title: "Ecoturismo",
-    subtitle: "Naturaleza viva del Atlántico",
-    description: "Reservas naturales, avistamiento de aves y experiencias sostenibles en el Caribe",
-    cta: "Explorar destinos",
+    subtitle: "Naturaleza viva",
+    description: "Avistamiento de aves y reservas naturales.",
+    cta: "Explorar",
     href: "/destinations?filter=EcoTurismo",
     external: false,
-    image: "https://firebasestorage.googleapis.com/v0/b/visitatlantico-f5c09.firebasestorage.app/o/RutasImages%2Fcienaga-de-mallorquin-avistamiento-de-aves.jpg?alt=media&token=e9bd6991-dbf8-400e-b712-5c431297c1e9",
-    accentColor: "#10b981",
+    accentColor: COLORS.verdeBijao,
+    features: ["200+ especies", "Ciénagas"],
+    bgGradient: "from-emerald-50 via-teal-50 to-green-50",
   },
 ];
 
-const AUTOPLAY_INTERVAL = 7000;
+const IMAGES = {
+  tesoros1: "https://firebasestorage.googleapis.com/v0/b/visitatlantico-f5c09.firebasestorage.app/o/RutasImages%2FTesorosDelAtlantico%20Foto%20referencia.png?alt=media&token=6b469a26-641a-4e39-97e2-ef425779afab",
+  tesorosMockup: "https://firebasestorage.googleapis.com/v0/b/visitatlantico-f5c09.firebasestorage.app/o/RutasImages%2Fscreenshot%20tesoros%20del%20atlantico.png?alt=media&token=f8ced3de-b77b-4719-8727-b6eeacb9876b",
+  ruta23Hero: "https://firebasestorage.googleapis.com/v0/b/visitatlantico-f5c09.firebasestorage.app/o/RUTA23%20-%20IMAGE%201.png?alt=media&token=cd2eebdd-020a-41f8-9703-e1ac3d238534",
+  ruta23Logo: "/RUTA23LOGO.png",
+  ruta23Arepa: "https://firebasestorage.googleapis.com/v0/b/visitatlantico-f5c09.firebasestorage.app/o/GobernacionRuta23-%20arepa%20cocinando.jpg?alt=media&token=963fbc43-a6c3-48ce-90ba-64169363e3cc",
+  ruta23Artesanias: "https://firebasestorage.googleapis.com/v0/b/visitatlantico-f5c09.firebasestorage.app/o/artesanias%20usiaquri.jpg?alt=media&token=b7da2145-c853-42b6-971f-a34362634ee0",
+  ruta23Cumbia: "https://firebasestorage.googleapis.com/v0/b/visitatlantico-f5c09.firebasestorage.app/o/pareja%20bailando%20cumbia%20ruta23.jpeg?alt=media&token=ca49b0e0-8e3c-4e8c-8e7a-476a7cf685ef",
+  blueFlagBandera: "https://firebasestorage.googleapis.com/v0/b/visitatlantico-f5c09.firebasestorage.app/o/bandera%20azul%20en%20salinas%20del%20rey.avif?alt=media&token=872b408c-78ad-44bc-b5cb-b31511f01226",
+  blueFlagPlaya: "https://firebasestorage.googleapis.com/v0/b/visitatlantico-f5c09.firebasestorage.app/o/foto%20de%20salina%20del%20rey%20con%20sus%20chozas%20de%20comida.jpg?alt=media&token=69176eec-7235-4986-b008-2d5900645999",
+  carnavalMarimondas: "https://firebasestorage.googleapis.com/v0/b/visitatlantico-f5c09.firebasestorage.app/o/RutasImages%2FMarimondas-de-Barrio-Abajo.jpg?alt=media&token=935c0b1e-8425-45a2-b927-8f94c7e75322",
+  carnavalMascaras: "https://firebasestorage.googleapis.com/v0/b/visitatlantico-f5c09.firebasestorage.app/o/artesano%20con%20figuras%20del%20carnaval.jpeg?alt=media&token=cf74ebfd-67b6-4138-9887-676fbeb1f0ee",
+  ecoAvistamiento: "https://firebasestorage.googleapis.com/v0/b/visitatlantico-f5c09.firebasestorage.app/o/RutasImages%2Fcienaga-de-mallorquin-avistamiento-de-aves.jpg?alt=media&token=e9bd6991-dbf8-400e-b712-5c431297c1e9",
+  ecoBarranquero: "https://firebasestorage.googleapis.com/v0/b/visitatlantico-f5c09.firebasestorage.app/o/RutasImages%2FEl%20Barranquero.jpg?alt=media&token=d2343956-d681-423f-b12e-ae29589f8fde",
+};
 
 // =============================================================================
-// TESOROS SLIDE - Con mockup del website
+// MOBILE SLIDES - Editorial Magazine Style
 // =============================================================================
 
-// =============================================================================
-// TESOROS SLIDE - Diseño cinematográfico con texto abajo
-// =============================================================================
-
-function TesorosSlide({ slide }: { slide: PromoSlide }) {
+function TesorosMobile({ slide, isActive }: { slide: PromoSlide; isActive: boolean }) {
   return (
-    <div className="relative h-full overflow-hidden">
-      {/* Background */}
-      <div className="absolute inset-0">
-        <Image
-          src={slide.image}
-          alt={slide.title}
-          fill
-          className="object-cover"
-          priority
-        />
-        {/* Gradiente de abajo hacia arriba */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/40 to-black/10" />
-      </div>
+    <div className={`relative h-full bg-gradient-to-br ${slide.bgGradient} overflow-hidden`}>
+      {/* Decorative circles */}
+      <div className="absolute -top-20 -right-20 w-64 h-64 bg-amber-200/40 rounded-full blur-3xl" />
+      <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-orange-200/40 rounded-full blur-2xl" />
       
-      {/* Browser mockup - Floating top right - Desktop only */}
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.4, duration: 0.6 }}
-        className="absolute top-4 right-4 lg:top-6 lg:right-12 z-10 hidden lg:block"
-      >
-        <div className="relative bg-white rounded-xl overflow-hidden shadow-2xl w-[400px] xl:w-[480px]">
-          {/* Browser header */}
-          <div className="flex items-center gap-2 px-3 py-1.5 bg-gray-100 border-b border-gray-200">
-            <div className="flex gap-1">
-              <div className="w-2 h-2 rounded-full bg-[#ff5f57]" />
-              <div className="w-2 h-2 rounded-full bg-[#febc2e]" />
-              <div className="w-2 h-2 rounded-full bg-[#28c840]" />
-            </div>
-            <div className="flex-1 mx-2">
-              <div className="bg-white rounded px-2 py-0.5 text-[10px] text-gray-500 border border-gray-200 truncate flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-green-500/20 flex items-center justify-center">
-                  <span className="w-1 h-1 rounded-full bg-green-500" />
-                </span>
-                tesorosdelatlantico.com
-              </div>
-            </div>
-          </div>
-          
-          {/* Screenshot */}
-          <div className="relative aspect-[2.5/1]">
-            <Image
-              src={slide.mockupImage || slide.image}
-              alt="Tesoros del Atlántico Website"
-              fill
-              className="object-cover object-top"
-            />
-          </div>
-        </div>
-        
-        {/* Floating badge */}
+      <div className="relative h-full px-5 py-6 flex flex-col">
+        {/* Header with badge */}
         <motion.div
-          animate={{ y: [0, -4, 0] }}
-          transition={{ duration: 2.5, repeat: Infinity }}
-          className="absolute -bottom-2 -left-2 bg-[#fbbf24] rounded-lg px-2.5 py-1.5 shadow-xl"
+          initial={{ opacity: 0, y: -10 }}
+          animate={isActive ? { opacity: 1, y: 0 } : {}}
+          transition={{ duration: 0.4 }}
+          className="flex items-center justify-between mb-4"
         >
-          <div className="flex items-center gap-1.5">
-            <span className="text-lg font-bold text-[#78350f]">23</span>
-            <span className="text-[9px] font-semibold text-[#78350f]/80">Municipios</span>
-          </div>
+          <span 
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-bold shadow-sm"
+            style={{ backgroundColor: slide.accentColor, color: "#78350f" }}
+          >
+            <Globe className="w-3.5 h-3.5" />
+            Plataforma Oficial
+          </span>
+          <motion.div 
+            animate={{ y: [0, -3, 0] }} 
+            transition={{ duration: 2, repeat: Infinity }}
+            className="text-right"
+          >
+            <span className="text-2xl font-bold" style={{ color: slide.accentColor, fontFamily: "'Josefin Sans'" }}>23</span>
+            <span className="text-[10px] text-slate-500 block -mt-1">municipios</span>
+          </motion.div>
         </motion.div>
-      </motion.div>
-      
-      {/* Content - Bottom aligned */}
-      <div className="relative h-full max-w-7xl mx-auto px-5 sm:px-8 lg:px-12">
-        <div className="h-full flex flex-col justify-end pb-12 sm:pb-14">
-          
-          {/* Badge */}
+
+        {/* Main content area */}
+        <div className="flex-1 flex flex-col">
+          {/* Image composition - Magazine style */}
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1, duration: 0.4 }}
-            className="mb-3"
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={isActive ? { opacity: 1, scale: 1 } : {}}
+            transition={{ duration: 0.5, delay: 0.1 }}
+            className="relative mb-5"
           >
-            <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#fbbf24] text-[#78350f] text-xs font-semibold">
-              <Sparkles className="w-3.5 h-3.5" />
-              {slide.subtitle}
-            </span>
-          </motion.div>
-          
-          {/* Title */}
-          <motion.h2
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2, duration: 0.5 }}
-            className="text-4xl sm:text-5xl lg:text-7xl font-bold text-white mb-4"
-            style={{ fontFamily: "'Josefin Sans', sans-serif" }}
-          >
-            {slide.title}
-          </motion.h2>
-          
-          {/* Description + Features + CTA row */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3, duration: 0.5 }}
-            className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 max-w-4xl"
-          >
-            <div>
-              <p className="text-white/90 text-sm sm:text-base max-w-lg leading-relaxed mb-4">
-                {slide.description}
-              </p>
-              
-              {/* Features */}
-              <div className="flex flex-wrap gap-2">
-                {slide.features?.map((feature, idx) => (
-                  <span 
-                    key={idx}
-                    className="px-3 py-1.5 rounded-full text-xs font-medium bg-white/10 text-white backdrop-blur-sm border border-white/20"
-                  >
-                    {feature}
-                  </span>
-                ))}
-              </div>
+            {/* Main circular image */}
+            <div className="relative mx-auto w-44 h-44 rounded-full overflow-hidden border-4 border-white shadow-2xl">
+              <Image src={IMAGES.tesoros1} alt="Tesoros" fill className="object-cover" />
             </div>
             
-            <a
-              href={slide.href}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 px-6 py-3 rounded-full text-sm font-bold transition-all hover:scale-[1.03] active:scale-[0.98] bg-[#fbbf24] text-[#78350f] shadow-lg hover:bg-[#fcd34d] whitespace-nowrap flex-shrink-0"
-              style={{ fontFamily: "'Josefin Sans', sans-serif" }}
+            {/* Floating browser mockup */}
+            <motion.div
+              initial={{ opacity: 0, x: 20 }}
+              animate={isActive ? { opacity: 1, x: 0 } : {}}
+              transition={{ delay: 0.4 }}
+              className="absolute -right-2 top-1/2 -translate-y-1/2 w-28 bg-white rounded-lg shadow-xl overflow-hidden border border-slate-200"
             >
-              <span>{slide.cta}</span>
-              <ExternalLink className="w-4 h-4" />
-            </a>
-          </motion.div>
-        </div>
-      </div>
-      
-      {/* Decorative accent line */}
-      <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-[#fbbf24] to-[#f59e0b]" />
-    </div>
-  );
-}
-
-// =============================================================================
-// RUTA 23 SLIDE - Diseño cinematográfico con texto abajo
-// =============================================================================
-
-function Ruta23Slide({ slide }: { slide: PromoSlide }) {
-  const supportImages = {
-    butifarras: "https://firebasestorage.googleapis.com/v0/b/visitatlantico-f5c09.firebasestorage.app/o/RutasImages%2FAtlantico%20Butifarras.jpeg?alt=media&token=142929c0-3266-4c5f-9350-4adc71d61f9b",
-    pizza: "https://firebasestorage.googleapis.com/v0/b/visitatlantico-f5c09.firebasestorage.app/o/RutasImages%2Fruta23%20pizza.jpeg?alt=media&token=0dbe9d62-61af-4362-b56b-ae4133128c3b",
-    cocineros: "https://firebasestorage.googleapis.com/v0/b/visitatlantico-f5c09.firebasestorage.app/o/RutasImages%2Fruta23cocineros.jpeg?alt=media&token=e23e6bf8-cc7f-4a56-a651-386d0555abd7",
-  };
-
-  return (
-    <div className="relative h-full overflow-hidden">
-      {/* Background - imagen de comida */}
-      <div className="absolute inset-0">
-        <Image
-          src={slide.image}
-          alt={slide.title}
-          fill
-          className="object-cover"
-          priority
-        />
-        {/* Gradiente de abajo hacia arriba */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/40 to-black/10" />
-      </div>
-      
-      {/* Floating images strip - Top right - Desktop only */}
-      <motion.div
-        initial={{ opacity: 0, x: 20 }}
-        animate={{ opacity: 1, x: 0 }}
-        transition={{ delay: 0.4, duration: 0.6 }}
-        className="absolute top-4 right-4 lg:top-6 lg:right-12 z-10 hidden sm:flex gap-2"
-      >
-        <div className="relative w-20 h-20 lg:w-28 lg:h-28 rounded-xl overflow-hidden shadow-xl border-2 border-white/20">
-          <Image src={supportImages.cocineros} alt="Cocineros" fill className="object-cover" />
-        </div>
-        <div className="relative w-20 h-20 lg:w-28 lg:h-28 rounded-xl overflow-hidden shadow-xl border-2 border-white/20">
-          <Image src={supportImages.butifarras} alt="Butifarras" fill className="object-cover" />
-        </div>
-        <div className="relative w-20 h-20 lg:w-28 lg:h-28 rounded-xl overflow-hidden shadow-xl border-2 border-white/20 hidden lg:block">
-          <Image src={supportImages.pizza} alt="Pizza" fill className="object-cover" />
-        </div>
-      </motion.div>
-      
-      {/* Content - Bottom aligned */}
-      <div className="relative h-full max-w-7xl mx-auto px-5 sm:px-8 lg:px-12">
-        <div className="h-full flex flex-col justify-end pb-12 sm:pb-14">
-          
-          {/* Badge */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1, duration: 0.4 }}
-            className="mb-3"
-          >
-            <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 text-white text-xs font-medium">
-              <Award className="w-3.5 h-3.5 text-[#fbbf24]" />
-              {slide.subtitle}
-            </span>
-          </motion.div>
-          
-          {/* Title */}
-          <motion.h2
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2, duration: 0.5 }}
-            className="text-4xl sm:text-5xl lg:text-7xl font-bold text-white mb-4"
-            style={{ fontFamily: "'Josefin Sans', sans-serif" }}
-          >
-            Ruta <span className="text-[#E40E20]">23</span>
-          </motion.h2>
-          
-          {/* Description + Stats + CTA row */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3, duration: 0.5 }}
-            className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 max-w-4xl"
-          >
-            <div>
-              <p className="text-white/90 text-sm sm:text-base max-w-lg leading-relaxed mb-4">
-                {slide.description}
-              </p>
-              
-              {/* Stats as tags */}
-              <div className="flex flex-wrap gap-2">
-                {slide.features?.map((feature, idx) => (
-                  <span 
-                    key={idx}
-                    className="px-3 py-1.5 rounded-full text-xs font-medium bg-white/10 text-white backdrop-blur-sm border border-white/20"
-                  >
-                    {feature}
-                  </span>
-                ))}
+              <div className="flex items-center gap-1 px-2 py-1 bg-slate-100 border-b">
+                <div className="w-1.5 h-1.5 rounded-full bg-red-400" />
+                <div className="w-1.5 h-1.5 rounded-full bg-yellow-400" />
+                <div className="w-1.5 h-1.5 rounded-full bg-green-400" />
               </div>
-            </div>
-            
-            <Link
-              href={slide.href}
-              className="inline-flex items-center gap-2 px-6 py-3 rounded-full text-sm font-bold transition-all hover:scale-[1.03] active:scale-[0.98] bg-[#E40E20] text-white shadow-lg hover:bg-[#c90d1c] whitespace-nowrap flex-shrink-0"
-              style={{ fontFamily: "'Josefin Sans', sans-serif" }}
-            >
-              <Utensils className="w-4 h-4" />
-              <span>{slide.cta}</span>
-              <ArrowRight className="w-4 h-4" />
-            </Link>
-          </motion.div>
-        </div>
-      </div>
-      
-      {/* Decorative accent line */}
-      <div className="absolute bottom-0 left-0 right-0 h-1 bg-[#E40E20]" />
-    </div>
-  );
-}
-
-// =============================================================================
-// ECOTURISMO SLIDE - Diseño cinematográfico con texto abajo
-// =============================================================================
-
-function EcoturismoSlide({ slide }: { slide: PromoSlide }) {
-  const ecoImages = {
-    background: "https://firebasestorage.googleapis.com/v0/b/visitatlantico-f5c09.firebasestorage.app/o/RutasImages%2Fcienaga-de-mallorquin-avistamiento-de-aves.jpg?alt=media&token=e9bd6991-dbf8-400e-b712-5c431297c1e9",
-    barranquero: "https://firebasestorage.googleapis.com/v0/b/visitatlantico-f5c09.firebasestorage.app/o/RutasImages%2FEl%20Barranquero.jpg?alt=media&token=d2343956-d681-423f-b12e-ae29589f8fde",
-    avistamiento: "https://firebasestorage.googleapis.com/v0/b/visitatlantico-f5c09.firebasestorage.app/o/RutasImages%2FAvistamiento%20de%20Aves2png.png?alt=media&token=1cdf9f28-7109-4e2f-be2a-1a1fb66d464c",
-  };
-
-  return (
-    <div className="relative h-full overflow-hidden">
-      {/* Background - Ciénaga de Mallorquín */}
-      <div className="absolute inset-0">
-        <Image
-          src={ecoImages.background}
-          alt={slide.title}
-          fill
-          className="object-cover"
-          style={{ objectPosition: 'center 30%' }}
-          priority
-        />
-        {/* Gradiente de abajo hacia arriba */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/40 to-black/10" />
-      </div>
-      
-      {/* Floating bird card - Desktop only */}
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.4, duration: 0.6 }}
-        className="absolute top-6 right-6 lg:top-8 lg:right-12 z-10 hidden sm:block"
-      >
-        <div className="bg-white/10 backdrop-blur-md rounded-2xl p-2 border border-white/20 shadow-2xl">
-          <div className="flex items-center gap-3">
-            {/* Bird image */}
-            <div className="relative w-16 h-16 lg:w-20 lg:h-20 rounded-xl overflow-hidden">
-              <Image
-                src={ecoImages.barranquero}
-                alt="El Barranquero"
-                fill
-                className="object-cover object-top"
-              />
-            </div>
-            
-            {/* Info */}
-            <div className="pr-2">
-              <div className="flex items-center gap-1.5 mb-1">
-                <span className="bg-[#10b981] text-white text-[9px] font-bold px-1.5 py-0.5 rounded">
-                  AVE OFICIAL
-                </span>
+              <div className="relative aspect-[16/10]">
+                <Image src={IMAGES.tesorosMockup} alt="Web" fill className="object-cover object-top" />
               </div>
-              <h4 className="text-white font-bold text-sm">El Barranquero</h4>
-              <p className="text-white/60 text-[10px]">Momotus subrufescens</p>
-            </div>
-          </div>
-        </div>
-      </motion.div>
-      
-      {/* Content - Bottom aligned */}
-      <div className="relative h-full max-w-7xl mx-auto px-5 sm:px-8 lg:px-12">
-        <div className="h-full flex flex-col justify-end pb-12 sm:pb-14">
-          
-          {/* Badge */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1, duration: 0.4 }}
-            className="mb-3"
-          >
-            <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#10b981] text-white text-xs font-semibold">
-              <MapPin className="w-3.5 h-3.5" />
-              {slide.subtitle}
-            </span>
+            </motion.div>
           </motion.div>
-          
-          {/* Title */}
-          <motion.h2
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2, duration: 0.5 }}
-            className="text-4xl sm:text-5xl lg:text-7xl font-bold text-white mb-4"
-            style={{ fontFamily: "'Josefin Sans', sans-serif" }}
-          >
-            {slide.title}
-          </motion.h2>
-          
-          {/* Description + Tags + CTA row */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3, duration: 0.5 }}
-            className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 max-w-4xl"
-          >
-            <div>
-              <p className="text-white/90 text-sm sm:text-base max-w-lg leading-relaxed mb-4">
-                {slide.description}
-              </p>
-              
-              {/* Tags */}
-              <div className="flex flex-wrap gap-2">
-                {["🦜 200+ especies", "🌿 Reservas naturales", "🌅 Ciénagas"].map((tag, idx) => (
-                  <span 
-                    key={idx}
-                    className="px-3 py-1.5 rounded-full text-xs font-medium bg-white/10 text-white backdrop-blur-sm border border-white/20"
-                  >
-                    {tag}
-                  </span>
-                ))}
-              </div>
-            </div>
-            
-            <Link
-              href={slide.href}
-              className="inline-flex items-center gap-2 px-6 py-3 rounded-full text-sm font-bold transition-all hover:scale-[1.03] active:scale-[0.98] bg-[#10b981] text-white shadow-lg hover:bg-[#059669] whitespace-nowrap flex-shrink-0"
-              style={{ fontFamily: "'Josefin Sans', sans-serif" }}
-            >
-              <span>{slide.cta}</span>
-              <ArrowRight className="w-4 h-4" />
-            </Link>
-          </motion.div>
-        </div>
-      </div>
-      
-      {/* Decorative accent line */}
-      <div className="absolute bottom-0 left-0 right-0 h-1 bg-[#10b981]" />
-    </div>
-  );
-}
 
-// =============================================================================
-// DEFAULT SLIDE - Para slides genéricos (Carnaval)
-// =============================================================================
-
-function DefaultSlide({ slide }: { slide: PromoSlide }) {
-  return (
-    <div className="relative h-full overflow-hidden">
-      {/* Background */}
-      <div className="absolute inset-0">
-        <Image
-          src={slide.image}
-          alt={slide.title}
-          fill
-          className="object-cover scale-105"
-          priority
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-black/20" />
-      </div>
-      
-      {/* Content - Centered layout */}
-      <div className="relative h-full max-w-7xl mx-auto px-5 sm:px-8 lg:px-12">
-        <div className="h-full flex flex-col justify-end pb-12 sm:pb-16">
-          
-          {/* Badge */}
+          {/* Text content */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1, duration: 0.4 }}
-            className="mb-3"
+            animate={isActive ? { opacity: 1, y: 0 } : {}}
+            transition={{ duration: 0.5, delay: 0.2 }}
+            className="text-center flex-1 flex flex-col"
           >
-            <span 
-              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-white text-xs font-semibold"
-              style={{ backgroundColor: slide.accentColor }}
-            >
-              {slide.id === "carnaval" ? <Calendar className="w-3.5 h-3.5" /> : <MapPin className="w-3.5 h-3.5" />}
+            <h2 className="text-2xl font-bold text-slate-800 mb-1" style={{ fontFamily: "'Josefin Sans'" }}>
+              {slide.title}
+            </h2>
+            <p className="text-sm font-medium mb-2" style={{ color: slide.accentColor, fontFamily: "'Montserrat'" }}>
               {slide.subtitle}
-            </span>
-          </motion.div>
-          
-          {/* Title */}
-          <motion.h2
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2, duration: 0.5 }}
-            className="text-4xl sm:text-5xl lg:text-7xl font-bold text-white mb-4"
-            style={{ fontFamily: "'Josefin Sans', sans-serif" }}
-          >
-            {slide.title}
-          </motion.h2>
-          
-          {/* Description + CTA row */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3, duration: 0.5 }}
-            className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 max-w-3xl"
-          >
-            <p className="text-white/90 text-sm sm:text-base max-w-md leading-relaxed">
+            </p>
+            <p className="text-slate-600 text-sm mb-4 max-w-[280px] mx-auto" style={{ fontFamily: "'Montserrat'" }}>
               {slide.description}
             </p>
             
-            <Link
-              href={slide.href}
-              className="inline-flex items-center gap-2 px-6 py-3 rounded-full text-sm font-bold transition-all hover:scale-[1.03] active:scale-[0.98] text-white shadow-lg whitespace-nowrap"
-              style={{ 
-                fontFamily: "'Josefin Sans', sans-serif",
-                backgroundColor: slide.accentColor
-              }}
-            >
-              <span>{slide.cta}</span>
-              <ArrowRight className="w-4 h-4" />
-            </Link>
+            {/* Features */}
+            <div className="flex justify-center gap-2 mb-5">
+              {slide.features?.map((f, i) => (
+                <span key={i} className="px-2.5 py-1 rounded-full text-[10px] font-medium bg-white/80 text-slate-600 border border-slate-200 shadow-sm">
+                  {f}
+                </span>
+              ))}
+            </div>
+
+            {/* CTA */}
+            <div className="mt-auto">
+              <a
+                href={slide.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 px-6 py-3 rounded-full text-sm font-bold shadow-lg active:scale-95 transition-transform"
+                style={{ backgroundColor: slide.accentColor, color: "#78350f", fontFamily: "'Josefin Sans'" }}
+              >
+                {slide.cta}
+                <ExternalLink className="w-4 h-4" />
+              </a>
+            </div>
           </motion.div>
         </div>
       </div>
       
-      {/* Decorative accent line */}
-      <div 
-        className="absolute bottom-0 left-0 right-0 h-1"
-        style={{ backgroundColor: slide.accentColor }}
-      />
+      <div className="absolute bottom-0 left-0 right-0 h-1" style={{ background: `linear-gradient(90deg, ${slide.accentColor}, ${slide.accentColor}60)` }} />
+    </div>
+  );
+}
+
+function Ruta23Mobile({ slide, isActive }: { slide: PromoSlide; isActive: boolean }) {
+  return (
+    <div className={`relative h-full bg-gradient-to-br ${slide.bgGradient} overflow-hidden`}>
+      {/* Decorative elements */}
+      <div className="absolute top-0 right-0 w-64 h-64 rounded-full opacity-20 blur-3xl" style={{ background: `radial-gradient(circle, ${COLORS.naranjaSalinas}, transparent)` }} />
+      <div className="absolute bottom-0 left-0 w-48 h-48 rounded-full opacity-10 blur-3xl" style={{ background: `radial-gradient(circle, ${COLORS.dorado}, transparent)` }} />
+      
+      <div className="relative h-full px-5 py-6 flex flex-col">
+        {/* Header - Logo grande y badge */}
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={isActive ? { opacity: 1, y: 0 } : {}}
+          transition={{ duration: 0.4 }}
+          className="flex items-start justify-between mb-5"
+        >
+          <Image src={IMAGES.ruta23Logo} alt="Ruta 23" width={140} height={44} className="h-11 w-auto" />
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-[10px] font-medium bg-white/10 border border-white/20 text-white/90">
+            <Award className="w-3.5 h-3.5" style={{ color: COLORS.dorado }} />
+            Tonantzin
+          </span>
+        </motion.div>
+
+        {/* Single hero image - Clean and simple */}
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={isActive ? { opacity: 1, scale: 1 } : {}}
+          transition={{ duration: 0.5, delay: 0.1 }}
+          className="relative mb-5 flex-shrink-0"
+        >
+          <div className="relative aspect-[4/3] rounded-2xl overflow-hidden shadow-2xl">
+            <Image src={IMAGES.ruta23Hero} alt="Ruta 23" fill className="object-cover" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
+          </div>
+          
+          {/* Floating stat card */}
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            animate={isActive ? { opacity: 1, x: 0 } : {}}
+            transition={{ delay: 0.4 }}
+            className="absolute -bottom-3 right-4 bg-white/95 backdrop-blur-sm rounded-xl px-3 py-2 shadow-lg"
+          >
+            <span className="text-xl font-bold" style={{ color: COLORS.rojoCayena, fontFamily: "'Josefin Sans'" }}>900+</span>
+            <span className="text-[10px] text-slate-500 block -mt-0.5">artesanos</span>
+          </motion.div>
+        </motion.div>
+
+        {/* Content - Simplified */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={isActive ? { opacity: 1, y: 0 } : {}}
+          transition={{ duration: 0.5, delay: 0.2 }}
+          className="flex-1 flex flex-col"
+        >
+          <p className="text-white/50 text-[10px] uppercase tracking-[0.2em] mb-2" style={{ fontFamily: "'Montserrat'" }}>
+            {slide.subtitle}
+          </p>
+          <h2 className="text-2xl font-bold text-white mb-3" style={{ fontFamily: "'Josefin Sans'" }}>
+            Sabores y tradición de los 23 municipios
+          </h2>
+          
+          <div className="flex gap-2 mb-5">
+            {["Artesanías", "Gastronomía", "19 países"].map((f, i) => (
+              <span key={i} className="px-3 py-1.5 rounded-full text-[11px] font-medium bg-white/10 text-white/80 border border-white/10">
+                {f}
+              </span>
+            ))}
+          </div>
+
+          <div className="mt-auto">
+            <Link
+              href={slide.href}
+              className="inline-flex items-center gap-2 px-6 py-3 rounded-full text-sm font-bold text-white shadow-lg active:scale-95 transition-transform"
+              style={{ backgroundColor: slide.accentColor, fontFamily: "'Josefin Sans'" }}
+            >
+              <Utensils className="w-4 h-4" />
+              {slide.cta} sabores
+              <ArrowRight className="w-4 h-4" />
+            </Link>
+          </div>
+        </motion.div>
+      </div>
+      
+      <div className="absolute bottom-0 left-0 right-0 h-1" style={{ backgroundColor: slide.accentColor }} />
+    </div>
+  );
+}
+
+function BlueFlagMobile({ slide, isActive }: { slide: PromoSlide; isActive: boolean }) {
+  return (
+    <div className={`relative h-full bg-gradient-to-br ${slide.bgGradient} overflow-hidden`}>
+      {/* Wave decoration */}
+      <div className="absolute bottom-20 left-0 right-0 h-20 opacity-10">
+        <svg viewBox="0 0 1440 120" fill="none" className="w-full h-full">
+          <path d="M0 60C240 100 480 20 720 60C960 100 1200 20 1440 60V120H0V60Z" fill={COLORS.blueFlag} />
+        </svg>
+      </div>
+      
+      <div className="relative h-full px-5 py-6 flex flex-col">
+        {/* Header */}
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={isActive ? { opacity: 1, y: 0 } : {}}
+          transition={{ duration: 0.4 }}
+          className="flex items-center justify-between mb-4"
+        >
+          <span 
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-bold text-white shadow-sm"
+            style={{ backgroundColor: slide.accentColor }}
+          >
+            <Flag className="w-3.5 h-3.5" />
+            Blue Flag
+          </span>
+          <div className="flex items-center gap-2 bg-white rounded-lg px-2.5 py-1.5 shadow-md">
+            <Flag className="w-4 h-4" style={{ color: slide.accentColor }} />
+            <div className="text-left">
+              <span className="text-[9px] text-slate-400 block">Playa #10</span>
+              <span className="text-[11px] font-bold text-slate-700">Colombia</span>
+            </div>
+          </div>
+        </motion.div>
+
+        {/* Main image - Large with overlay card */}
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={isActive ? { opacity: 1, scale: 1 } : {}}
+          transition={{ duration: 0.5, delay: 0.1 }}
+          className="relative mb-5"
+        >
+          <div className="relative aspect-[4/3] rounded-3xl overflow-hidden shadow-2xl">
+            <Image src={IMAGES.blueFlagBandera} alt="Blue Flag" fill className="object-cover" />
+          </div>
+          
+          {/* Floating secondary image */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={isActive ? { opacity: 1, y: 0 } : {}}
+            transition={{ delay: 0.4 }}
+            className="absolute -bottom-3 -left-2 w-24 aspect-[4/3] rounded-xl overflow-hidden shadow-xl border-2 border-white"
+          >
+            <Image src={IMAGES.blueFlagPlaya} alt="Playa" fill className="object-cover" />
+          </motion.div>
+        </motion.div>
+
+        {/* Content */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={isActive ? { opacity: 1, y: 0 } : {}}
+          transition={{ duration: 0.5, delay: 0.2 }}
+          className="flex-1 flex flex-col"
+        >
+          <p className="text-slate-500 text-xs flex items-center gap-1.5 mb-1" style={{ fontFamily: "'Montserrat'" }}>
+            <MapPin className="w-3.5 h-3.5" />
+            {slide.subtitle}
+          </p>
+          <h2 className="text-2xl font-bold mb-2" style={{ fontFamily: "'Josefin Sans'", color: slide.accentColor }}>
+            Certificación Internacional
+          </h2>
+          <p className="text-slate-600 text-sm mb-4" style={{ fontFamily: "'Montserrat'" }}>
+            {slide.description}
+          </p>
+          
+          <div className="flex gap-2 mb-5">
+            {slide.features?.map((f, i) => (
+              <span key={i} className="px-2.5 py-1 rounded-full text-[10px] font-medium border" style={{ backgroundColor: `${slide.accentColor}10`, borderColor: `${slide.accentColor}30`, color: slide.accentColor }}>
+                {f}
+              </span>
+            ))}
+          </div>
+
+          <div className="mt-auto">
+            <Link
+              href={slide.href}
+              className="inline-flex items-center gap-2 px-6 py-3 rounded-full text-sm font-bold text-white shadow-lg active:scale-95 transition-transform"
+              style={{ backgroundColor: slide.accentColor, fontFamily: "'Josefin Sans'" }}
+            >
+              <Waves className="w-4 h-4" />
+              {slide.cta}
+              <ArrowRight className="w-4 h-4" />
+            </Link>
+          </div>
+        </motion.div>
+      </div>
+      
+      <div className="absolute bottom-0 left-0 right-0 h-1" style={{ backgroundColor: slide.accentColor }} />
+    </div>
+  );
+}
+
+function CarnavalMobile({ slide, isActive }: { slide: PromoSlide; isActive: boolean }) {
+  return (
+    <div className={`relative h-full bg-gradient-to-br ${slide.bgGradient} overflow-hidden`}>
+      {/* Confetti dots */}
+      <motion.div animate={{ y: [0, -10, 0] }} transition={{ duration: 3, repeat: Infinity }} className="absolute top-8 left-6 w-3 h-3 rounded-full bg-yellow-400 opacity-80" />
+      <motion.div animate={{ y: [0, -8, 0] }} transition={{ duration: 2.5, repeat: Infinity, delay: 0.3 }} className="absolute top-16 right-8 w-2.5 h-2.5 rounded-full bg-green-400 opacity-70" />
+      <motion.div animate={{ y: [0, -12, 0] }} transition={{ duration: 3.5, repeat: Infinity, delay: 0.6 }} className="absolute top-24 left-1/3 w-2 h-2 rounded-full bg-blue-400 opacity-60" />
+      
+      <div className="relative h-full px-5 py-6 flex flex-col">
+        {/* Header */}
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={isActive ? { opacity: 1, y: 0 } : {}}
+          transition={{ duration: 0.4 }}
+          className="flex items-center justify-between mb-4"
+        >
+          <span 
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-bold text-white shadow-sm"
+            style={{ backgroundColor: slide.accentColor }}
+          >
+            <Calendar className="w-3.5 h-3.5" />
+            1-4 Marzo 2025
+          </span>
+          <motion.div 
+            animate={{ rotate: [0, 5, 0, -5, 0] }}
+            transition={{ duration: 3, repeat: Infinity }}
+            className="bg-white rounded-xl px-2.5 py-1.5 shadow-md"
+          >
+            <Star className="w-4 h-4 mx-auto" style={{ color: COLORS.dorado }} />
+            <span className="text-[9px] font-bold text-slate-700 block">UNESCO</span>
+          </motion.div>
+        </motion.div>
+
+        {/* Image composition */}
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={isActive ? { opacity: 1, scale: 1 } : {}}
+          transition={{ duration: 0.5, delay: 0.1 }}
+          className="relative mb-5"
+        >
+          <div className="relative aspect-[5/4] rounded-[2rem] overflow-hidden shadow-2xl mx-4">
+            <Image src={IMAGES.carnavalMarimondas} alt="Carnaval" fill className="object-cover" />
+          </div>
+          
+          {/* Floating masks */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={isActive ? { opacity: 1, scale: 1 } : {}}
+            transition={{ delay: 0.4 }}
+            className="absolute -bottom-3 -right-1 w-20 h-20 rounded-xl overflow-hidden shadow-xl border-2 border-white"
+          >
+            <Image src={IMAGES.carnavalMascaras} alt="Máscaras" fill className="object-cover" />
+          </motion.div>
+        </motion.div>
+
+        {/* Content */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={isActive ? { opacity: 1, y: 0 } : {}}
+          transition={{ duration: 0.5, delay: 0.2 }}
+          className="flex-1 flex flex-col text-center"
+        >
+          <p className="text-slate-500 text-[10px] uppercase tracking-widest mb-1" style={{ fontFamily: "'Montserrat'" }}>
+            {slide.subtitle}
+          </p>
+          <h2 className="text-3xl font-bold text-slate-800 mb-2" style={{ fontFamily: "'Josefin Sans'" }}>
+            {slide.title}
+          </h2>
+          <p className="text-slate-600 text-sm mb-4" style={{ fontFamily: "'Montserrat'" }}>
+            {slide.description}
+          </p>
+          
+          <div className="flex justify-center gap-2 mb-5">
+            {slide.features?.map((f, i) => (
+              <span key={i} className="px-2.5 py-1 rounded-full text-[10px] font-medium" style={{ backgroundColor: `${slide.accentColor}15`, color: slide.accentColor }}>
+                {f}
+              </span>
+            ))}
+          </div>
+
+          <div className="mt-auto">
+            <Link
+              href={slide.href}
+              className="inline-flex items-center gap-2 px-6 py-3 rounded-full text-sm font-bold text-white shadow-lg active:scale-95 transition-transform"
+              style={{ backgroundColor: slide.accentColor, fontFamily: "'Josefin Sans'" }}
+            >
+              {slide.cta}
+              <ArrowRight className="w-4 h-4" />
+            </Link>
+          </div>
+        </motion.div>
+      </div>
+      
+      <div className="absolute bottom-0 left-0 right-0 h-1" style={{ backgroundColor: slide.accentColor }} />
+    </div>
+  );
+}
+
+function EcoturismoMobile({ slide, isActive }: { slide: PromoSlide; isActive: boolean }) {
+  return (
+    <div className={`relative h-full bg-gradient-to-br ${slide.bgGradient} overflow-hidden`}>
+      {/* Decorative leaf shape */}
+      <div className="absolute top-0 right-0 w-40 h-40 opacity-20" style={{ background: `radial-gradient(circle, ${COLORS.verdeBijao}, transparent)`, borderRadius: '0 0 0 100%' }} />
+      
+      <div className="relative h-full px-5 py-6 flex flex-col">
+        {/* Header */}
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={isActive ? { opacity: 1, y: 0 } : {}}
+          transition={{ duration: 0.4 }}
+          className="flex items-center justify-between mb-4"
+        >
+          <span 
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-bold text-white shadow-sm"
+            style={{ backgroundColor: slide.accentColor }}
+          >
+            <Leaf className="w-3.5 h-3.5" />
+            Turismo Sostenible
+          </span>
+          <motion.div 
+            animate={{ y: [0, -3, 0] }}
+            transition={{ duration: 2, repeat: Infinity }}
+            className="text-right"
+          >
+            <span className="text-2xl font-bold" style={{ color: slide.accentColor, fontFamily: "'Josefin Sans'" }}>200+</span>
+            <span className="text-[10px] text-slate-500 block -mt-1">especies</span>
+          </motion.div>
+        </motion.div>
+
+        {/* Main image with Barranquero card */}
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={isActive ? { opacity: 1, scale: 1 } : {}}
+          transition={{ duration: 0.5, delay: 0.1 }}
+          className="relative mb-5"
+        >
+          <div className="relative aspect-[4/3] rounded-3xl overflow-hidden shadow-2xl">
+            <Image src={IMAGES.ecoAvistamiento} alt="Ecoturismo" fill className="object-cover" style={{ objectPosition: 'center 30%' }} />
+          </div>
+          
+          {/* Barranquero floating card */}
+          <motion.div
+            initial={{ opacity: 0, x: -20 }}
+            animate={isActive ? { opacity: 1, x: 0 } : {}}
+            transition={{ delay: 0.4 }}
+            className="absolute -bottom-3 -left-2 bg-white rounded-xl p-2 shadow-xl"
+          >
+            <div className="flex items-center gap-2">
+              <div className="relative w-12 h-12 rounded-lg overflow-hidden">
+                <Image src={IMAGES.ecoBarranquero} alt="Barranquero" fill className="object-cover object-top" />
+              </div>
+              <div>
+                <span className="text-[8px] font-bold px-1.5 py-0.5 rounded text-white" style={{ backgroundColor: slide.accentColor }}>AVE OFICIAL</span>
+                <p className="text-[11px] font-bold text-slate-800 mt-0.5">El Barranquero</p>
+              </div>
+            </div>
+          </motion.div>
+        </motion.div>
+
+        {/* Content */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={isActive ? { opacity: 1, y: 0 } : {}}
+          transition={{ duration: 0.5, delay: 0.2 }}
+          className="flex-1 flex flex-col"
+        >
+          <p className="text-slate-500 text-[10px] uppercase tracking-widest mb-1" style={{ fontFamily: "'Montserrat'" }}>
+            {slide.subtitle}
+          </p>
+          <h2 className="text-2xl font-bold text-slate-800 mb-2" style={{ fontFamily: "'Josefin Sans'" }}>
+            {slide.title}
+          </h2>
+          <p className="text-slate-600 text-sm mb-4" style={{ fontFamily: "'Montserrat'" }}>
+            {slide.description}
+          </p>
+          
+          <div className="flex gap-2 mb-5">
+            {slide.features?.map((f, i) => (
+              <span key={i} className="px-2.5 py-1 rounded-full text-[10px] font-medium border" style={{ backgroundColor: `${slide.accentColor}10`, borderColor: `${slide.accentColor}30`, color: slide.accentColor }}>
+                {f}
+              </span>
+            ))}
+          </div>
+
+          <div className="mt-auto">
+            <Link
+              href={slide.href}
+              className="inline-flex items-center gap-2 px-6 py-3 rounded-full text-sm font-bold text-white shadow-lg active:scale-95 transition-transform"
+              style={{ backgroundColor: slide.accentColor, fontFamily: "'Josefin Sans'" }}
+            >
+              {slide.cta}
+              <ArrowRight className="w-4 h-4" />
+            </Link>
+          </div>
+        </motion.div>
+      </div>
+      
+      <div className="absolute bottom-0 left-0 right-0 h-1" style={{ backgroundColor: slide.accentColor }} />
+    </div>
+  );
+}
+
+// =============================================================================
+// DESKTOP SLIDES - Keep Original Editorial Layout
+// =============================================================================
+
+function TesorosDesktop({ slide }: { slide: PromoSlide }) {
+  return (
+    <div className="relative h-full bg-gradient-to-br from-amber-50 via-white to-orange-50 overflow-hidden">
+      <div className="absolute top-0 right-0 w-96 h-96 bg-amber-100/50 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
+      <div className="absolute bottom-0 left-0 w-64 h-64 bg-orange-100/50 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2" />
+      
+      <div className="relative h-full max-w-7xl mx-auto px-8 lg:px-12">
+        <div className="h-full grid lg:grid-cols-2 gap-12 items-center">
+          <motion.div initial={{ opacity: 0, x: -30 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.6, ease: EASE_CINEMATIC }} className="z-10">
+            <div className="flex items-center gap-3 mb-4">
+              <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold" style={{ backgroundColor: slide.accentColor, color: "#78350f" }}>
+                <Globe className="w-3.5 h-3.5" />
+                Plataforma Oficial
+              </span>
+            </div>
+            <h2 className="text-4xl lg:text-5xl font-bold text-slate-800 mb-3 leading-tight" style={{ fontFamily: "'Josefin Sans', sans-serif" }}>Tesoros del Atlántico</h2>
+            <p className="text-lg font-medium mb-4" style={{ color: slide.accentColor, fontFamily: "'Montserrat', sans-serif" }}>Conecta · Descubre · Vive</p>
+            <p className="text-slate-600 leading-relaxed mb-5 max-w-md" style={{ fontFamily: "'Montserrat', sans-serif" }}>La plataforma oficial de turismo del Caribe colombiano. Rutas, tiendas locales y experiencias auténticas.</p>
+            <div className="flex flex-wrap gap-2 mb-6">
+              {["23 municipios", "Rutas turísticas", "Tiendas locales"].map((f, i) => (
+                <span key={i} className="px-3 py-1.5 rounded-full text-xs font-medium bg-slate-100 text-slate-600 border border-slate-200">{f}</span>
+              ))}
+            </div>
+            <a href={slide.href} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 px-6 py-3 rounded-full text-sm font-bold transition-all hover:scale-[1.03] hover:shadow-lg" style={{ backgroundColor: slide.accentColor, color: "#78350f", fontFamily: "'Josefin Sans'" }}>
+              Visitar plataforma
+              <ExternalLink className="w-4 h-4" />
+            </a>
+          </motion.div>
+          
+          <motion.div initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.6, delay: 0.2, ease: EASE_CINEMATIC }} className="relative flex justify-end">
+            <div className="relative">
+              <div className="relative w-64 lg:w-80 h-64 lg:h-80 rounded-full overflow-hidden border-4 border-white shadow-2xl">
+                <Image src={IMAGES.tesoros1} alt="Tesoros del Atlántico" fill className="object-cover" />
+              </div>
+              <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }} className="absolute -bottom-6 -left-8 lg:-bottom-8 lg:-left-12 w-52 lg:w-64 bg-white rounded-xl shadow-2xl overflow-hidden border border-slate-200">
+                <div className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 border-b border-slate-200">
+                  <div className="w-2 h-2 rounded-full bg-red-400" />
+                  <div className="w-2 h-2 rounded-full bg-yellow-400" />
+                  <div className="w-2 h-2 rounded-full bg-green-400" />
+                  <span className="ml-2 text-[10px] text-slate-400 truncate">tesorosdelatlantico.com</span>
+                </div>
+                <div className="relative aspect-[16/10]">
+                  <Image src={IMAGES.tesorosMockup} alt="Website" fill className="object-cover object-top" />
+                </div>
+              </motion.div>
+              <motion.div animate={{ y: [0, -5, 0] }} transition={{ duration: 3, repeat: Infinity }} className="absolute top-4 right-0 bg-white rounded-xl px-3 py-2 shadow-lg border border-slate-100">
+                <div className="text-center">
+                  <span className="text-2xl font-bold block" style={{ color: slide.accentColor, fontFamily: "'Josefin Sans'" }}>23</span>
+                  <span className="text-[10px] text-slate-500">municipios</span>
+                </div>
+              </motion.div>
+            </div>
+          </motion.div>
+        </div>
+      </div>
+      <div className="absolute bottom-0 left-0 right-0 h-1" style={{ background: `linear-gradient(90deg, ${slide.accentColor}, ${slide.accentColor}60)` }} />
+    </div>
+  );
+}
+
+function Ruta23Desktop({ slide }: { slide: PromoSlide }) {
+  return (
+    <div className="relative h-full bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 overflow-hidden">
+      <div className="absolute top-0 right-0 w-[500px] h-[500px] rounded-full opacity-20 blur-3xl" style={{ background: `radial-gradient(circle, ${COLORS.naranjaSalinas}, transparent)` }} />
+      
+      <div className="relative h-full max-w-7xl mx-auto px-8 lg:px-12">
+        <div className="h-full grid lg:grid-cols-12 gap-8 items-center">
+          <motion.div initial={{ opacity: 0, x: -30 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.6, ease: EASE_CINEMATIC }} className="lg:col-span-5 z-10">
+            <div className="flex items-center gap-2 mb-4">
+              <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium bg-white/10 backdrop-blur-sm border border-white/20 text-white">
+                <Award className="w-3.5 h-3.5" style={{ color: COLORS.dorado }} />
+                Premio Tonantzin 2025
+              </span>
+            </div>
+            <div className="mb-4">
+              <Image src={IMAGES.ruta23Logo} alt="Ruta 23" width={160} height={50} className="h-10 lg:h-12 w-auto" />
+            </div>
+            <p className="text-white/50 text-xs uppercase tracking-[0.2em] mb-3" style={{ fontFamily: "'Montserrat'" }}>Iniciativa Primera Gestora Social</p>
+            <p className="text-white/80 leading-relaxed mb-5 max-w-sm" style={{ fontFamily: "'Montserrat'" }}>Artesanías, gastronomía y cultura de los 23 municipios. De Usiacurí a París.</p>
+            <div className="flex flex-wrap gap-2 mb-6">
+              {["900+ artesanos", "19 países", "Premio Tonantzin"].map((f, i) => (
+                <span key={i} className="px-3 py-1.5 rounded-full text-xs font-medium bg-white/10 text-white/80 border border-white/10">{f}</span>
+              ))}
+            </div>
+            <Link href={slide.href} className="inline-flex items-center gap-2 px-6 py-3 rounded-full text-sm font-bold text-white transition-all hover:scale-[1.03] hover:shadow-lg" style={{ backgroundColor: slide.accentColor, fontFamily: "'Josefin Sans'" }}>
+              <Utensils className="w-4 h-4" />
+              Explorar sabores
+              <ArrowRight className="w-4 h-4" />
+            </Link>
+          </motion.div>
+          
+          <motion.div initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.6, delay: 0.2, ease: EASE_CINEMATIC }} className="lg:col-span-7">
+            <div className="relative flex gap-3 justify-end">
+              <div className="relative w-44 lg:w-56 aspect-[3/4] rounded-2xl overflow-hidden shadow-2xl">
+                <Image src={IMAGES.ruta23Hero} alt="Ruta 23" fill className="object-cover" />
+              </div>
+              <div className="flex flex-col gap-3">
+                <div className="relative w-32 lg:w-40 aspect-square rounded-2xl overflow-hidden shadow-xl">
+                  <Image src={IMAGES.ruta23Arepa} alt="Arepa" fill className="object-cover" />
+                </div>
+                <div className="relative w-32 lg:w-40 aspect-square rounded-2xl overflow-hidden shadow-xl">
+                  <Image src={IMAGES.ruta23Artesanias} alt="Artesanías" fill className="object-cover" />
+                </div>
+              </div>
+              <div className="relative w-32 lg:w-36 aspect-[3/4] rounded-2xl overflow-hidden shadow-xl mt-8">
+                <Image src={IMAGES.ruta23Cumbia} alt="Cumbia" fill className="object-cover" />
+              </div>
+            </div>
+          </motion.div>
+        </div>
+      </div>
+      <div className="absolute bottom-0 left-0 right-0 h-1" style={{ backgroundColor: slide.accentColor }} />
+    </div>
+  );
+}
+
+function BlueFlagDesktop({ slide }: { slide: PromoSlide }) {
+  return (
+    <div className="relative h-full bg-gradient-to-br from-sky-50 via-white to-cyan-50 overflow-hidden">
+      <div className="absolute bottom-0 left-0 right-0 h-32 opacity-10">
+        <svg viewBox="0 0 1440 120" fill="none" className="w-full h-full">
+          <path d="M0 60C240 100 480 20 720 60C960 100 1200 20 1440 60V120H0V60Z" fill={COLORS.blueFlag} />
+        </svg>
+      </div>
+      
+      <div className="relative h-full max-w-7xl mx-auto px-8 lg:px-12">
+        <div className="h-full grid lg:grid-cols-2 gap-12 items-center">
+          <motion.div initial={{ opacity: 0, x: -30 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.6, ease: EASE_CINEMATIC }} className="z-10">
+            <div className="flex items-center gap-2 mb-4">
+              <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold text-white" style={{ backgroundColor: slide.accentColor }}>
+                <Flag className="w-3.5 h-3.5" />
+                Certificación Internacional
+              </span>
+            </div>
+            <h2 className="text-5xl lg:text-6xl font-bold mb-2 leading-tight" style={{ fontFamily: "'Josefin Sans'", color: slide.accentColor }}>Blue Flag</h2>
+            <p className="text-slate-500 text-sm flex items-center gap-2 mb-4" style={{ fontFamily: "'Montserrat'" }}>
+              <MapPin className="w-4 h-4" />
+              Salinas del Rey · Juan de Acosta
+            </p>
+            <p className="text-slate-600 leading-relaxed mb-5 max-w-md" style={{ fontFamily: "'Montserrat'" }}>Primera playa deportiva certificada en América. Kitesurf y turismo sostenible.</p>
+            <div className="flex flex-wrap gap-2 mb-6">
+              {["Certificación FEE", "33 criterios", "Calidad A+"].map((f, i) => (
+                <span key={i} className="px-3 py-1.5 rounded-full text-xs font-medium border" style={{ backgroundColor: `${slide.accentColor}10`, borderColor: `${slide.accentColor}30`, color: slide.accentColor }}>{f}</span>
+              ))}
+            </div>
+            <Link href={slide.href} className="inline-flex items-center gap-2 px-6 py-3 rounded-full text-sm font-bold text-white transition-all hover:scale-[1.03] hover:shadow-lg" style={{ backgroundColor: slide.accentColor, fontFamily: "'Josefin Sans'" }}>
+              <Waves className="w-4 h-4" />
+              Conocer la playa
+              <ArrowRight className="w-4 h-4" />
+            </Link>
+          </motion.div>
+          
+          <motion.div initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.6, delay: 0.2, ease: EASE_CINEMATIC }} className="flex justify-end">
+            <div className="relative">
+              <div className="relative w-72 lg:w-80 aspect-[4/5] rounded-3xl overflow-hidden shadow-2xl">
+                <Image src={IMAGES.blueFlagBandera} alt="Blue Flag" fill className="object-cover" />
+              </div>
+              <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.5 }} className="absolute -bottom-6 -left-8 w-40 aspect-[4/3] rounded-2xl overflow-hidden shadow-xl border-4 border-white">
+                <Image src={IMAGES.blueFlagPlaya} alt="Playa" fill className="object-cover" />
+              </motion.div>
+              <motion.div animate={{ y: [0, -5, 0] }} transition={{ duration: 3, repeat: Infinity }} className="absolute top-2 -right-4 bg-white rounded-xl px-3 py-2 shadow-lg border border-slate-100">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: `${slide.accentColor}15` }}>
+                    <Flag className="w-4 h-4" style={{ color: slide.accentColor }} />
+                  </div>
+                  <div className="text-left">
+                    <p className="text-[10px] text-slate-400">Playa #10</p>
+                    <p className="text-xs font-bold text-slate-700">Colombia</p>
+                  </div>
+                </div>
+              </motion.div>
+            </div>
+          </motion.div>
+        </div>
+      </div>
+      <div className="absolute bottom-0 left-0 right-0 h-1" style={{ backgroundColor: slide.accentColor }} />
+    </div>
+  );
+}
+
+function CarnavalDesktop({ slide }: { slide: PromoSlide }) {
+  return (
+    <div className="relative h-full bg-gradient-to-br from-red-50 via-white to-yellow-50 overflow-hidden">
+      <div className="absolute top-10 left-10 w-4 h-4 rounded-full bg-red-400 opacity-60" />
+      <div className="absolute top-20 right-20 w-3 h-3 rounded-full bg-yellow-400 opacity-60" />
+      <div className="absolute bottom-32 left-1/4 w-5 h-5 rounded-full bg-blue-400 opacity-40" />
+      
+      <div className="relative h-full max-w-7xl mx-auto px-8 lg:px-12">
+        <div className="h-full grid lg:grid-cols-2 gap-12 items-center">
+          <motion.div initial={{ opacity: 0, x: -30 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.6, ease: EASE_CINEMATIC }} className="z-10">
+            <div className="flex items-center gap-2 mb-4">
+              <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold text-white" style={{ backgroundColor: slide.accentColor }}>
+                <Calendar className="w-3.5 h-3.5" />
+                1 - 4 Marzo 2025
+              </span>
+            </div>
+            <h2 className="text-5xl lg:text-6xl font-bold text-slate-800 mb-2 leading-tight" style={{ fontFamily: "'Josefin Sans'" }}>Carnaval 2025</h2>
+            <p className="text-slate-500 text-sm uppercase tracking-widest mb-4" style={{ fontFamily: "'Montserrat'" }}>Patrimonio de la Humanidad</p>
+            <p className="text-slate-600 leading-relaxed mb-5 max-w-md" style={{ fontFamily: "'Montserrat'" }}>La fiesta más grande de Colombia. Música, color y tradición en Barranquilla.</p>
+            <div className="flex flex-wrap gap-2 mb-6">
+              {["1-4 Marzo", "500+ comparsas", "UNESCO"].map((f, i) => (
+                <span key={i} className="px-3 py-1.5 rounded-full text-xs font-medium" style={{ backgroundColor: `${slide.accentColor}15`, color: slide.accentColor }}>{f}</span>
+              ))}
+            </div>
+            <Link href={slide.href} className="inline-flex items-center gap-2 px-6 py-3 rounded-full text-sm font-bold text-white transition-all hover:scale-[1.03] hover:shadow-lg" style={{ backgroundColor: slide.accentColor, fontFamily: "'Josefin Sans'" }}>
+              Ver programación
+              <ArrowRight className="w-4 h-4" />
+            </Link>
+          </motion.div>
+          
+          <motion.div initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.6, delay: 0.2, ease: EASE_CINEMATIC }} className="flex justify-end">
+            <div className="relative">
+              <div className="relative w-64 lg:w-72 aspect-[4/5] rounded-[3rem] overflow-hidden shadow-2xl">
+                <Image src={IMAGES.carnavalMarimondas} alt="Carnaval" fill className="object-cover" />
+              </div>
+              <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.5 }} className="absolute -bottom-6 -left-10 w-36 aspect-square rounded-2xl overflow-hidden shadow-xl border-4 border-white">
+                <Image src={IMAGES.carnavalMascaras} alt="Máscaras" fill className="object-cover" />
+              </motion.div>
+              <motion.div animate={{ rotate: [0, 5, 0, -5, 0] }} transition={{ duration: 4, repeat: Infinity }} className="absolute top-4 -right-4 bg-white rounded-xl px-3 py-2 shadow-lg border border-slate-100">
+                <Star className="w-5 h-5 mx-auto mb-1" style={{ color: COLORS.dorado }} />
+                <span className="text-[10px] font-bold text-slate-700 block">UNESCO</span>
+              </motion.div>
+            </div>
+          </motion.div>
+        </div>
+      </div>
+      <div className="absolute bottom-0 left-0 right-0 h-1" style={{ backgroundColor: slide.accentColor }} />
+    </div>
+  );
+}
+
+function EcoturismoDesktop({ slide }: { slide: PromoSlide }) {
+  return (
+    <div className="relative h-full bg-gradient-to-br from-emerald-50 via-white to-teal-50 overflow-hidden">
+      <div className="absolute top-0 right-0 w-96 h-96 opacity-10" style={{ background: `radial-gradient(circle, ${COLORS.verdeBijao}, transparent)`, borderRadius: '0 0 0 100%' }} />
+      
+      <div className="relative h-full max-w-7xl mx-auto px-8 lg:px-12">
+        <div className="h-full grid lg:grid-cols-2 gap-12 items-center">
+          <motion.div initial={{ opacity: 0, x: -30 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.6, ease: EASE_CINEMATIC }} className="z-10">
+            <div className="flex items-center gap-2 mb-4">
+              <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold text-white" style={{ backgroundColor: slide.accentColor }}>
+                <Leaf className="w-3.5 h-3.5" />
+                Turismo Sostenible
+              </span>
+            </div>
+            <h2 className="text-5xl lg:text-6xl font-bold text-slate-800 mb-2 leading-tight" style={{ fontFamily: "'Josefin Sans'" }}>Ecoturismo</h2>
+            <p className="text-slate-500 text-sm uppercase tracking-widest mb-4" style={{ fontFamily: "'Montserrat'" }}>Naturaleza viva del Atlántico</p>
+            <p className="text-slate-600 leading-relaxed mb-5 max-w-md" style={{ fontFamily: "'Montserrat'" }}>Avistamiento de aves, reservas naturales y experiencias sostenibles.</p>
+            <div className="flex flex-wrap gap-2 mb-6">
+              {["200+ especies", "Ciénagas", "El Barranquero"].map((f, i) => (
+                <span key={i} className="px-3 py-1.5 rounded-full text-xs font-medium border" style={{ backgroundColor: `${slide.accentColor}10`, borderColor: `${slide.accentColor}30`, color: slide.accentColor }}>{f}</span>
+              ))}
+            </div>
+            <Link href={slide.href} className="inline-flex items-center gap-2 px-6 py-3 rounded-full text-sm font-bold text-white transition-all hover:scale-[1.03] hover:shadow-lg" style={{ backgroundColor: slide.accentColor, fontFamily: "'Josefin Sans'" }}>
+              Explorar destinos
+              <ArrowRight className="w-4 h-4" />
+            </Link>
+          </motion.div>
+          
+          <motion.div initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.6, delay: 0.2, ease: EASE_CINEMATIC }} className="flex justify-end">
+            <div className="relative">
+              <div className="relative w-72 lg:w-80 aspect-[4/3] rounded-3xl overflow-hidden shadow-2xl">
+                <Image src={IMAGES.ecoAvistamiento} alt="Ecoturismo" fill className="object-cover" style={{ objectPosition: 'center 30%' }} />
+              </div>
+              <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.5 }} className="absolute -bottom-6 -left-10 bg-white rounded-2xl p-3 shadow-xl border border-slate-100">
+                <div className="flex items-center gap-3">
+                  <div className="relative w-16 h-16 rounded-xl overflow-hidden">
+                    <Image src={IMAGES.ecoBarranquero} alt="Barranquero" fill className="object-cover object-top" />
+                  </div>
+                  <div>
+                    <span className="text-[9px] font-bold px-1.5 py-0.5 rounded text-white" style={{ backgroundColor: slide.accentColor }}>AVE OFICIAL</span>
+                    <p className="text-sm font-bold text-slate-800 mt-1">El Barranquero</p>
+                    <p className="text-[10px] text-slate-400 italic">Momotus subrufescens</p>
+                  </div>
+                </div>
+              </motion.div>
+              <motion.div animate={{ y: [0, -5, 0] }} transition={{ duration: 3, repeat: Infinity }} className="absolute top-2 -right-4 bg-white rounded-xl px-3 py-2 shadow-lg border border-slate-100">
+                <span className="text-2xl font-bold block" style={{ color: slide.accentColor, fontFamily: "'Josefin Sans'" }}>200+</span>
+                <span className="text-[10px] text-slate-500">especies</span>
+              </motion.div>
+            </div>
+          </motion.div>
+        </div>
+      </div>
+      <div className="absolute bottom-0 left-0 right-0 h-1" style={{ backgroundColor: slide.accentColor }} />
     </div>
   );
 }
@@ -577,7 +951,6 @@ export default function PromoBanner() {
   const [isPaused, setIsPaused] = useState(false);
   const [direction, setDirection] = useState(1);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
-
   const slide = promoSlides[current];
 
   const goToSlide = useCallback((index: number) => {
@@ -595,46 +968,52 @@ export default function PromoBanner() {
     setCurrent((prev) => (prev - 1 + promoSlides.length) % promoSlides.length);
   }, []);
 
-  // Autoplay
   useEffect(() => {
     if (isPaused) return;
-    
     timerRef.current = setInterval(next, AUTOPLAY_INTERVAL);
-    return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
-    };
+    return () => { if (timerRef.current) clearInterval(timerRef.current); };
   }, [isPaused, next]);
 
-  const slideVariants = {
-    enter: (dir: number) => ({
-      x: dir > 0 ? "100%" : "-100%",
-      opacity: 0,
-    }),
-    center: {
-      x: 0,
-      opacity: 1,
-    },
-    exit: (dir: number) => ({
-      x: dir > 0 ? "-100%" : "100%",
-      opacity: 0,
-    }),
+  const handleDragEnd = (_: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
+    if (Math.abs(info.offset.x) > SWIPE_THRESHOLD || Math.abs(info.velocity.x) > 500) {
+      info.offset.x > 0 ? prev() : next();
+    }
   };
 
-  // Colores del indicador según el slide
-  const getIndicatorColor = (slideId: string) => {
-    const s = promoSlides.find(p => p.id === slideId);
-    if (s?.id === "tesoros") return "bg-gradient-to-r from-[#fbbf24] to-[#f59e0b]";
-    if (s?.id === "ecoturismo") return "bg-[#10b981]";
-    return "bg-[#E40E20]";
+  const slideVariants = {
+    enter: (dir: number) => ({ x: dir > 0 ? "100%" : "-100%", opacity: 0 }),
+    center: { x: 0, opacity: 1 },
+    exit: (dir: number) => ({ x: dir > 0 ? "-100%" : "100%", opacity: 0 }),
+  };
+
+  const renderMobile = (s: PromoSlide) => {
+    switch (s.type) {
+      case "tesoros": return <TesorosMobile slide={s} isActive={true} />;
+      case "ruta23": return <Ruta23Mobile slide={s} isActive={true} />;
+      case "blueflag": return <BlueFlagMobile slide={s} isActive={true} />;
+      case "carnaval": return <CarnavalMobile slide={s} isActive={true} />;
+      case "ecoturismo": return <EcoturismoMobile slide={s} isActive={true} />;
+      default: return <TesorosMobile slide={s} isActive={true} />;
+    }
+  };
+
+  const renderDesktop = (s: PromoSlide) => {
+    switch (s.type) {
+      case "tesoros": return <TesorosDesktop slide={s} />;
+      case "ruta23": return <Ruta23Desktop slide={s} />;
+      case "blueflag": return <BlueFlagDesktop slide={s} />;
+      case "carnaval": return <CarnavalDesktop slide={s} />;
+      case "ecoturismo": return <EcoturismoDesktop slide={s} />;
+      default: return <TesorosDesktop slide={s} />;
+    }
   };
 
   return (
     <section 
-      className="relative h-[480px] sm:h-[420px] lg:h-[420px] overflow-hidden bg-[#1a1a1a]"
+      className="relative h-[580px] sm:h-[480px] lg:h-[500px] overflow-hidden"
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
     >
-      {/* Slides */}
       <AnimatePresence initial={false} custom={direction} mode="wait">
         <motion.div
           key={slide.id}
@@ -643,62 +1022,45 @@ export default function PromoBanner() {
           initial="enter"
           animate="center"
           exit="exit"
-          transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-          className="absolute inset-0"
+          transition={{ duration: 0.5, ease: EASE_CINEMATIC }}
+          className="absolute inset-0 cursor-grab active:cursor-grabbing touch-pan-y"
+          drag="x"
+          dragConstraints={{ left: 0, right: 0 }}
+          dragElastic={0.1}
+          onDragEnd={handleDragEnd}
         >
-          {slide.type === "tesoros" && <TesorosSlide slide={slide} />}
-          {slide.type === "ruta23" && <Ruta23Slide slide={slide} />}
-          {slide.type === "ecoturismo" && <EcoturismoSlide slide={slide} />}
-          {slide.type === "default" && <DefaultSlide slide={slide} />}
+          <div className="sm:hidden h-full">{renderMobile(slide)}</div>
+          <div className="hidden sm:block h-full">{renderDesktop(slide)}</div>
         </motion.div>
       </AnimatePresence>
 
-      {/* Navigation Arrows */}
-      <button
-        onClick={prev}
-        className="absolute left-3 sm:left-5 top-1/2 -translate-y-1/2 z-10 w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-black/30 backdrop-blur-sm border border-white/10 flex items-center justify-center text-white/80 hover:text-white hover:bg-black/50 transition-all"
-        aria-label="Anterior"
-      >
+      {/* Desktop Navigation */}
+      <button onClick={prev} className="absolute left-4 top-1/2 -translate-y-1/2 z-20 w-11 h-11 rounded-full bg-white/80 backdrop-blur-sm border border-slate-200 hidden sm:flex items-center justify-center text-slate-600 hover:text-slate-800 hover:bg-white hover:shadow-lg transition-all" aria-label="Anterior">
         <ChevronLeft className="w-5 h-5" />
       </button>
-      
-      <button
-        onClick={next}
-        className="absolute right-3 sm:right-5 top-1/2 -translate-y-1/2 z-10 w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-black/30 backdrop-blur-sm border border-white/10 flex items-center justify-center text-white/80 hover:text-white hover:bg-black/50 transition-all"
-        aria-label="Siguiente"
-      >
+      <button onClick={next} className="absolute right-4 top-1/2 -translate-y-1/2 z-20 w-11 h-11 rounded-full bg-white/80 backdrop-blur-sm border border-slate-200 hidden sm:flex items-center justify-center text-slate-600 hover:text-slate-800 hover:bg-white hover:shadow-lg transition-all" aria-label="Siguiente">
         <ChevronRight className="w-5 h-5" />
       </button>
+      
+      {/* Mobile Navigation */}
+      <div className="absolute bottom-4 left-0 right-0 z-20 sm:hidden">
+        <div className="flex items-center justify-center gap-2.5">
+          {promoSlides.map((s, i) => (
+            <button key={i} onClick={() => goToSlide(i)} className={`h-2 rounded-full transition-all duration-500 ${i === current ? "w-7" : "w-2 bg-slate-300/60"}`} style={{ backgroundColor: i === current ? s.accentColor : undefined }} aria-label={`Slide ${i + 1}`} />
+          ))}
+        </div>
+      </div>
 
-      {/* Slide Indicators */}
-      <div className="absolute bottom-5 sm:bottom-6 left-1/2 -translate-x-1/2 z-10 flex items-center gap-2">
-        {promoSlides.map((s, index) => (
-          <button
-            key={index}
-            onClick={() => goToSlide(index)}
-            className={`h-2 rounded-full transition-all duration-500 ${
-              index === current 
-                ? `w-8 ${getIndicatorColor(s.id)}` 
-                : "w-2 bg-white/30 hover:bg-white/50"
-            }`}
-            aria-label={`Ir a slide ${index + 1}`}
-          />
+      {/* Desktop Indicators */}
+      <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-20 hidden sm:flex items-center gap-2">
+        {promoSlides.map((s, i) => (
+          <button key={i} onClick={() => goToSlide(i)} className={`h-2 rounded-full transition-all duration-500 ${i === current ? "w-8" : "w-2 bg-slate-300 hover:bg-slate-400"}`} style={{ backgroundColor: i === current ? s.accentColor : undefined }} aria-label={`Slide ${i + 1}`} />
         ))}
       </div>
 
       {/* Progress Bar */}
-      <div className="absolute bottom-0 left-0 right-0 h-[3px] bg-black/20">
-        <motion.div
-          className={`h-full ${getIndicatorColor(slide.id)}`}
-          initial={{ width: "0%" }}
-          animate={{ width: isPaused ? undefined : "100%" }}
-          transition={{ 
-            duration: AUTOPLAY_INTERVAL / 1000, 
-            ease: "linear",
-            repeat: 0 
-          }}
-          key={`progress-${current}-${isPaused}`}
-        />
+      <div className="absolute bottom-0 left-0 right-0 h-1 bg-slate-200/50 z-10">
+        <motion.div className="h-full" style={{ backgroundColor: slide.accentColor }} initial={{ width: "0%" }} animate={{ width: isPaused ? undefined : "100%" }} transition={{ duration: AUTOPLAY_INTERVAL / 1000, ease: "linear" }} key={`progress-${current}-${isPaused}`} />
       </div>
     </section>
   );

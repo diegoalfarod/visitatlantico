@@ -1,371 +1,551 @@
 // src/app/api/itinerary/generate/route.ts
+// Versión con Analytics integrado
 
 import { NextRequest, NextResponse } from "next/server";
-import EnhancedGooglePlacesItineraryGenerator from '@/lib/enhancedGooglePlacesItineraryGenerator';
-import { convertItineraryToFrontendFormat } from '@/lib/itinerary-converter';
+import ClaudeItineraryEnhancer, { 
+  type ItineraryProfile,
+  type GeneratedItinerary 
+} from '@/lib/claudeItineraryEnhancer';
+import { getPlaceById } from '@/data/atlantico-places';
 
-interface EnhancedUserProfile {
-  days: number;
-  email: string;
-  interests: string[];
-  tripType: 'solo' | 'pareja' | 'familia' | 'amigos' | 'negocios';
-  budget: 'economico' | 'moderado' | 'premium';
-  locationRange: 'barranquilla' | 'todo_atlantico';
-  startLocation?: any;
-  preferredPace: 'relaxed' | 'moderate' | 'intensive';
-  maxTravelDistance: number;
-  culturalDepth: 'surface' | 'deep' | 'immersive';
-  foodAdventure: boolean;
-  physicalActivity: 'low' | 'moderate' | 'high';
-  crowdTolerance: 'avoid' | 'moderate' | 'doesnt_matter';
-}
+// =============================================================================
+// TIPOS
+// =============================================================================
 
-function createEnhancedProfile(profile: any): EnhancedUserProfile {
-  console.log("Creando perfil mejorado con:", profile);
-  
-  // Validaciones
-  if (!profile.days || profile.days < 1 || profile.days > 14) {
-    throw new Error('La duración del viaje debe estar entre 1 y 14 días');
-  }
-  if (!profile.interests || !Array.isArray(profile.interests) || profile.interests.length === 0) {
-    throw new Error('Debes especificar al menos un interés');
-  }
-  if (!['economico', 'moderado', 'premium'].includes(profile.budget)) {
-    throw new Error('El presupuesto es inválido');
-  }
-  
-  // MAPEAR TIPOS DE VIAJE DEL FRONTEND AL BACKEND
-  const mapTripType = (type: string): 'solo' | 'pareja' | 'familia' | 'amigos' | 'negocios' => {
-    const typeMap: Record<string, 'solo' | 'pareja' | 'familia' | 'amigos' | 'negocios'> = {
-      'solo': 'solo',
-      'pareja': 'pareja',
-      'solo_pareja': 'pareja',  // Mapear solo_pareja a pareja
-      'familia': 'familia',
-      'amigos': 'amigos',
-      'grupo': 'amigos',  // Mapear grupo a amigos
-      'negocios': 'negocios'
+interface RequestBody {
+  profile: {
+    days: number;
+    email: string;
+    interests: string[];
+    tripType: string;
+    budget: string;
+    travelPace?: string;
+    maxDistance?: string;
+    startLocation?: any;
+    itineraryRequestId?: string;
+  };
+  // Analytics data del cliente
+  analytics?: {
+    sessionId?: string;
+    device?: {
+      type: string;
+      os?: string;
+      browser?: string;
+      screenWidth?: number;
+      screenHeight?: number;
     };
-    return typeMap[type] || 'familia'; // Default a familia si no se reconoce
-  };
-  
-  // Mapear pace desde español
-  const mapPace = (pace: string): 'relaxed' | 'moderate' | 'intensive' => {
-    const paceMap: Record<string, 'relaxed' | 'moderate' | 'intensive'> = {
-      'relajado': 'relaxed',
-      'moderado': 'moderate',
-      'intenso': 'intensive',
-      'intensivo': 'intensive',
-      'relaxed': 'relaxed',
-      'moderate': 'moderate',
-      'intensive': 'intensive'
+    traffic?: {
+      source?: string;
+      medium?: string;
+      campaign?: string;
+      referrer?: string;
     };
-    return paceMap[pace] || 'moderate';
-  };
-
-  // Mapear maxDistance a kilómetros
-  const getMaxDistance = (distance: string): number => {
-    const distanceMap: Record<string, number> = {
-      'cerca': 20,
-      'medio': 40,
-      'lejos': 60
-    };
-    return distanceMap[distance] || 40;
-  };
-
-  // Funciones de inferencia
-  const inferCulturalDepth = (p: any): 'surface' | 'deep' | 'immersive' => {
-    const culturalInterests = p.interests.filter((i: string) =>
-      ['cultura', 'artesanias', 'ritmos', 'historia', 'patrimonio', 'carnaval_cultura', 'arquitectura_historia'].includes(i)
-    ).length;
-    if (culturalInterests >= 3) return 'immersive';
-    if (culturalInterests >= 1) return 'deep';
-    return 'surface';
-  };
-
-  const inferPhysicalActivity = (p: any): 'low' | 'moderate' | 'high' => {
-    if (p.interests.includes('aventura') || p.interests.includes('deportes-acuaticos') || p.interests.includes('naturaleza_aventura')) return 'high';
-    if (p.tripType === 'familia' || p.interests.includes('relax')) return 'low';
-    return 'moderate';
-  };
-
-  const inferCrowdTolerance = (p: any): 'avoid' | 'moderate' | 'doesnt_matter' => {
-    if (p.tripType === 'pareja' || p.tripType === 'solo_pareja' || p.interests.includes('relax')) return 'avoid';
-    if (p.tripType === 'amigos' || p.tripType === 'grupo' || p.interests.includes('festivales') || p.interests.includes('vida_nocturna')) return 'doesnt_matter';
-    return 'moderate';
-  };
-
-  // Determinar locationRange basado en maxDistance
-  const getLocationRange = (distance: string): 'barranquilla' | 'todo_atlantico' => {
-    return distance === 'cerca' ? 'barranquilla' : 'todo_atlantico';
-  };
-
-  const mappedTripType = mapTripType(profile.tripType);
-  console.log(`Tipo de viaje mapeado: ${profile.tripType} -> ${mappedTripType}`);
-
-  return {
-    days: Number(profile.days),
-    email: profile.email || '',
-    interests: profile.interests.filter((i: any) => typeof i === 'string' && i.trim().length > 0),
-    tripType: mappedTripType,
-    budget: profile.budget,
-    locationRange: getLocationRange(profile.maxDistance || 'medio'),
-    startLocation: profile.startLocation,
-    preferredPace: mapPace(profile.travelPace || 'moderado'),
-    maxTravelDistance: getMaxDistance(profile.maxDistance || 'medio'),
-    culturalDepth: inferCulturalDepth(profile),
-    foodAdventure: profile.interests.includes("gastronomia") || profile.interests.includes("gastronomia_local"),
-    physicalActivity: inferPhysicalActivity(profile),
-    crowdTolerance: inferCrowdTolerance(profile)
+    language?: string;
+    timezone?: string;
+    isNewUser?: boolean;
+    visitCount?: number;
+    funnelTime?: number; // tiempo total en el planner (ms)
   };
 }
 
-// Función para limpiar undefined de objetos
-function cleanUndefined(obj: any): any {
-  if (obj === null || obj === undefined) return null;
-  if (Array.isArray(obj)) {
-    return obj.map(cleanUndefined);
-  }
-  if (typeof obj === 'object') {
-    const cleaned: any = {};
-    for (const key in obj) {
-      const value = cleanUndefined(obj[key]);
-      if (value !== undefined) {
-        cleaned[key] = value;
-      }
+// =============================================================================
+// MAPEO DE VALORES DEL FRONTEND
+// =============================================================================
+
+function mapTripType(type: string): 'solo' | 'pareja' | 'familia' | 'amigos' {
+  const typeMap: Record<string, 'solo' | 'pareja' | 'familia' | 'amigos'> = {
+    'solo': 'solo',
+    'pareja': 'pareja',
+    'solo_pareja': 'pareja',
+    'familia': 'familia',
+    'amigos': 'amigos',
+    'grupo': 'amigos',
+  };
+  return typeMap[type] || 'familia';
+}
+
+function mapBudget(budget: string): 'economico' | 'moderado' | 'premium' {
+  const budgetMap: Record<string, 'economico' | 'moderado' | 'premium'> = {
+    'economico': 'economico',
+    'moderado': 'moderado',
+    'premium': 'premium',
+  };
+  return budgetMap[budget] || 'moderado';
+}
+
+function mapPace(pace?: string): 'relajado' | 'moderado' | 'intenso' {
+  const paceMap: Record<string, 'relajado' | 'moderado' | 'intenso'> = {
+    'relajado': 'relajado',
+    'relaxed': 'relajado',
+    'moderado': 'moderado',
+    'moderate': 'moderado',
+    'normal': 'moderado',
+    'intenso': 'intenso',
+    'intensive': 'intenso',
+    'packed': 'intenso',
+  };
+  return paceMap[pace || 'moderado'] || 'moderado';
+}
+
+// =============================================================================
+// CONVERTIR A FORMATO DEL FRONTEND
+// =============================================================================
+
+interface FrontendActivity {
+  id: string;
+  name: string;
+  description: string;
+  time: string;
+  duration: string;
+  location: {
+    address: string;
+    municipality: string;
+    coordinates?: {
+      lat: number;
+      lng: number;
+    };
+  };
+  category: string;
+  tips: string[];
+  pricing: string;
+  rating?: number;
+  photos: string[];
+  whyRecommended: string;
+}
+
+interface FrontendDay {
+  day: number;
+  date: string;
+  title: string;
+  description: string;
+  theme: string;
+  municipality: string;
+  activities: FrontendActivity[];
+  meals: {
+    breakfast?: string;
+    lunch?: string;
+    dinner?: string;
+  };
+  estimatedCost: number;
+}
+
+function convertToFrontendFormat(itinerary: GeneratedItinerary): { days: FrontendDay[] } {
+  const days: FrontendDay[] = [];
+
+  for (const day of itinerary.days) {
+    const activities: FrontendActivity[] = [];
+
+    for (const stop of day.stops) {
+      const placeData = getPlaceById(stop.placeId);
+
+      activities.push({
+        id: stop.placeId,
+        name: stop.name,
+        description: stop.personalizedDescription,
+        time: stop.startTime,
+        duration: `${stop.durationMinutes} min`,
+        location: {
+          address: placeData?.address || '',
+          municipality: placeData?.municipality || day.municipality,
+          coordinates: placeData?.coordinates
+        },
+        category: stop.category,
+        tips: [stop.localTip, ...stop.activities].filter(Boolean),
+        pricing: formatPrice(stop.estimatedCost),
+        rating: placeData?.rating,
+        photos: placeData?.images || [],
+        whyRecommended: stop.whyHere
+      });
     }
-    return cleaned;
+
+    days.push({
+      day: day.day,
+      date: getDateForDay(day.day),
+      title: day.title,
+      description: day.description,
+      theme: day.theme,
+      municipality: day.municipality,
+      activities,
+      meals: day.meals,
+      estimatedCost: day.totalCost
+    });
   }
-  return obj;
+
+  return { days };
 }
 
-async function saveFormattedItinerary(
-  formattedItinerary: any,
-  profile: EnhancedUserProfile,
-  generationResult: any
-): Promise<{ success: boolean; itineraryId: string; error?: string }> {
-  try {
-    const profileToSave = {
-      ...profile,
-      startLocation: profile.startLocation || null
-    };
+function formatPrice(amount: number): string {
+  if (amount === 0) return 'Gratis';
+  if (amount < 10000) return `$${amount.toLocaleString('es-CO')} COP`;
+  return `$${Math.round(amount / 1000)}k COP`;
+}
 
-    // Limpiar undefined de los días
-    const cleanedDays = formattedItinerary.days.map((day: any) => {
-      const cleanedDay = { ...day };
-      // Si meals es undefined, eliminarlo
-      if (cleanedDay.meals === undefined) {
-        delete cleanedDay.meals;
-      }
-      // Limpiar activities
-      if (cleanedDay.activities) {
-        cleanedDay.activities = cleanedDay.activities.map((activity: any) => {
-          const cleanedActivity = { ...activity };
-          // Eliminar campos undefined
-          Object.keys(cleanedActivity).forEach(key => {
-            if (cleanedActivity[key] === undefined) {
-              delete cleanedActivity[key];
-            }
-          });
-          return cleanedActivity;
-        });
-      }
-      return cleanedDay;
+function getDateForDay(dayNumber: number): string {
+  const today = new Date();
+  const targetDate = new Date(today);
+  targetDate.setDate(today.getDate() + dayNumber - 1);
+  
+  const options: Intl.DateTimeFormatOptions = { 
+    weekday: 'long', 
+    year: 'numeric', 
+    month: 'long', 
+    day: 'numeric' 
+  };
+  
+  return targetDate.toLocaleDateString('es-CO', options);
+}
+
+// =============================================================================
+// GUARDAR EN FIREBASE CON ANALYTICS
+// =============================================================================
+
+async function saveToFirebaseWithAnalytics(
+  itineraryId: string,
+  itinerary: GeneratedItinerary,
+  frontendData: { days: FrontendDay[] },
+  profile: any,
+  analytics: RequestBody['analytics'],
+  generationTimeMs: number
+): Promise<void> {
+  if (!process.env.FIREBASE_SERVICE_JSON) {
+    console.warn('Firebase no configurado, saltando guardado');
+    return;
+  }
+
+  try {
+    const { getFirestore, FieldValue } = await import("firebase-admin/firestore");
+    const { initializeApp, getApps, cert } = await import("firebase-admin/app");
+    
+    const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_JSON);
+    const app = getApps().length ? getApps()[0] : initializeApp({ credential: cert(serviceAccount) });
+    const db = getFirestore(app);
+
+    const now = new Date();
+    const today = now.toISOString().split('T')[0];
+
+    // =========================================================================
+    // 1. GUARDAR ITINERARIO GENERADO
+    // =========================================================================
+    await db.collection("generated_itineraries").doc(itineraryId).set({
+      days: frontendData.days,
+      profile: {
+        days: profile.days,
+        interests: profile.interests,
+        tripType: profile.tripType,
+        budget: profile.budget,
+        pace: profile.travelPace,
+        email: profile.email,
+        startLocation: profile.startLocation
+      },
+      metadata: {
+        ...itinerary.metadata,
+        createdAt: now,
+        version: '2.0-claude',
+        dataSource: 'curated_places_db'
+      },
+      validation: itinerary.validation
     });
 
-    if (process.env.FIREBASE_SERVICE_JSON) {
-      const { getFirestore } = await import("firebase-admin/firestore");
-      const { initializeApp, getApps, cert } = await import("firebase-admin/app");
+    // =========================================================================
+    // 2. GUARDAR ANALYTICS DEL ITINERARIO
+    // =========================================================================
+    const analyticsData = {
+      // Identificadores
+      itineraryId,
+      sessionId: analytics?.sessionId || 'unknown',
       
-      const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_JSON);
-      const app = getApps().length ? getApps()[0] : initializeApp({ credential: cert(serviceAccount) });
-      const db = getFirestore(app);
-
-      // Limpiar todos los undefined antes de guardar
-      const dataToSave = cleanUndefined({
-        profile: JSON.parse(JSON.stringify(profileToSave)),
-        days: cleanedDays,
-        metadata: {
-          ...generationResult.metadata,
-          generatedAt: new Date().toISOString(),
-          totalActivities: cleanedDays.reduce((acc: number, day: any) => 
-            acc + (day.activities?.length || 0), 0
-          ),
-          generationVersion: 'v2.0',
-          dataSource: 'google_places_api'
-        },
-        validation: generationResult.validation,
-        themes: generationResult.themes || [],
-        createdAt: new Date(),
-        status: 'generated_successfully',
-        source: 'google_places_api'
-      });
-
-      const docRef = await db.collection("generated_itineraries").add(dataToSave);
+      // Timestamps
+      createdAt: now,
+      generationTimeMs,
       
-      console.log("✅ Itinerario guardado con formato correcto, ID:", docRef.id);
-      return { success: true, itineraryId: docRef.id };
+      // Perfil del viajero
+      profile: {
+        days: profile.days,
+        tripType: profile.tripType,
+        budget: profile.budget,
+        pace: profile.travelPace || 'moderado',
+        interests: profile.interests,
+        startLocation: profile.startLocation || 'barranquilla_centro'
+      },
+      
+      // Resultado de la generación
+      result: {
+        success: itinerary.validation.isValid,
+        totalStops: itinerary.metadata.totalStops,
+        totalDays: itinerary.metadata.totalDays,
+        estimatedCost: itinerary.metadata.totalCost,
+        municipalities: [...new Set(itinerary.days.map(d => d.municipality))],
+        categories: [...new Set(itinerary.days.flatMap(d => d.stops.map(s => s.category)))],
+        aiModel: itinerary.metadata.personalizationScore > 75 ? 'claude' : 'local',
+        personalizationScore: itinerary.metadata.personalizationScore
+      },
+      
+      // Datos del usuario/sesión
+      session: {
+        device: analytics?.device || { type: 'unknown' },
+        traffic: analytics?.traffic || { source: 'unknown' },
+        language: analytics?.language || 'es',
+        timezone: analytics?.timezone || 'America/Bogota',
+        isNewUser: analytics?.isNewUser ?? true,
+        visitCount: analytics?.visitCount || 1
+      },
+      
+      // Métricas del funnel
+      funnel: {
+        totalTimeMs: analytics?.funnelTime || 0,
+        completedSteps: 4
+      },
+      
+      // Engagement (se actualizará después)
+      engagement: {
+        viewed: false,
+        viewedAt: null,
+        timeOnPage: 0,
+        shared: false,
+        sharedVia: [],
+        savedPdf: false,
+        clickedPlaces: []
+      }
+    };
+
+    await db.collection("analytics_itineraries").doc(itineraryId).set(analyticsData);
+
+    // =========================================================================
+    // 3. ACTUALIZAR AGREGADOS DIARIOS
+    // =========================================================================
+    const dailyRef = db.collection("analytics_daily").doc(today);
+    
+    const dailyUpdates: Record<string, any> = {
+      date: today,
+      totalItineraries: FieldValue.increment(1),
+      updatedAt: now
+    };
+
+    // Resultado
+    if (itinerary.validation.isValid) {
+      dailyUpdates.successfulGenerations = FieldValue.increment(1);
     } else {
-      console.warn("Firebase Admin no configurado. Usando ID local.");
-      const fallbackId = `local_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`;
-      return { success: true, itineraryId: fallbackId };
+      dailyUpdates.failedGenerations = FieldValue.increment(1);
     }
-  } catch (error: any) {
-    console.error("❌ Error al guardar itinerario:", error.message);
-    return { success: false, itineraryId: `error_${Date.now()}`, error: error.message };
+
+    // Distribución de días
+    dailyUpdates[`dayDistribution.d${profile.days}`] = FieldValue.increment(1);
+
+    // Distribución de tipo de viaje
+    dailyUpdates[`tripTypeDistribution.${profile.tripType}`] = FieldValue.increment(1);
+
+    // Distribución de presupuesto
+    dailyUpdates[`budgetDistribution.${profile.budget}`] = FieldValue.increment(1);
+
+    // Intereses
+    for (const interest of profile.interests) {
+      dailyUpdates[`interestCounts.${interest.replace(/[^a-zA-Z0-9_]/g, '_')}`] = FieldValue.increment(1);
+    }
+
+    // Fuente de tráfico
+    const trafficSource = analytics?.traffic?.source || 'direct';
+    dailyUpdates[`trafficSources.${trafficSource.replace(/[^a-zA-Z0-9_]/g, '_')}`] = FieldValue.increment(1);
+
+    // Tipo de dispositivo
+    const deviceType = analytics?.device?.type || 'unknown';
+    dailyUpdates[`deviceTypes.${deviceType}`] = FieldValue.increment(1);
+
+    // Tiempo de generación promedio
+    dailyUpdates.totalGenerationTimeMs = FieldValue.increment(generationTimeMs);
+
+    await dailyRef.set(dailyUpdates, { merge: true });
+
+    // =========================================================================
+    // 4. ACTUALIZAR CONTADORES GLOBALES
+    // =========================================================================
+    const globalRef = db.collection("analytics_global").doc("counters");
+    
+    const globalUpdates: Record<string, any> = {
+      totalItineraries: FieldValue.increment(1),
+      lastUpdated: now
+    };
+
+    // Por tipo de viaje (lifetime)
+    globalUpdates[`lifetimeTripTypes.${profile.tripType}`] = FieldValue.increment(1);
+
+    // Por presupuesto (lifetime)
+    globalUpdates[`lifetimeBudgets.${profile.budget}`] = FieldValue.increment(1);
+
+    // Usuarios únicos (aproximado por sessionId)
+    if (analytics?.isNewUser) {
+      globalUpdates.estimatedUniqueUsers = FieldValue.increment(1);
+    }
+
+    await globalRef.set(globalUpdates, { merge: true });
+
+    // =========================================================================
+    // 5. ACTUALIZAR CONTEO DE LUGARES
+    // =========================================================================
+    const placesRef = db.collection("analytics_global").doc("place_stats");
+    
+    const placeUpdates: Record<string, any> = {
+      lastUpdated: now
+    };
+
+    // Contar cada lugar incluido
+    for (const day of itinerary.days) {
+      for (const stop of day.stops) {
+        const safeId = stop.placeId.replace(/[^a-zA-Z0-9_-]/g, '_');
+        placeUpdates[`inclusionCount.${safeId}`] = FieldValue.increment(1);
+      }
+    }
+
+    await placesRef.set(placeUpdates, { merge: true });
+
+    console.log(`✅ Itinerario y analytics guardados: ${itineraryId}`);
+
+  } catch (error) {
+    console.error('Error guardando en Firebase:', error);
+    throw error;
   }
 }
 
+// =============================================================================
+// HANDLER PRINCIPAL
+// =============================================================================
+
 export async function POST(req: NextRequest) {
+  console.log('🚀 POST /api/itinerary/generate - Iniciando');
   const startTime = Date.now();
   
   try {
-    console.log("=== INICIO GENERACIÓN ITINERARIO V2.0 ===");
-    
-    const body = await req.json();
-    console.log("Datos recibidos:", JSON.stringify(body, null, 2));
-    
-    const { profile } = body;
+    // 1. Parsear request
+    const body: RequestBody = await req.json();
+    const { profile: rawProfile, analytics } = body;
 
-    if (!profile) {
-      return NextResponse.json({ error: "Perfil de usuario requerido" }, { status: 400 });
-    }
-
-    console.log(`Perfil: ${profile.days} días, ${profile.tripType}, intereses: ${profile.interests?.join(', ')}`);
-
-    // Verificar API key
-    const apiKey = process.env.NEXT_PUBLIC_GOOGLE_PLACES_API_KEY;
-    if (!apiKey) {
-      console.error("CRITICAL: Google Places API key no configurada");
+    if (!rawProfile) {
       return NextResponse.json(
-        { 
-          error: "Configuración del servidor incompleta", 
-          message: "La API de Google Places no está configurada. Por favor contacta al administrador."
-        }, 
-        { status: 503 }
-      );
-    }
-
-    // Crear perfil enriquecido
-    let enhancedProfile: EnhancedUserProfile;
-    try {
-      enhancedProfile = createEnhancedProfile(profile);
-      console.log("Perfil enriquecido creado:", {
-        tripType: enhancedProfile.tripType,
-        pace: enhancedProfile.preferredPace,
-        distance: enhancedProfile.maxTravelDistance,
-        cultural: enhancedProfile.culturalDepth
-      });
-    } catch (profileError: any) {
-      console.error("Error creando perfil:", profileError.message);
-      return NextResponse.json(
-        { error: profileError.message },
+        { error: 'Profile es requerido' },
         { status: 400 }
       );
     }
 
-    // Generar itinerario con Google Places
-    console.log("Iniciando generación con Google Places API...");
-    const generator = new EnhancedGooglePlacesItineraryGenerator();
-    const generationResult = await generator.generateOptimizedItinerary(enhancedProfile);
-
-    // Validar generación
-    if (!generationResult || generationResult.itinerary.length === 0) {
-      console.error("Error crítico: El generador no produjo un itinerario válido.");
-      
-      if (generationResult && !generationResult.validation.isValid) {
-        return NextResponse.json(
-          { 
-            error: generationResult.validation.errors[0] || "Error generando el itinerario", 
-            message: "Por favor, intenta nuevamente en unos segundos.",
-            shouldRetry: true
-          }, 
-          { status: 503 }
-        );
-      }
-      
+    // 2. Validar campos requeridos
+    if (!rawProfile.days || rawProfile.days < 1 || rawProfile.days > 14) {
       return NextResponse.json(
-        { 
-          error: "No se pudo generar el itinerario", 
-          message: "El sistema no pudo crear un itinerario. Por favor, intenta nuevamente.",
-          shouldRetry: true
-        }, 
-        { status: 503 }
+        { error: 'Días debe ser entre 1 y 14' },
+        { status: 400 }
       );
     }
-    
-    console.log("=== RESULTADO GENERACIÓN ===");
-    console.log(`Total paradas: ${generationResult.itinerary.length}`);
-    console.log(`Score calidad: ${generationResult.validation.qualityScore}/100`);
-    console.log(`Coherencia: ${generationResult.validation.coherenceScore}/100`);
-    console.log(`Personalización: ${generationResult.validation.personalizationScore}/100`);
 
-    // Convertir al formato esperado por el frontend
-    const formattedItinerary = convertItineraryToFrontendFormat(
-      generationResult.itinerary,
-      enhancedProfile
-    );
-
-    // Guardar en Firebase
-    const saveResult = await saveFormattedItinerary(
-      formattedItinerary,
-      enhancedProfile,
-      generationResult
-    );
-
-    if (!saveResult.success) {
-      console.error("Error guardando el itinerario, pero continuando:", saveResult.error);
-      // No fallar si no se puede guardar, continuar con ID temporal
+    if (!rawProfile.interests || rawProfile.interests.length === 0) {
+      return NextResponse.json(
+        { error: 'Al menos un interés es requerido' },
+        { status: 400 }
+      );
     }
 
-    const totalTime = Date.now() - startTime;
-    console.log(`=== GENERACIÓN COMPLETADA EN ${totalTime}ms ===`);
+    if (!rawProfile.email) {
+      return NextResponse.json(
+        { error: 'Email es requerido' },
+        { status: 400 }
+      );
+    }
 
-    // Respuesta exitosa
+    // 3. Mapear perfil al formato interno
+    const profile: ItineraryProfile = {
+      days: rawProfile.days,
+      email: rawProfile.email,
+      interests: rawProfile.interests,
+      tripType: mapTripType(rawProfile.tripType),
+      budget: mapBudget(rawProfile.budget),
+      travelPace: mapPace(rawProfile.travelPace),
+      maxDistance: 'medio',
+      startLocation: rawProfile.startLocation
+    };
+
+    console.log('📋 Perfil procesado:', {
+      days: profile.days,
+      tripType: profile.tripType,
+      interests: profile.interests,
+      budget: profile.budget,
+      pace: profile.travelPace
+    });
+
+    // 4. Generar itinerario con Claude
+    const enhancer = new ClaudeItineraryEnhancer();
+    const itinerary = await enhancer.generateItinerary(profile);
+
+    const generationTime = Date.now() - startTime;
+
+    // 5. Verificar que se generó correctamente
+    if (!itinerary.validation.isValid) {
+      console.error('❌ Itinerario inválido:', itinerary.validation.errors);
+      return NextResponse.json(
+        { 
+          error: 'Error generando itinerario',
+          details: itinerary.validation.errors
+        },
+        { status: 500 }
+      );
+    }
+
+    // 6. Convertir a formato del frontend
+    const frontendData = convertToFrontendFormat(itinerary);
+
+    // 7. Generar ID único
+    const itineraryId = rawProfile.itineraryRequestId || 
+      `itin_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+    // 8. Guardar en Firebase CON ANALYTICS
+    try {
+      await saveToFirebaseWithAnalytics(
+        itineraryId, 
+        itinerary, 
+        frontendData, 
+        profile, 
+        analytics,
+        generationTime
+      );
+    } catch (firebaseError) {
+      console.error('Error guardando en Firebase (continuando):', firebaseError);
+    }
+
+    // 9. Responder
+    console.log(`✅ Itinerario generado en ${generationTime}ms`);
+    
     return NextResponse.json({
       success: true,
-      itineraryId: saveResult.itineraryId,
-      itinerary: formattedItinerary,
-      themes: generationResult.themes,
-      validation: generationResult.validation,
+      itineraryId,
+      itinerary: frontendData,
       metadata: {
-        ...generationResult.metadata,
-        processingTime: totalTime,
-        apiCalls: generationResult.metadata.totalDays * 3
+        ...itinerary.metadata,
+        generationTimeMs: generationTime,
+        warnings: itinerary.validation.warnings
       }
     });
 
   } catch (error: any) {
-    console.error("=== ERROR CRÍTICO EN GENERACIÓN ===");
-    console.error("Mensaje:", error.message);
-    console.error("Stack:", error.stack);
-    
-    let errorMessage = "Error generando el itinerario";
-    let statusCode = 500;
-    
-    if (error.message?.includes('API key')) {
-      errorMessage = "Error de configuración del servidor";
-      statusCode = 503;
-    } else if (error.message?.includes('duración del viaje')) {
-      errorMessage = error.message;
-      statusCode = 400;
-    } else if (error.message?.includes('interés')) {
-      errorMessage = error.message;
-      statusCode = 400;
-    } else if (error.message?.includes('tipo de viaje')) {
-      errorMessage = error.message;
-      statusCode = 400;
-    } else if (error.message?.includes('No se pudieron encontrar destinos')) {
-      errorMessage = error.message;
-      statusCode = 404;
-    }
+    console.error('❌ Error en /api/itinerary/generate:', error);
     
     return NextResponse.json(
       { 
-        error: errorMessage, 
-        message: error.message, 
-        stack: process.env.NODE_ENV === 'development' ? error.stack : undefined 
-      }, 
-      { status: statusCode }
+        error: 'Error interno del servidor',
+        details: process.env.NODE_ENV === 'development' ? error.message : undefined
+      },
+      { status: 500 }
     );
   }
+}
+
+// =============================================================================
+// HEALTH CHECK
+// =============================================================================
+
+export async function GET() {
+  return NextResponse.json({
+    status: 'ok',
+    version: '2.0-claude-analytics',
+    features: {
+      ai: 'claude-sonnet-4-20250514',
+      database: 'curated_places',
+      storage: 'firebase',
+      analytics: 'enabled'
+    }
+  });
 }

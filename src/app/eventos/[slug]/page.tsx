@@ -4,6 +4,14 @@ import { getEventBySlug, getRelatedEvents, getAllEvents } from "@/services/event
 import EventPageClient from "./EventPageClient";
 
 // =============================================================================
+// TIPOS - Next.js 15 requiere Promise para params
+// =============================================================================
+
+interface PageProps {
+  params: Promise<{ slug: string }>;
+}
+
+// =============================================================================
 // STATIC PARAMS - Generate static pages for all events
 // =============================================================================
 
@@ -18,11 +26,7 @@ export async function generateStaticParams() {
 // METADATA
 // =============================================================================
 
-export async function generateMetadata({ 
-  params 
-}: { 
-  params: Promise<{ slug: string }> 
-}): Promise<Metadata> {
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { slug } = await params;
   const event = await getEventBySlug(slug);
   
@@ -54,11 +58,7 @@ export async function generateMetadata({
 // PAGE COMPONENT
 // =============================================================================
 
-export default async function EventPage({ 
-  params 
-}: { 
-  params: Promise<{ slug: string }> 
-}) {
+export default async function EventPage({ params }: PageProps) {
   const { slug } = await params;
   const event = await getEventBySlug(slug);
   

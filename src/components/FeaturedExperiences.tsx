@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef } from "react";
+import { ComponentType } from "react";
 import { motion, useInView, AnimatePresence } from "framer-motion";
 import Image from "next/image";
 import Link from "next/link";
@@ -17,7 +18,29 @@ import {
 import { allRoutes, TouristRoute, getRouteBySlug } from "@/data/routes-data";
 
 export { allRoutes, getRouteBySlug };
-export { allRoutes as itineraries }; // Alias for backwards compatibility
+
+// Legacy exports for ExperienciasPage compatibility
+// TODO: Either update ExperienciasPage to use TouristRoute or create proper itineraries data
+export interface Itinerary {
+  id: string;
+  slug: string;
+  title: string;
+  tagline: string;
+  description: string;
+  duration: string;
+  durationDays: number;
+  difficulty: string;
+  image: string;
+  gradient: string;
+  color: string;
+  icon: ComponentType<{ className?: string }>;
+  categories: string[];
+  municipalities: string[];
+  groupSize: string;
+}
+
+export const itineraries: Itinerary[] = []; // Empty for now - page will show "no results"
+
 export type { TouristRoute };
 
 // =============================================================================

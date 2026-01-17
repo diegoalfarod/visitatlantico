@@ -4,18 +4,27 @@ import { useState, useCallback, useEffect, useRef } from "react";
 import dynamic from "next/dynamic";
 import Image from "next/image";
 import { motion } from "framer-motion";
-import { sendChatMessage, createUserMessage } from "@/lib/geminiService";
-import type { ChatMessage } from "@/types/geminiChat";
-import { Shield, MessageCircle, Sparkles } from "lucide-react";
+import { 
+  sendChatMessage, 
+  createUserMessage, 
+  generateSuggestions,
+  type ChatMessage 
+} from "@/lib/claudeService";
+import { Sparkles, MessageCircle } from "lucide-react";
 
 // =============================================================================
-// PALETA INSTITUCIONAL - Gobernación del Atlántico
-// Principal: #E40E20, #D31A2B
-// Neutros: #4A4F55, #7A858C, #C1C5C8
-// Dorado accent: #eab308
+// PALETA VISITATLÁNTICO
 // =============================================================================
+const COLORS = {
+  azulBarranquero: "#007BC4",
+  rojoCayena: "#D31A2B",
+  naranjaSalinas: "#EA5B13",
+  amarilloArepa: "#F39200",
+  verdeBijao: "#008D39",
+  beigeIraca: "#B8A88A",
+};
 
-// Carga diferida del ChatWindow para evitar SSR
+// Carga diferida del ChatWindow
 const ChatWindow = dynamic(() => import("./ChatWindow"), {
   ssr: false,
   loading: () => (
@@ -25,12 +34,18 @@ const ChatWindow = dynamic(() => import("./ChatWindow"), {
         animate={{ opacity: 1, scale: 1 }}
         className="bg-white rounded-2xl p-6 shadow-2xl flex flex-col items-center gap-4"
       >
-        <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#E40E20] to-[#D31A2B] p-0.5 shadow-lg shadow-red-500/25">
+        <div 
+          className="w-14 h-14 rounded-2xl p-0.5 shadow-lg"
+          style={{ background: `linear-gradient(135deg, ${COLORS.naranjaSalinas}, ${COLORS.rojoCayena})` }}
+        >
           <div className="w-full h-full rounded-[14px] bg-white flex items-center justify-center">
-            <div className="w-8 h-8 animate-spin rounded-full border-3 border-[#C1C5C8] border-t-[#E40E20]" />
+            <div 
+              className="w-8 h-8 animate-spin rounded-full border-3 border-slate-200"
+              style={{ borderTopColor: COLORS.naranjaSalinas }}
+            />
           </div>
         </div>
-        <p className="text-[#4A4F55] font-medium" style={{ fontFamily: "'Merriweather Sans', sans-serif" }}>
+        <p className="text-slate-600 font-medium" style={{ fontFamily: "'Montserrat', sans-serif" }}>
           Cargando asistente...
         </p>
       </motion.div>
@@ -38,7 +53,6 @@ const ChatWindow = dynamic(() => import("./ChatWindow"), {
   ),
 });
 
-/* Utils */
 function generateId(): string {
   if (typeof window !== "undefined" && window.crypto?.randomUUID) {
     return window.crypto.randomUUID();
@@ -46,37 +60,7 @@ function generateId(): string {
   return Date.now().toString(36) + Math.random().toString(36).substr(2);
 }
 
-function generateSuggestions(botText: string): string[] {
-  const lower = botText.toLowerCase();
-
-  if (lower.includes("hola") || lower.includes("saludo") || lower.includes("jimmy"))
-    return ["📍 Lugares turísticos destacados", "🏛️ Servicios gubernamentales", "🎭 Eventos culturales"];
-
-  if (lower.includes("comer") || lower.includes("restaurante") || lower.includes("comida") || lower.includes("gastronomía"))
-    return ["🍽️ Gastronomía típica atlántica", "🍤 Restaurantes recomendados", "🥘 Platos tradicionales"];
-
-  if (lower.includes("hotel") || lower.includes("alojamiento") || lower.includes("dormir") || lower.includes("hospedaje"))
-    return ["🏨 Hoteles certificados", "🏛️ Alojamientos históricos", "💼 Hospedaje empresarial"];
-
-  if (lower.includes("evento") || lower.includes("festival") || lower.includes("carnaval") || lower.includes("fiesta"))
-    return ["🎭 Carnaval de Barranquilla", "🎪 Festivales culturales", "📅 Calendario de eventos"];
-
-  if (lower.includes("playa") || lower.includes("mar") || lower.includes("costa"))
-    return ["🏖️ Playas del Atlántico", "🌊 Actividades marítimas", "🚤 Deportes náuticos"];
-
-  if (lower.includes("cultura") || lower.includes("museo") || lower.includes("historia") || lower.includes("patrimonio"))
-    return ["🏛️ Museos y patrimonio", "📚 Historia del Atlántico", "🎨 Centros culturales"];
-
-  if (lower.includes("transporte") || lower.includes("moverse") || lower.includes("taxi") || lower.includes("bus"))
-    return ["🚌 Transporte público", "🚕 Servicios de taxi", "🚗 Rutas principales"];
-
-  if (lower.includes("trámite") || lower.includes("documento") || lower.includes("gestión"))
-    return ["📋 Trámites en línea", "🏛️ Oficinas gubernamentales", "📄 Documentos requeridos"];
-
-  return ["🗺️ Guía turística completa", "📞 Información de contacto", "🏛️ Servicios disponibles"];
-}
-
-export default function GeminiWidget() {
+export default function TourismChatWidget() {
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [typing, setTyping] = useState(false);
@@ -87,7 +71,7 @@ export default function GeminiWidget() {
   const [viewportHeight, setViewportHeight] = useState(0);
   const [isHovered, setIsHovered] = useState(false);
 
-  /** -------- Scroll lock robusto -------- */
+  // Scroll lock
   const scrollYRef = useRef(0);
   const prevScrollBehaviorRef = useRef<string>("");
 
@@ -131,16 +115,13 @@ export default function GeminiWidget() {
     });
   }, []);
 
-  /** -------- Montaje -------- */
+  // Montaje
   useEffect(() => {
     setMounted(true);
-    return () => {
-      // Cleanup on unmount
-      unlockBodyScroll();
-    };
+    return () => unlockBodyScroll();
   }, [unlockBodyScroll]);
 
-  /** -------- Medidas de viewport/teclado -------- */
+  // Viewport/keyboard
   useEffect(() => {
     if (!mounted) return;
 
@@ -148,7 +129,6 @@ export default function GeminiWidget() {
 
     const updateViewport = () => {
       if (controller.signal.aborted) return;
-      
       const vv = window.visualViewport;
       if (!vv) return;
       const keyboardVisible = window.innerHeight - vv.height > 50;
@@ -166,7 +146,7 @@ export default function GeminiWidget() {
     return () => controller.abort();
   }, [mounted]);
 
-  /** -------- Lock de scroll -------- */
+  // Lock scroll
   useEffect(() => {
     if (!mounted) return;
     if (open) {
@@ -176,26 +156,49 @@ export default function GeminiWidget() {
     }
   }, [open, mounted, lockBodyScroll, unlockBodyScroll]);
 
-  /** -------- Mensaje de bienvenida -------- */
+  // Mensaje de bienvenida bilingüe - conversacional
   useEffect(() => {
     if (open && messages.length === 0 && mounted) {
-      const welcome = {
+      // Detectar idioma del navegador
+      const browserLang = typeof navigator !== "undefined" ? navigator.language : "es";
+      const isEnglish = browserLang.startsWith("en");
+
+      const welcomeEs: ChatMessage = {
         id: generateId(),
         role: "assistant",
         text:
-          "¡Bienvenido al portal turístico del <strong>Atlántico</strong>! 🌴" +
-          "<br/><br/>Soy <strong>Jimmy</strong>, tu asistente virtual oficial de la Gobernación." +
-          "<br/><br/>Estoy aquí para ayudarte a descubrir los mejores destinos, eventos culturales, gastronomía y servicios de nuestro departamento." +
-          "<br/><br/>¿En qué puedo ayudarte hoy?",
+          "¡Ey, qué más! 👋<br/><br/>" +
+          "Soy <strong>Jimmy</strong>, barranquillero y guía turístico. " +
+          "Conozco cada rincón del Atlántico y estoy aquí para ayudarte a descubrir lo mejor de mi tierra.<br/><br/>" +
+          "¿Qué te trae por acá? ¿Estás planeando un viaje o ya andas por la ciudad?",
         timestamp: Date.now(),
-      } as ChatMessage;
+        language: "es",
+      };
 
+      const welcomeEn: ChatMessage = {
+        id: generateId(),
+        role: "assistant",
+        text:
+          "Hey, what's up! 👋<br/><br/>" +
+          "I'm <strong>Jimmy</strong>, a local from Barranquilla and your personal guide. " +
+          "I know every corner of Atlántico and I'm here to help you discover the best of my homeland.<br/><br/>" +
+          "What brings you here? Planning a trip or already in the city?",
+        timestamp: Date.now(),
+        language: "en",
+      };
+
+      const welcome = isEnglish ? welcomeEn : welcomeEs;
       setMessages([welcome]);
-      setSuggestions(generateSuggestions(welcome.text));
+      
+      // Sugerencias iniciales conversacionales
+      const initialSuggestions = isEnglish 
+        ? ["🗓️ Planning a trip", "📍 I'm here now", "🤔 Just curious"]
+        : ["🗓️ Planeando viaje", "📍 Ya estoy acá", "🤔 Solo curioseando"];
+      setSuggestions(initialSuggestions);
     }
   }, [open, messages.length, mounted]);
 
-  /** -------- Enviar mensaje -------- */
+  // Enviar mensaje
   const handleSend = useCallback(
     async (text: string) => {
       if (!mounted) return;
@@ -209,20 +212,29 @@ export default function GeminiWidget() {
       try {
         const assistantMsg = await sendChatMessage([...messages, userMsg]);
         setMessages((prev) => [...prev, assistantMsg]);
-        setSuggestions(generateSuggestions(assistantMsg.text));
+        setSuggestions(generateSuggestions(assistantMsg));
         if (!open) setHasNewMessage(true);
       } catch (err) {
         console.error("Error al enviar mensaje:", err);
-        const errorMsg = {
+        
+        // Detectar idioma del último mensaje para el error
+        const lastUserMsg = [...messages, userMsg].filter(m => m.role === "user").pop();
+        const isEnglish = lastUserMsg?.language === "en";
+        
+        const errorMsg: ChatMessage = {
           id: generateId(),
           role: "assistant",
-          text:
-            "Disculpe, estoy experimentando dificultades técnicas. " +
-            "Por favor, intente nuevamente o contacte con soporte técnico.",
+          text: isEnglish 
+            ? "Oops, I'm having some technical difficulties. Please try again in a moment! 🙏"
+            : "¡Uy! Estoy teniendo algunas dificultades técnicas. Por favor intenta de nuevo en un momento. 🙏",
           timestamp: Date.now(),
-        } as ChatMessage;
+          language: isEnglish ? "en" : "es",
+        };
         setMessages((prev) => [...prev, errorMsg]);
-        setSuggestions(["🔄 Intentar nuevamente", "📞 Contactar soporte", "🏛️ Servicios disponibles"]);
+        setSuggestions(isEnglish 
+          ? ["🔄 Try again", "📍 What to do today", "🗺️ Create itinerary"]
+          : ["🔄 Intentar de nuevo", "📍 Qué hacer hoy", "🗺️ Crear itinerario"]
+        );
       } finally {
         setTyping(false);
       }
@@ -230,15 +242,12 @@ export default function GeminiWidget() {
     [messages, open, mounted]
   );
 
-  /** -------- Cambiar estado open -------- */
   const handleOpenChange = useCallback((newOpen: boolean) => {
     setOpen(newOpen);
-    if (newOpen) {
-      setHasNewMessage(false);
-    }
+    if (newOpen) setHasNewMessage(false);
   }, []);
 
-  /** -------- Abrir chat desde fuera -------- */
+  // API para abrir desde fuera
   useEffect(() => {
     if (typeof window === "undefined") return;
 
@@ -258,7 +267,7 @@ export default function GeminiWidget() {
     };
   }, []);
 
-  /** -------- FAB Simple y Estático -------- */
+  // Floating Button
   const FloatingButton = () => {
     if (!mounted || open) return null;
 
@@ -268,37 +277,23 @@ export default function GeminiWidget() {
         style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
         data-chatbot="jimmy"
       >
-        {/* Botón principal - siempre visible */}
         <button
           onClick={() => setOpen(true)}
           onMouseEnter={() => setIsHovered(true)}
           onMouseLeave={() => setIsHovered(false)}
-          aria-label="Abrir chat con Jimmy - Asistente Virtual"
-          className="
-            group relative flex items-center justify-center
-            w-16 h-16 rounded-full
-            bg-gradient-to-br from-[#E40E20] to-[#D31A2B] 
-            text-white shadow-2xl shadow-red-500/30
-            transition-transform duration-200 ease-out
-            hover:scale-105 active:scale-95
-          "
+          aria-label="Abrir chat con Jimmy - Asistente Turístico"
+          className="group relative flex items-center justify-center w-16 h-16 rounded-full text-white shadow-2xl transition-transform duration-200 ease-out hover:scale-105 active:scale-95"
+          style={{ 
+            background: `linear-gradient(135deg, ${COLORS.naranjaSalinas}, ${COLORS.rojoCayena})`,
+            boxShadow: `0 10px 40px -10px ${COLORS.naranjaSalinas}88`
+          }}
         >
-          {/* Glow effect on hover */}
-          <div 
-            className={`
-              absolute inset-0 bg-white rounded-full 
-              transition-opacity duration-200
-              ${isHovered ? 'opacity-10' : 'opacity-0'}
-            `}
-          />
+          {/* Glow on hover */}
+          <div className={`absolute inset-0 bg-white rounded-full transition-opacity duration-200 ${isHovered ? 'opacity-10' : 'opacity-0'}`} />
 
-          {/* Avatar container */}
+          {/* Avatar */}
           <div className="relative z-10">
-            <div className="
-              w-16 h-16 rounded-full bg-white/20 backdrop-blur-sm 
-              border-2 border-white/30 flex items-center justify-center 
-              overflow-hidden
-            ">
+            <div className="w-16 h-16 rounded-full bg-white/20 backdrop-blur-sm border-2 border-white/30 flex items-center justify-center overflow-hidden">
               <Image
                 src="/jimmy-avatar.png"
                 alt="Jimmy"
@@ -309,50 +304,44 @@ export default function GeminiWidget() {
               />
             </div>
 
-            {/* Status indicator - siempre visible */}
-            <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-emerald-400 border-2 border-white rounded-full shadow-lg flex items-center justify-center">
+            {/* Status indicator */}
+            <div 
+              className="absolute -bottom-0.5 -right-0.5 w-4 h-4 border-2 border-white rounded-full shadow-lg flex items-center justify-center"
+              style={{ backgroundColor: COLORS.verdeBijao }}
+            >
               <Sparkles size={8} className="text-white" />
             </div>
 
             {/* New message badge */}
             {hasNewMessage && (
-              <div className="absolute -top-1 -right-1 min-w-[22px] h-[22px] bg-amber-400 border-2 border-white rounded-full flex items-center justify-center shadow-lg animate-pulse">
+              <div 
+                className="absolute -top-1 -right-1 min-w-[22px] h-[22px] border-2 border-white rounded-full flex items-center justify-center shadow-lg animate-pulse"
+                style={{ backgroundColor: COLORS.amarilloArepa }}
+              >
                 <span className="text-xs font-bold text-amber-900 px-1">1</span>
               </div>
             )}
           </div>
 
-          {/* Message icon overlay */}
+          {/* Message icon */}
           <div className="absolute inset-0 flex items-center justify-center z-20 pointer-events-none">
             <MessageCircle size={26} className="text-white drop-shadow-lg" />
           </div>
         </button>
 
-        {/* Tooltip en hover - solo desktop */}
-        <div 
-          className={`
-            absolute right-full mr-3 top-1/2 -translate-y-1/2 pointer-events-none
-            transition-all duration-200
-            ${isHovered ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-2'}
-          `}
-        >
-          <div className="bg-white rounded-xl px-4 py-2.5 shadow-xl border border-[#C1C5C8]/20 whitespace-nowrap">
-            <p 
-              className="text-sm font-semibold text-[#4A4F55]"
-              style={{ fontFamily: "'Poppins', sans-serif" }}
-            >
+        {/* Tooltip - desktop only */}
+        <div className={`absolute right-full mr-3 top-1/2 -translate-y-1/2 pointer-events-none transition-all duration-200 hidden sm:block ${isHovered ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-2'}`}>
+          <div className="bg-white rounded-xl px-4 py-2.5 shadow-xl border border-slate-200/50 whitespace-nowrap">
+            <p className="text-sm font-semibold text-slate-700" style={{ fontFamily: "'Josefin Sans', sans-serif" }}>
               Chatea con Jimmy
             </p>
-            <p 
-              className="text-xs text-[#7A858C] flex items-center gap-1"
-              style={{ fontFamily: "'Merriweather Sans', sans-serif" }}
-            >
-              <Shield size={10} className="text-[#E40E20]" />
-              Asistente AI
+            <p className="text-xs text-slate-500 flex items-center gap-1" style={{ fontFamily: "'Montserrat', sans-serif" }}>
+              <Sparkles size={10} style={{ color: COLORS.naranjaSalinas }} />
+              Tu guía del Atlántico
             </p>
           </div>
           {/* Arrow */}
-          <div className="absolute top-1/2 -translate-y-1/2 -right-1.5 w-3 h-3 bg-white border-r border-b border-[#C1C5C8]/20 transform rotate-[-45deg]" />
+          <div className="absolute top-1/2 -translate-y-1/2 -right-1.5 w-3 h-3 bg-white border-r border-b border-slate-200/50 transform rotate-[-45deg]" />
         </div>
       </div>
     );

@@ -6,7 +6,8 @@ import {
   HiOutlineMapPin, 
   HiOutlineCalendarDays,
   HiOutlineShieldCheck,
-  HiOutlineSparkles
+  HiOutlineSparkles,
+  HiOutlineMap
 } from "react-icons/hi2";
 import { IoRestaurantOutline } from "react-icons/io5";
 import Image from "next/image";
@@ -38,6 +39,12 @@ const links = [
     color: COLORS.verdeBijao,
   },
   { 
+    href: "/mapa", 
+    label: "Mapa", 
+    icon: HiOutlineMap,
+    color: COLORS.azulBarranquero,
+  },
+  { 
     href: "/eventos", 
     label: "Eventos", 
     icon: HiOutlineCalendarDays,
@@ -58,6 +65,12 @@ const links = [
 ];
 
 // =============================================================================
+// PÁGINAS CON HERO DE FONDO CLARO
+// Estas páginas necesitan el navbar blanco desde el inicio
+// =============================================================================
+const LIGHT_HERO_PAGES = ['/ruta23', '/gastronomy'];
+
+// =============================================================================
 // COMPONENT
 // =============================================================================
 export default function Navbar() {
@@ -67,11 +80,23 @@ export default function Navbar() {
   const navbarRef = useRef<HTMLElement>(null);
   const pathname = usePathname();
 
+  // Detectar scroll y páginas con fondo claro
   useEffect(() => {
-    const handleScroll = () => setScrolled(window.scrollY > 50);
+    const handleScroll = () => {
+      // Si es una página con hero claro, siempre mostrar scrolled (navbar blanco)
+      if (LIGHT_HERO_PAGES.includes(pathname)) {
+        setScrolled(true);
+        return;
+      }
+      setScrolled(window.scrollY > 50);
+    };
+    
+    // Ejecutar inmediatamente para establecer estado inicial
+    handleScroll();
+    
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
+  }, [pathname]);
 
   useEffect(() => {
     const updateNavbarHeight = () => {

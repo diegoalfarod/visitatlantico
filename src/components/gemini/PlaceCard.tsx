@@ -6,7 +6,6 @@ import {
   MapPin, 
   Star, 
   Navigation, 
-  Award, 
   Clock, 
   Phone, 
   Globe, 
@@ -15,34 +14,32 @@ import {
   Sparkles
 } from "lucide-react";
 import { useState, useCallback, useRef, useEffect, memo } from "react";
-import type { Place } from "@/types/geminiChat";
+import type { Place } from "@/lib/claudeService";
 
 // =============================================================================
-// PALETA INSTITUCIONAL - Gobernación del Atlántico
-// Principal: #E40E20, #D31A2B
-// Neutros: #4A4F55, #7A858C, #C1C5C8
-// Dorado accent: #eab308
+// PALETA VISITATLÁNTICO
 // =============================================================================
+const COLORS = {
+  azulBarranquero: "#007BC4",
+  rojoCayena: "#D31A2B",
+  naranjaSalinas: "#EA5B13",
+  amarilloArepa: "#F39200",
+  verdeBijao: "#008D39",
+  beigeIraca: "#B8A88A",
+};
 
 interface PlaceCardProps {
   place: Place;
   isMobile?: boolean;
   isDark?: boolean;
-  fontSize: FontSize;
+  fontSize: "text-sm" | "text-base" | "text-lg";
 }
-
-type FontSize = "text-sm" | "text-base" | "text-lg";
 
 const PLACEHOLDER = "/placeholder-place.jpg";
 const EASE_CINEMATIC = [0.22, 1, 0.36, 1];
 
-// Haptic feedback seguro
 const hapticFeedback = () => {
-  try {
-    navigator.vibrate?.(10);
-  } catch {
-    // Silently fail - haptics are non-essential
-  }
+  try { navigator.vibrate?.(10); } catch {}
 };
 
 export const PlaceCard = memo(function PlaceCard({ 
@@ -64,7 +61,6 @@ export const PlaceCard = memo(function PlaceCard({
   const hasPrice = place.price_level && place.price_level > 0;
   const priceStr = "$".repeat(Math.min(place.price_level ?? 0, 4));
 
-  // Rating color basado en institucional
   const getRatingStyle = () => {
     if (!place.rating) return "";
     if (place.rating >= 4.5) return "text-emerald-700 bg-emerald-50 border-emerald-200";
@@ -75,13 +71,20 @@ export const PlaceCard = memo(function PlaceCard({
 
   const openMap = useCallback(() => {
     hapticFeedback();
-    window.open(
-      `https://www.google.com/maps/search/${encodeURIComponent(
-        `${place.name} ${place.address || "Atlántico Colombia"}`
-      )}`,
-      "_blank"
-    );
-  }, [place.name, place.address]);
+    if (place.coordinates) {
+      window.open(
+        `https://www.google.com/maps?q=${place.coordinates.lat},${place.coordinates.lng}`,
+        "_blank"
+      );
+    } else {
+      window.open(
+        `https://www.google.com/maps/search/${encodeURIComponent(
+          `${place.name} ${place.address || "Atlántico Colombia"}`
+        )}`,
+        "_blank"
+      );
+    }
+  }, [place]);
 
   const toggleFavorite = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
@@ -100,29 +103,21 @@ export const PlaceCard = memo(function PlaceCard({
           text: place.description || `Visita ${place.name} en Atlántico`,
           url: window.location.href
         });
-      } catch (err) {
-        console.log('Error sharing:', err);
-      }
+      } catch {}
     }
   }, [place, isMobile]);
 
-  // Auto-collapse cuando se hace scroll
   useEffect(() => {
     if (!isExpanded || !isMobile) return;
     
     const observer = new IntersectionObserver(
       ([entry]) => {
-        if (!entry.isIntersecting) {
-          setIsExpanded(false);
-        }
+        if (!entry.isIntersecting) setIsExpanded(false);
       },
       { threshold: 0.1 }
     );
 
-    if (cardRef.current) {
-      observer.observe(cardRef.current);
-    }
-
+    if (cardRef.current) observer.observe(cardRef.current);
     return () => observer.disconnect();
   }, [isExpanded, isMobile]);
 
@@ -133,10 +128,7 @@ export const PlaceCard = memo(function PlaceCard({
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, ease: EASE_CINEMATIC }}
-      className={`
-        group snap-center shrink-0
-        ${isMobile ? 'w-full' : 'w-[300px] md:w-[320px]'}
-      `}
+      className={`group snap-center shrink-0 ${isMobile ? 'w-full' : 'w-[300px] md:w-[320px]'}`}
       onClick={() => {
         if (isMobile) {
           hapticFeedback();
@@ -152,13 +144,12 @@ export const PlaceCard = memo(function PlaceCard({
           relative rounded-2xl overflow-hidden
           ${isDark ? 'bg-gray-800' : 'bg-white'} 
           shadow-lg hover:shadow-xl
-          border ${isDark ? 'border-gray-700/50' : 'border-[#C1C5C8]/20'}
+          border ${isDark ? 'border-gray-700/50' : 'border-slate-200/50'}
           transition-shadow duration-300
         `}
       >
-        {/* Image container */}
+        {/* Image */}
         <div className="relative aspect-[16/10] w-full overflow-hidden bg-gray-100">
-          {/* Loading skeleton */}
           <AnimatePresence>
             {imageLoading && (
               <motion.div 
@@ -181,10 +172,8 @@ export const PlaceCard = memo(function PlaceCard({
             `}
             onError={() => setImageError(true)}
             onLoadingComplete={() => setImageLoading(false)}
-            priority={false}
           />
           
-          {/* Gradient overlay cinematográfico */}
           <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
 
           {/* Top badges */}
@@ -195,67 +184,51 @@ export const PlaceCard = memo(function PlaceCard({
                   initial={{ opacity: 0, x: -10 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: 0.2 }}
-                  className={`
-                    px-3 py-1.5 rounded-full text-xs font-bold 
-                    backdrop-blur-md shadow-sm border ${getRatingStyle()}
-                  `}
+                  className={`px-3 py-1.5 rounded-full text-xs font-bold backdrop-blur-md shadow-sm border ${getRatingStyle()}`}
                 >
                   <div className="flex items-center gap-1">
                     <Star size={12} fill="currentColor" />
                     <span>{place.rating!.toFixed(1)}</span>
                     {place.review_count && (
-                      <span className="text-[10px] opacity-70">
-                        ({place.review_count})
-                      </span>
+                      <span className="text-[10px] opacity-70">({place.review_count})</span>
                     )}
                   </div>
                 </motion.div>
               )}
               
               {hasPrice && (
-                <div className="px-3 py-1.5 rounded-full bg-white/90 backdrop-blur-md 
-                  text-xs font-bold text-[#4A4F55] border border-white/50 shadow-sm">
+                <div className="px-3 py-1.5 rounded-full bg-white/90 backdrop-blur-md text-xs font-bold text-slate-700 border border-white/50 shadow-sm">
                   {priceStr}
                 </div>
               )}
             </div>
 
-            {/* Favorite button */}
+            {/* Favorite */}
             <motion.button
               onClick={toggleFavorite}
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.9 }}
-              className={`
-                h-10 w-10 rounded-full backdrop-blur-md shadow-sm
-                flex items-center justify-center transition-all
-                ${isFavorite 
-                  ? 'bg-[#E40E20] text-white' 
-                  : 'bg-white/90 text-[#4A4F55] hover:bg-white'
-                }
-              `}
+              className={`h-10 w-10 rounded-full backdrop-blur-md shadow-sm flex items-center justify-center transition-all ${
+                isFavorite 
+                  ? 'text-white' 
+                  : 'bg-white/90 text-slate-600 hover:bg-white'
+              }`}
+              style={isFavorite ? { backgroundColor: COLORS.rojoCayena } : {}}
             >
-              <Heart 
-                size={18} 
-                fill={isFavorite ? "currentColor" : "none"}
-                className="transition-all duration-300"
-              />
+              <Heart size={18} fill={isFavorite ? "currentColor" : "none"} />
             </motion.button>
           </div>
 
-          {/* Bottom badge - Recomendado oficial */}
+          {/* Recommended badge */}
           <motion.div 
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3 }}
-            className="absolute bottom-3 left-3 px-3 py-1.5 rounded-full 
-              bg-gradient-to-r from-[#E40E20] to-[#D31A2B] backdrop-blur-md shadow-lg 
-              flex items-center gap-1.5"
+            className="absolute bottom-3 left-3 px-3 py-1.5 rounded-full backdrop-blur-md shadow-lg flex items-center gap-1.5"
+            style={{ background: `linear-gradient(135deg, ${COLORS.naranjaSalinas}, ${COLORS.rojoCayena})` }}
           >
             <Sparkles size={12} className="text-white" />
-            <span 
-              className="text-white text-xs font-bold" 
-              style={{ fontFamily: "'Poppins', sans-serif" }}
-            >
+            <span className="text-white text-xs font-bold" style={{ fontFamily: "'Josefin Sans', sans-serif" }}>
               Recomendado
             </span>
           </motion.div>
@@ -265,18 +238,18 @@ export const PlaceCard = memo(function PlaceCard({
         <div className="p-4">
           <h3 
             className="text-lg font-bold line-clamp-2 mb-1" 
-            style={{ 
-              color: isDark ? '#ffffff' : '#4A4F55', 
-              fontFamily: "'Poppins', sans-serif" 
-            }}
+            style={{ color: isDark ? '#ffffff' : '#1e293b', fontFamily: "'Josefin Sans', sans-serif" }}
           >
             {place.name}
           </h3>
 
           {place.category && (
             <p 
-              className={`${fontSize} font-medium mb-2 ${isDark ? 'text-gray-400' : 'text-[#7A858C]'}`} 
-              style={{ fontFamily: "'Merriweather Sans', sans-serif" }}
+              className={`${fontSize} font-medium mb-2`}
+              style={{ 
+                color: isDark ? '#94a3b8' : '#64748b',
+                fontFamily: "'Montserrat', sans-serif"
+              }}
             >
               {place.category}
             </p>
@@ -284,12 +257,11 @@ export const PlaceCard = memo(function PlaceCard({
 
           {place.description && (
             <p 
-              className={`
-                ${fontSize} ${isExpanded ? '' : 'line-clamp-2'} 
-                ${isDark ? 'text-gray-300' : 'text-[#4A4F55]'}
-                transition-all duration-300
-              `} 
-              style={{ fontFamily: "'Merriweather Sans', sans-serif" }}
+              className={`${fontSize} ${isExpanded ? '' : 'line-clamp-2'} transition-all duration-300`}
+              style={{ 
+                color: isDark ? '#cbd5e1' : '#475569',
+                fontFamily: "'Montserrat', sans-serif"
+              }}
             >
               {place.description}
             </p>
@@ -307,14 +279,10 @@ export const PlaceCard = memo(function PlaceCard({
               >
                 {place.hours && (
                   <div className="flex items-start gap-2 text-sm">
-                    <Clock size={16} className="text-[#7A858C] mt-0.5" />
+                    <Clock size={16} className="text-slate-400 mt-0.5" />
                     <div>
-                      <p className="font-medium" style={{ color: isDark ? '#fff' : '#4A4F55' }}>
-                        Horario
-                      </p>
-                      <p className={isDark ? 'text-gray-400' : 'text-[#7A858C]'}>
-                        {place.hours}
-                      </p>
+                      <p className="font-medium" style={{ color: isDark ? '#fff' : '#1e293b' }}>Horario</p>
+                      <p style={{ color: isDark ? '#94a3b8' : '#64748b' }}>{place.hours}</p>
                     </div>
                   </div>
                 )}
@@ -322,11 +290,11 @@ export const PlaceCard = memo(function PlaceCard({
                 {place.phone && (
                   <a 
                     href={`tel:${place.phone}`}
-                    className="flex items-center gap-2 text-sm hover:text-[#E40E20] transition-colors"
-                    style={{ color: isDark ? '#fff' : '#4A4F55' }}
+                    className="flex items-center gap-2 text-sm transition-colors"
+                    style={{ color: isDark ? '#fff' : '#1e293b' }}
                     onClick={(e) => e.stopPropagation()}
                   >
-                    <Phone size={16} className="text-[#7A858C]" />
+                    <Phone size={16} className="text-slate-400" />
                     <span>{place.phone}</span>
                   </a>
                 )}
@@ -336,11 +304,11 @@ export const PlaceCard = memo(function PlaceCard({
                     href={place.website}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center gap-2 text-sm hover:text-[#E40E20] transition-colors"
-                    style={{ color: isDark ? '#fff' : '#4A4F55' }}
+                    className="flex items-center gap-2 text-sm transition-colors"
+                    style={{ color: isDark ? '#fff' : '#1e293b' }}
                     onClick={(e) => e.stopPropagation()}
                   >
-                    <Globe size={16} className="text-[#7A858C]" />
+                    <Globe size={16} className="text-slate-400" />
                     <span>Sitio web</span>
                   </a>
                 )}
@@ -348,23 +316,22 @@ export const PlaceCard = memo(function PlaceCard({
             )}
           </AnimatePresence>
 
-          {/* Local tip con diseño institucional */}
+          {/* Local tip */}
           {place.local_tip && (
-            <div className={`
-              mt-3 p-3 rounded-xl transition-all duration-300
-              ${isDark 
-                ? 'bg-amber-900/20 border border-amber-700/30' 
-                : 'bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200/60'
-              }
-            `}>
+            <div 
+              className="mt-3 p-3 rounded-xl transition-all duration-300"
+              style={{ 
+                backgroundColor: isDark ? `${COLORS.amarilloArepa}15` : `${COLORS.amarilloArepa}10`,
+                borderColor: isDark ? `${COLORS.amarilloArepa}30` : `${COLORS.amarilloArepa}20`,
+                borderWidth: 1
+              }}
+            >
               <p className="text-xs font-medium flex items-start gap-2">
                 <span className="text-base flex-shrink-0">💡</span>
-                <span 
-                  style={{ 
-                    color: isDark ? '#fbbf24' : '#92400e', 
-                    fontFamily: "'Merriweather Sans', sans-serif" 
-                  }}
-                >
+                <span style={{ 
+                  color: isDark ? COLORS.amarilloArepa : '#92400e',
+                  fontFamily: "'Montserrat', sans-serif"
+                }}>
                   {place.local_tip}
                 </span>
               </p>
@@ -374,29 +341,29 @@ export const PlaceCard = memo(function PlaceCard({
           {/* Address */}
           {place.address && (
             <p 
-              className={`mt-3 text-xs flex items-start gap-2 ${isDark ? 'text-gray-400' : 'text-[#7A858C]'}`} 
-              style={{ fontFamily: "'Merriweather Sans', sans-serif" }}
+              className="mt-3 text-xs flex items-start gap-2"
+              style={{ 
+                color: isDark ? '#94a3b8' : '#64748b',
+                fontFamily: "'Montserrat', sans-serif"
+              }}
             >
-              <MapPin size={14} className="text-[#E40E20] mt-0.5 flex-shrink-0" />
+              <MapPin size={14} style={{ color: COLORS.naranjaSalinas }} className="mt-0.5 flex-shrink-0" />
               <span className="line-clamp-2">{place.address}</span>
             </p>
           )}
 
-          {/* Action buttons */}
+          {/* Actions */}
           <div className="mt-4 flex gap-2">
             <motion.button
               onClick={openMap}
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
-              className="
-                flex-1 text-white py-3 rounded-xl text-sm font-bold 
-                flex items-center justify-center gap-2
-                bg-gradient-to-r from-[#E40E20] to-[#D31A2B]
-                shadow-lg shadow-red-500/20
-                hover:shadow-xl hover:shadow-red-500/30
-                transition-shadow duration-300
-              "
-              style={{ fontFamily: "'Poppins', sans-serif" }}
+              className="flex-1 text-white py-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-shadow duration-300"
+              style={{ 
+                background: `linear-gradient(135deg, ${COLORS.naranjaSalinas}, ${COLORS.rojoCayena})`,
+                boxShadow: `0 4px 12px -2px ${COLORS.naranjaSalinas}30`,
+                fontFamily: "'Josefin Sans', sans-serif"
+              }}
             >
               <Navigation size={16} />
               Cómo llegar
@@ -407,15 +374,11 @@ export const PlaceCard = memo(function PlaceCard({
                 onClick={handleShare}
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                className={`
-                  px-4 py-3 rounded-xl text-sm font-bold
-                  flex items-center justify-center
-                  ${isDark 
+                className={`px-4 py-3 rounded-xl text-sm font-bold flex items-center justify-center transition-colors duration-200 ${
+                  isDark 
                     ? 'bg-gray-700 text-white hover:bg-gray-600' 
-                    : 'bg-[#FAFAFA] text-[#4A4F55] hover:bg-gray-100 border border-[#C1C5C8]/30'
-                  }
-                  transition-colors duration-200
-                `}
+                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200 border border-slate-200'
+                }`}
               >
                 <Share2 size={16} />
               </motion.button>

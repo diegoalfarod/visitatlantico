@@ -8,195 +8,352 @@ import PlannerPage from "@/components/planner/PlannerPage";
 import {
   Leaf,
   Download,
-  MapPin,
-  FileText,
   Sparkles,
-  Calendar,
-  Utensils,
-  Map,
   ArrowRight,
+  FileText,
+  Map,
+  MessageCircle,
+  CalendarDays,
+  UtensilsCrossed,
+  TreePine,
 } from "lucide-react";
 
 /* ============================================
    RECURSOS PARA VIAJEROS
-   Diseño cinematográfico, coherente con el sistema
-   
-   Paleta: #E40E20, #D31A2B, #4A4F55, #7A858C, #C1C5C8
+   Diseño minimal highend - limpio y elegante
    ============================================ */
 
-const resources = [
-  {
-    id: "planner",
-    icon: Calendar,
-    title: "Planificador de Viaje",
-    description: "Crea tu itinerario personalizado con inteligencia artificial",
-    badge: "IA",
-    action: "modal" as const,
-  },
+const EASE = [0.22, 1, 0.36, 1];
+
+// Colores institucionales
+const COLORS = {
+  azulBarranquero: "#007BC4",
+  naranjaSalinas: "#EA5B13",
+  verdeBijao: "#008D39",
+  rojoCayena: "#D31A2B",
+  amarilloArepa: "#F39200",
+};
+
+interface Resource {
+  id: string;
+  title: string;
+  subtitle: string;
+  badge?: string;
+  href?: string;
+  action: "modal" | "jimmy" | "link" | "download";
+  image?: string;
+  icon: React.ComponentType<{ className?: string }>;
+  accentColor: string;
+}
+
+const resources: Resource[] = [
   {
     id: "jimmy",
-    avatar: "/jimmy-avatar.png",
-    title: "Jimmy - Asistente Virtual",
-    description: "Tu guía local disponible 24/7 para resolver todas tus dudas",
+    title: "Jimmy",
+    subtitle: "Tu guía local 24/7",
     badge: "Chat",
-    action: "jimmy" as const,
+    action: "jimmy",
+    image: "/jimmy-avatar.png",
+    icon: MessageCircle,
+    accentColor: COLORS.azulBarranquero,
+  },
+  {
+    id: "planner",
+    title: "Planificador",
+    subtitle: "Crea tu itinerario con IA",
+    badge: "IA",
+    action: "modal",
+    image: "/planner-portada.png",
+    icon: CalendarDays,
+    accentColor: COLORS.naranjaSalinas,
   },
   {
     id: "gastronomy",
-    icon: Utensils,
-    title: "Ruta 23 Gastronómica",
-    description: "Descubre los sabores auténticos de los 23 municipios",
+    title: "Ruta 23",
+    subtitle: "Gastronomía local",
     badge: "Nuevo",
     href: "/gastronomy",
-    action: "link" as const,
+    action: "link",
+    image: "/RUTA23LOGO.png",
+    icon: UtensilsCrossed,
+    accentColor: COLORS.rojoCayena,
   },
   {
     id: "destinations",
-    icon: MapPin,
-    title: "Destinos Ecológicos",
-    description: "Explora reservas naturales, lagunas y senderos",
+    title: "Ecoturismo",
+    subtitle: "Naturaleza y aventura",
     href: "/destinations?filter=EcoTurismo",
-    action: "link" as const,
+    action: "link",
+    image: "/ecoparque-cienaga.jpg",
+    icon: TreePine,
+    accentColor: COLORS.verdeBijao,
   },
   {
     id: "map",
+    title: "Mapa",
+    subtitle: "Explora destinos",
+    href: "/mapa",
+    action: "link",
+    image: "/map-icon.jpg",
     icon: Map,
-    title: "Mapa Interactivo",
-    description: "Navega por todos los destinos del departamento",
-    href: "/destinations",
-    action: "link" as const,
+    accentColor: COLORS.azulBarranquero,
   },
   {
     id: "guide",
-    icon: FileText,
-    title: "Guía de Viaje PDF",
-    description: "Descarga nuestra guía completa para llevar contigo",
-    badge: "PDF",
+    title: "Guía PDF",
+    subtitle: "Descarga gratis",
     href: "/docs/guia-turismo.pdf",
-    action: "download" as const,
+    action: "download",
+    icon: FileText,
+    accentColor: COLORS.amarilloArepa,
   },
 ];
 
 /* ============================================
-   FEATURED RESOURCE CARD - Large, immersive
+   OPCIÓN 1: GRAYSCALE CON REVEAL EN HOVER
+   Elegante, minimalista, muy usado en sitios premium
    ============================================ */
 
-function FeaturedCard({ 
+function ResourceCardGrayscale({ 
   resource, 
-  index, 
+  index,
   onClick 
 }: { 
-  resource: typeof resources[0]; 
+  resource: Resource; 
   index: number;
   onClick?: () => void;
 }) {
   const Icon = resource.icon;
+  const hasImage = !!resource.image;
   
   const cardContent = (
     <motion.div
-      className="group relative aspect-[4/5] rounded-2xl overflow-hidden cursor-pointer"
-      initial={{ opacity: 0, y: 40 }}
+      className="
+        group relative h-full
+        p-6 rounded-2xl
+        bg-white
+        border border-[#e8e8e8] hover:border-[#d0d0d0]
+        shadow-sm hover:shadow-md
+        transition-all duration-300 ease-out
+        cursor-pointer
+      "
+      initial={{ opacity: 0, y: 24 }}
       whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: "-50px" }}
-      transition={{ duration: 0.8, delay: index * 0.15, ease: [0.22, 1, 0.36, 1] }}
+      viewport={{ once: true, margin: "-40px" }}
+      transition={{ duration: 0.5, delay: index * 0.06, ease: EASE }}
     >
-      {/* Background gradient */}
-      <div 
-        className="absolute inset-0 transition-transform duration-700 group-hover:scale-105"
-        style={{
-          background: index === 0 
-            ? 'linear-gradient(135deg, #E40E20 0%, #D31A2B 100%)'
-            : 'linear-gradient(135deg, #4A4F55 0%, #2d3238 100%)'
-        }}
-      />
-      
-      {/* Decorative elements */}
-      <div 
-        className="absolute inset-0 opacity-20"
-        style={{
-          background: 'radial-gradient(circle at 30% 20%, rgba(255,255,255,0.3) 0%, transparent 50%)'
-        }}
-      />
-      
-      {/* Pattern overlay */}
-      <div 
-        className="absolute inset-0 opacity-[0.03]"
-        style={{
-          backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
-        }}
-      />
-      
-      {/* Gradient overlay - cinematic */}
-      <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
+      {/* Top row: Visual + Badge */}
+      <div className="flex items-start justify-between mb-5">
+        {/* Image con grayscale que se revela en hover */}
+        {hasImage ? (
+          <div className="relative w-14 h-14 rounded-xl overflow-hidden bg-[#f5f5f5]">
+            <Image
+              src={resource.image!}
+              alt={resource.title}
+              fill
+              className="
+                object-cover 
+                grayscale group-hover:grayscale-0
+                opacity-80 group-hover:opacity-100
+                transition-all duration-500 ease-out
+              "
+            />
+          </div>
+        ) : (
+          <div 
+            className="
+              w-14 h-14 rounded-xl 
+              bg-[#f5f5f5] group-hover:bg-opacity-80
+              flex items-center justify-center
+              transition-all duration-300
+            "
+            style={{ 
+              backgroundColor: `${resource.accentColor}10`,
+            }}
+          >
+            <Icon 
+              className="w-6 h-6 transition-colors duration-300" 
+              style={{ color: resource.accentColor }}
+              strokeWidth={1.5} 
+            />
+          </div>
+        )}
+        
+        {/* Badge */}
+        {resource.badge && (
+          <span className="px-2.5 py-1 rounded-full bg-[#f5f5f5] text-[#666] text-[11px] font-medium uppercase tracking-wide">
+            {resource.badge}
+          </span>
+        )}
+      </div>
       
       {/* Content */}
-      <div className="absolute inset-0 flex flex-col justify-between p-6">
-        {/* Top - Badge & Icon */}
-        <div className="flex items-start justify-between">
-          {resource.badge && (
-            <span className="px-3 py-1.5 bg-white/20 backdrop-blur-sm text-white text-xs font-bold uppercase tracking-wider rounded-full border border-white/10">
-              {resource.badge}
-            </span>
-          )}
-          
-          <div className="w-14 h-14 bg-white/10 backdrop-blur-sm rounded-xl flex items-center justify-center">
-            {resource.avatar ? (
-              <div className="relative w-10 h-10 rounded-lg overflow-hidden">
-                <Image 
-                  src={resource.avatar}
-                  alt={resource.title}
-                  fill
-                  className="object-cover"
-                />
-              </div>
-            ) : (
-              Icon && <Icon className="w-7 h-7 text-white" />
-            )}
-          </div>
-        </div>
-        
-        {/* Bottom - Info */}
-        <div>
-          <h3 className="text-2xl font-bold text-white mb-2 group-hover:text-white/90 transition-colors">
-            {resource.title}
-          </h3>
-          <p className="text-white/70 text-sm leading-relaxed mb-4">
-            {resource.description}
-          </p>
-          
-          {/* Hover indicator */}
-          <div className="flex items-center gap-2 text-white/60 text-sm opacity-0 group-hover:opacity-100 transition-opacity">
-            <span>
-              {resource.action === 'download' ? 'Descargar' : 
-               resource.action === 'jimmy' ? 'Abrir chat' :
-               resource.action === 'modal' ? 'Comenzar' : 'Explorar'}
-            </span>
-            <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-          </div>
-        </div>
+      <div>
+        <h3 className="text-lg font-semibold text-[#1a1a1a] mb-1 tracking-tight">
+          {resource.title}
+        </h3>
+        <p className="text-sm text-[#888] leading-relaxed">
+          {resource.subtitle}
+        </p>
+      </div>
+      
+      {/* Hover arrow */}
+      <div className="absolute bottom-6 right-6 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+        <ArrowRight className="w-5 h-5 text-[#ccc] group-hover:text-[#999] group-hover:translate-x-0.5 transition-all" />
       </div>
     </motion.div>
   );
 
   if (resource.action === "link" && resource.href) {
-    return <Link href={resource.href} className="block">{cardContent}</Link>;
+    return <Link href={resource.href} className="block h-full">{cardContent}</Link>;
   }
   if (resource.action === "download" && resource.href) {
-    return <a href={resource.href} download target="_blank" rel="noopener noreferrer" className="block">{cardContent}</a>;
+    return (
+      <a href={resource.href} download target="_blank" rel="noopener noreferrer" className="block h-full">
+        {cardContent}
+      </a>
+    );
   }
-  return <button type="button" className="block w-full text-left" onClick={onClick}>{cardContent}</button>;
+  return (
+    <button type="button" className="block w-full h-full text-left" onClick={onClick}>
+      {cardContent}
+    </button>
+  );
 }
 
 /* ============================================
-   COMPACT RESOURCE CARD - Smaller grid items
+   OPCIÓN 2: OVERLAY DE COLOR CON ICONO
+   Más bold, colorido pero consistente
    ============================================ */
 
-function CompactCard({ 
+function ResourceCardOverlay({ 
   resource, 
-  index, 
+  index,
   onClick 
 }: { 
-  resource: typeof resources[0]; 
+  resource: Resource; 
+  index: number;
+  onClick?: () => void;
+}) {
+  const Icon = resource.icon;
+  const hasImage = !!resource.image;
+  
+  const cardContent = (
+    <motion.div
+      className="
+        group relative h-full
+        p-6 rounded-2xl
+        bg-white
+        border border-[#e8e8e8] hover:border-[#d0d0d0]
+        shadow-sm hover:shadow-md
+        transition-all duration-300 ease-out
+        cursor-pointer
+      "
+      initial={{ opacity: 0, y: 24 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: "-40px" }}
+      transition={{ duration: 0.5, delay: index * 0.06, ease: EASE }}
+    >
+      {/* Top row: Visual + Badge */}
+      <div className="flex items-start justify-between mb-5">
+        {/* Image con overlay de color */}
+        <div 
+          className="relative w-14 h-14 rounded-xl overflow-hidden"
+          style={{ backgroundColor: `${resource.accentColor}15` }}
+        >
+          {hasImage && (
+            <>
+              <Image
+                src={resource.image!}
+                alt={resource.title}
+                fill
+                className="object-cover opacity-20 group-hover:opacity-30 transition-opacity duration-300"
+              />
+              {/* Color overlay */}
+              <div 
+                className="absolute inset-0 mix-blend-multiply opacity-30"
+                style={{ backgroundColor: resource.accentColor }}
+              />
+            </>
+          )}
+          {/* Icon always visible */}
+          <div className="absolute inset-0 flex items-center justify-center">
+            <Icon 
+              className="w-6 h-6 transition-transform duration-300 group-hover:scale-110" 
+              style={{ color: resource.accentColor }}
+              strokeWidth={1.5} 
+            />
+          </div>
+        </div>
+        
+        {/* Badge */}
+        {resource.badge && (
+          <span 
+            className="px-2.5 py-1 rounded-full text-[11px] font-medium uppercase tracking-wide transition-colors duration-300"
+            style={{ 
+              backgroundColor: `${resource.accentColor}10`,
+              color: resource.accentColor,
+            }}
+          >
+            {resource.badge}
+          </span>
+        )}
+      </div>
+      
+      {/* Content */}
+      <div>
+        <h3 className="text-lg font-semibold text-[#1a1a1a] mb-1 tracking-tight group-hover:text-[#333] transition-colors">
+          {resource.title}
+        </h3>
+        <p className="text-sm text-[#888] leading-relaxed">
+          {resource.subtitle}
+        </p>
+      </div>
+      
+      {/* Accent line on hover */}
+      <div 
+        className="absolute bottom-0 left-6 right-6 h-0.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+        style={{ backgroundColor: resource.accentColor }}
+      />
+      
+      {/* Hover arrow */}
+      <div className="absolute bottom-6 right-6 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+        <ArrowRight 
+          className="w-5 h-5 group-hover:translate-x-0.5 transition-all" 
+          style={{ color: resource.accentColor }}
+        />
+      </div>
+    </motion.div>
+  );
+
+  if (resource.action === "link" && resource.href) {
+    return <Link href={resource.href} className="block h-full">{cardContent}</Link>;
+  }
+  if (resource.action === "download" && resource.href) {
+    return (
+      <a href={resource.href} download target="_blank" rel="noopener noreferrer" className="block h-full">
+        {cardContent}
+      </a>
+    );
+  }
+  return (
+    <button type="button" className="block w-full h-full text-left" onClick={onClick}>
+      {cardContent}
+    </button>
+  );
+}
+
+/* ============================================
+   OPCIÓN 3: SOLO ICONOS (MÁS MINIMALISTA)
+   Ultra clean, sin imágenes
+   ============================================ */
+
+function ResourceCardIconOnly({ 
+  resource, 
+  index,
+  onClick 
+}: { 
+  resource: Resource; 
   index: number;
   onClick?: () => void;
 }) {
@@ -204,86 +361,118 @@ function CompactCard({
   
   const cardContent = (
     <motion.div
-      className="group relative aspect-[3/4] rounded-xl overflow-hidden cursor-pointer"
-      initial={{ opacity: 0, y: 30 }}
+      className="
+        group relative h-full
+        p-6 rounded-2xl
+        bg-white
+        border border-[#e8e8e8] hover:border-transparent
+        shadow-sm hover:shadow-lg
+        transition-all duration-300 ease-out
+        cursor-pointer
+        overflow-hidden
+      "
+      initial={{ opacity: 0, y: 24 }}
       whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: "-30px" }}
-      transition={{ duration: 0.6, delay: 0.3 + index * 0.1, ease: [0.22, 1, 0.36, 1] }}
+      viewport={{ once: true, margin: "-40px" }}
+      transition={{ duration: 0.5, delay: index * 0.06, ease: EASE }}
     >
-      {/* Background */}
-      <div 
-        className="absolute inset-0 bg-[#f8f9fa] transition-colors duration-300 group-hover:bg-[#f1f3f5]"
-      />
-      
-      {/* Subtle gradient on hover */}
+      {/* Background glow on hover */}
       <div 
         className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500"
         style={{
-          background: 'linear-gradient(135deg, rgba(228,14,32,0.03) 0%, transparent 100%)'
+          background: `radial-gradient(circle at top left, ${resource.accentColor}08 0%, transparent 50%)`,
         }}
       />
       
-      {/* Content */}
-      <div className="absolute inset-0 flex flex-col p-5">
-        {/* Top - Icon & Badge */}
-        <div className="flex items-start justify-between mb-auto">
-          <div className="w-11 h-11 bg-white rounded-xl flex items-center justify-center shadow-sm group-hover:shadow transition-shadow">
-            {resource.avatar ? (
-              <div className="relative w-8 h-8 rounded-lg overflow-hidden">
-                <Image 
-                  src={resource.avatar}
-                  alt={resource.title}
-                  fill
-                  className="object-cover"
-                />
-              </div>
-            ) : (
-              Icon && <Icon className="w-5 h-5 text-[#4A4F55]" />
-            )}
-          </div>
-          
-          {resource.badge && (
-            <span className="px-2 py-1 bg-white text-[#7A858C] text-[10px] font-semibold uppercase tracking-wider rounded-md shadow-sm">
-              {resource.badge}
-            </span>
-          )}
+      {/* Top row: Icon + Badge */}
+      <div className="relative flex items-start justify-between mb-5">
+        {/* Icon container */}
+        <div 
+          className="
+            w-12 h-12 rounded-xl 
+            flex items-center justify-center
+            transition-all duration-300
+            group-hover:scale-105
+          "
+          style={{ 
+            backgroundColor: `${resource.accentColor}10`,
+          }}
+        >
+          <Icon 
+            className="w-5 h-5 transition-colors duration-300" 
+            style={{ color: resource.accentColor }}
+            strokeWidth={1.75} 
+          />
         </div>
         
-        {/* Bottom - Info */}
-        <div>
-          <h3 className="text-base font-semibold text-[#4A4F55] mb-1 leading-tight">
-            {resource.title}
-          </h3>
-          <p className="text-[#7A858C] text-xs leading-relaxed line-clamp-2">
-            {resource.description}
-          </p>
-        </div>
+        {/* Badge */}
+        {resource.badge && (
+          <span 
+            className="px-2.5 py-1 rounded-full text-[10px] font-semibold uppercase tracking-wider"
+            style={{ 
+              backgroundColor: `${resource.accentColor}10`,
+              color: resource.accentColor,
+            }}
+          >
+            {resource.badge}
+          </span>
+        )}
       </div>
       
-      {/* Bottom border accent on hover */}
-      <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#E40E20] scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left" />
+      {/* Content */}
+      <div className="relative">
+        <h3 className="text-[17px] font-semibold text-[#1a1a1a] mb-1.5 tracking-tight">
+          {resource.title}
+        </h3>
+        <p className="text-[13px] text-[#888] leading-relaxed">
+          {resource.subtitle}
+        </p>
+      </div>
+      
+      {/* Hover arrow */}
+      <div className="absolute bottom-6 right-6 opacity-0 group-hover:opacity-100 transition-all duration-200 translate-x-1 group-hover:translate-x-0">
+        <ArrowRight 
+          className="w-4 h-4" 
+          style={{ color: resource.accentColor }}
+        />
+      </div>
     </motion.div>
   );
 
   if (resource.action === "link" && resource.href) {
-    return <Link href={resource.href} className="block">{cardContent}</Link>;
+    return <Link href={resource.href} className="block h-full">{cardContent}</Link>;
   }
   if (resource.action === "download" && resource.href) {
-    return <a href={resource.href} download target="_blank" rel="noopener noreferrer" className="block">{cardContent}</a>;
+    return (
+      <a href={resource.href} download target="_blank" rel="noopener noreferrer" className="block h-full">
+        {cardContent}
+      </a>
+    );
   }
-  return <button type="button" className="block w-full text-left" onClick={onClick}>{cardContent}</button>;
+  return (
+    <button type="button" className="block w-full h-full text-left" onClick={onClick}>
+      {cardContent}
+    </button>
+  );
 }
 
 /* ============================================
    MAIN COMPONENT
+   Cambiar ResourceCard por la variante deseada:
+   - ResourceCardGrayscale (elegante, reveal en hover)
+   - ResourceCardOverlay (colorido pero consistente)  
+   - ResourceCardIconOnly (ultra minimalista)
    ============================================ */
+
+// 👇 CAMBIA AQUÍ LA VARIANTE QUE PREFIERAS
+const ResourceCard = ResourceCardGrayscale;
 
 export default function SustainabilityBanner() {
   const [plannerOpen, setPlannerOpen] = useState(false);
   const sectionRef = useRef<HTMLElement>(null);
   const isInView = useInView(sectionRef, { once: true, margin: "-100px" });
 
-  const handleResourceClick = (resource: typeof resources[0]) => {
+  const handleResourceClick = (resource: Resource) => {
     if (resource.action === "jimmy") {
       if (typeof window !== "undefined") {
         window.dispatchEvent(new Event("jimmy:open"));
@@ -295,111 +484,57 @@ export default function SustainabilityBanner() {
     }
   };
 
-  // Separate featured (first 2) and compact (rest)
-  const featured = resources.slice(0, 2);
-  const compact = resources.slice(2);
-
   return (
     <section 
       ref={sectionRef}
-      className="relative py-20 sm:py-28 bg-white overflow-hidden"
+      className="relative py-20 sm:py-28 bg-[#fafafa]"
     >
-      {/* Subtle background texture */}
-      <div className="absolute inset-0">
-        <div 
-          className="absolute inset-0 opacity-[0.02]"
-          style={{
-            backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%234A4F55' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
-            backgroundSize: '60px 60px'
-          }}
-        />
-      </div>
-      
-      <div className="relative max-w-7xl mx-auto px-6 sm:px-8 lg:px-12">
+      <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12">
         
-        {/* Header - Matching system pattern */}
+        {/* Header */}
         <motion.div 
-          className="mb-10 lg:mb-14"
-          initial={{ opacity: 0, y: 30 }}
+          className="mb-12"
+          initial={{ opacity: 0, y: 20 }}
           animate={isInView ? { opacity: 1, y: 0 } : {}}
-          transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
+          transition={{ duration: 0.6, ease: EASE }}
         >
-          {/* Title row */}
-          <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-6 mb-8">
+          <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
             <div>
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-8 h-px bg-[#E40E20]" />
-                <span className="text-[#7A858C] text-sm tracking-[0.2em] uppercase">
-                  Planifica tu Viaje
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-6 h-px bg-[#E40E20]" />
+                <span className="text-[#999] text-xs tracking-[0.15em] uppercase">
+                  Planifica tu viaje
                 </span>
               </div>
-              
-              <h2 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-[#4A4F55] tracking-tight">
-                Recursos para
-                <br />
-                <span className="text-[#E40E20]">Viajeros</span>
+              <h2 className="text-3xl sm:text-4xl font-semibold text-[#1a1a1a] tracking-tight">
+                Recursos para viajeros
               </h2>
             </div>
             
-            {/* Subtitle */}
-            <p className="text-[#7A858C] text-sm max-w-xs">
-              Herramientas y guías para que tu experiencia sea inolvidable
+            <p className="text-[#888] text-sm max-w-xs">
+              Herramientas para que tu experiencia sea inolvidable
             </p>
           </div>
         </motion.div>
 
-        {/* Sustainability Tip - Refined */}
+        {/* Sustainability note */}
         <motion.div
           className="mb-10"
-          initial={{ opacity: 0, y: 20 }}
-          animate={isInView ? { opacity: 1, y: 0 } : {}}
-          transition={{ duration: 0.6, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
+          initial={{ opacity: 0 }}
+          animate={isInView ? { opacity: 1 } : {}}
+          transition={{ duration: 0.5, delay: 0.15, ease: EASE }}
         >
-          <div className="flex items-center gap-4 text-[#7A858C] text-sm">
-            <Leaf className="w-4 h-4 text-green-600 flex-shrink-0" />
-            <p>
-              <span className="text-[#4A4F55] font-medium">Viaja sostenible:</span>
-              {" "}Apoya la economía local · Respeta el medio ambiente · Preserva las tradiciones
-            </p>
+          <div className="inline-flex items-center gap-2 text-[#888] text-sm">
+            <Leaf className="w-4 h-4 text-[#22c55e]" />
+            <span>Viaja sostenible · Apoya la economía local</span>
           </div>
         </motion.div>
 
-        {/* Desktop Grid - Asymmetric, editorial (matching UpcomingEvents) */}
-        <div className="hidden lg:block">
-          <div className="grid grid-cols-12 gap-6">
-            {/* Featured resources - larger */}
-            {featured.map((resource, i) => (
-              <div key={resource.id} className="col-span-5">
-                <FeaturedCard 
-                  resource={resource} 
-                  index={i}
-                  onClick={() => handleResourceClick(resource)}
-                />
-              </div>
-            ))}
-            
-            {/* Spacer for asymmetry */}
-            <div className="col-span-2" />
-            
-            {/* Compact resources - smaller grid */}
-            <div className="col-span-12 grid grid-cols-4 gap-4 mt-6">
-              {compact.map((resource, i) => (
-                <CompactCard 
-                  key={resource.id} 
-                  resource={resource} 
-                  index={i}
-                  onClick={() => handleResourceClick(resource)}
-                />
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* Mobile Grid */}
-        <div className="lg:hidden grid grid-cols-2 gap-4">
+        {/* Grid */}
+        <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-5">
           {resources.map((resource, i) => (
-            <CompactCard 
-              key={resource.id} 
+            <ResourceCard 
+              key={resource.id}
               resource={resource} 
               index={i}
               onClick={() => handleResourceClick(resource)}
@@ -407,32 +542,43 @@ export default function SustainabilityBanner() {
           ))}
         </div>
 
-        {/* CTA - View all / Download */}
+        {/* CTA */}
         <motion.div 
-          className="mt-14 lg:mt-20 flex flex-col sm:flex-row items-center justify-center gap-6"
+          className="mt-12 flex flex-col sm:flex-row items-center justify-center gap-4"
           initial={{ opacity: 0 }}
           animate={isInView ? { opacity: 1 } : {}}
-          transition={{ delay: 0.8, duration: 0.6 }}
+          transition={{ delay: 0.4, duration: 0.5, ease: EASE }}
         >
+          <button
+            onClick={() => setPlannerOpen(true)}
+            className="
+              inline-flex items-center gap-2.5 
+              px-6 py-3 rounded-full
+              bg-[#1a1a1a] hover:bg-[#333]
+              text-white text-sm font-medium
+              transition-colors duration-200
+            "
+          >
+            <Sparkles className="w-4 h-4" />
+            <span>Planificar con IA</span>
+          </button>
+          
           <a
             href="/docs/guia-turismo.pdf"
             download
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-3 px-6 py-3 bg-[#4A4F55] hover:bg-[#3a3f44] text-white rounded-full text-sm font-semibold transition-all hover:scale-[1.02] active:scale-[0.98]"
+            className="
+              inline-flex items-center gap-2 
+              px-5 py-3
+              text-[#666] hover:text-[#1a1a1a]
+              text-sm font-medium
+              transition-colors duration-200
+            "
           >
             <Download className="w-4 h-4" />
-            <span>Descargar Guía Completa</span>
+            <span>Descargar guía</span>
           </a>
-          
-          <button
-            onClick={() => setPlannerOpen(true)}
-            className="inline-flex items-center gap-3 text-[#4A4F55] hover:text-[#E40E20] transition-colors group"
-          >
-            <span className="text-sm tracking-[0.15em] uppercase">Planificar con IA</span>
-            <Sparkles className="w-4 h-4" />
-            <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-          </button>
         </motion.div>
       </div>
 

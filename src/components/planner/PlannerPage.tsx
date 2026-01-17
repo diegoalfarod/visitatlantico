@@ -1,924 +1,1177 @@
+// src/components/PlannerPage.tsx
+// Planificador de viaje rediseñado - VisitAtlántico
+// 4 pasos, branding consistente, preview antes de email
+
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
-import { 
-  X, ChevronLeft, ChevronRight, MapPin, Plane, Umbrella, Shield, Info,
-  Sparkles, Waves, Navigation, DollarSign, Mail, AlertCircle
+import { useState, useEffect, useCallback, useRef } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import Image from "next/image";
+import { useRouter } from "next/navigation";
+import {
+  MapPin,
+  Calendar,
+  Users,
+  Heart,
+  Sparkles,
+  ArrowRight,
+  ArrowLeft,
+  Check,
+  Loader2,
+  X,
+  Mail,
+  Map,
+  Clock,
+  DollarSign,
+  Zap,
+  Coffee,
+  PartyPopper,
+  Waves,
+  Utensils,
+  Music,
+  Building2,
+  Palette,
+  TreePalm,
+  ChevronDown,
+  Star,
+  Shield,
+  Send
 } from "lucide-react";
-import { RiGovernmentLine } from "react-icons/ri";
-import { ATLANTICO_INTERESTS, TRIP_TYPES, BUDGET_OPTIONS, TRAVEL_PACE, TRAVEL_DISTANCE, PREDEFINED_LOCATIONS } from "@/config/planner-options";
-import { generateItinerary } from "@/services/itinerary-generator";
-import { saveItineraryRequest } from "@/services/firebase-service";
-import type { TravelerProfile } from "@/types/planner";
-import { sendItineraryEmail } from '@/services/email-service'; 
 
-type Props = {
-  open: boolean;
-  onOpenChange: (v: boolean) => void;
+// =============================================================================
+// CONSTANTES DE DISEÑO - BRANDING VISITATLÁNTICO
+// =============================================================================
+
+const COLORS = {
+  primary: "#E40E20",
+  rojoCayena: "#D31A2B",
+  azulBarranquero: "#007BC4",
+  naranjaSalinas: "#EA5B13",
+  amarilloArepa: "#F39200",
+  verdeBijao: "#008D39",
+  beigeIraca: "#B8A88A",
+  grisOscuro: "#4A4F55",
+  grisMedio: "#7A858C",
+  grisClaro: "#C1C5C8",
 };
 
-const DEFAULT_PROFILE: TravelerProfile = {
-  days: 3,
-  startLocation: undefined,
-  interests: [],
-  tripType: "familia",
-  budget: "moderado",
-  travelPace: "moderado",
-  maxDistance: "cerca",
-  email: "",
-};
+const EASE_CINEMATIC = [0.22, 1, 0.36, 1];
 
-function isInAtlantico(coords: { lat: number; lng: number }): boolean {
-  const atlanticoBounds = {
-    north: 11.1500,
-    south: 10.3000,
-    east: -74.6000,
-    west: -75.2000
-  };
-  
-  return (
-    coords.lat >= atlanticoBounds.south &&
-    coords.lat <= atlanticoBounds.north &&
-    coords.lng >= atlanticoBounds.west &&
-    coords.lng <= atlanticoBounds.east
-  );
-}
+// =============================================================================
+// DATOS DE CONFIGURACIÓN
+// =============================================================================
 
-function validateStep(stepIndex: number, profile: TravelerProfile): string | null {
-  switch (stepIndex) {
-    case 0:
-      return profile.days < 1 || profile.days > 14 ? "Selecciona entre 1 y 14 días" : null;
-    case 1:
-      return null; // Ubicación opcional
-    case 2:
-      if (profile.interests.length === 0) return "Selecciona al menos un interés";
-      if (profile.interests.length > 3) return `Máximo 3 intereses (tienes ${profile.interests.length})`;
-      return null;
-    case 3:
-      return null; // Tipo de viaje siempre tiene valor
-    case 4:
-      return null; // Estilo siempre tiene valores
-    case 5:
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      return !emailRegex.test(profile.email) ? "Ingresa un email válido" : null;
-    default:
-      return null;
+const INTERESTS = [
+  {
+    id: "carnaval_cultura",
+    label: "Carnaval y Folclor",
+    tagline: "Vive la fiesta más grande de Colombia",
+    icon: PartyPopper,
+    color: COLORS.rojoCayena,
+    image: "/images/interests/carnaval.jpg",
+    preview: "Museo del Carnaval, Casa del Carnaval, talleres de máscaras"
+  },
+  {
+    id: "playas_rio",
+    label: "Playas y Río",
+    tagline: "90 km de costa caribeña te esperan",
+    icon: Waves,
+    color: COLORS.azulBarranquero,
+    image: "/images/interests/playas.jpg",
+    preview: "Puerto Colombia, Pradomar, Malecón del Río, Bocas de Ceniza"
+  },
+  {
+    id: "gastronomia_local",
+    label: "Sabores Costeños",
+    tagline: "Donde nació la arepa 'e huevo",
+    icon: Utensils,
+    color: COLORS.amarilloArepa,
+    image: "/images/interests/gastronomia.jpg",
+    preview: "Arroz de lisa, sancocho, butifarra, jugos naturales"
+  },
+  {
+    id: "vida_nocturna",
+    label: "Rumba y Música",
+    tagline: "Salsa, champeta y vallenato",
+    icon: Music,
+    color: COLORS.naranjaSalinas,
+    image: "/images/interests/rumba.jpg",
+    preview: "La Troja, bares con música en vivo, rumba costeña"
+  },
+  {
+    id: "historia_patrimonio",
+    label: "Historia y Patrimonio",
+    tagline: "La Puerta de Oro de Colombia",
+    icon: Building2,
+    color: COLORS.grisOscuro,
+    image: "/images/interests/historia.jpg",
+    preview: "Centro Histórico, Museo del Caribe, arquitectura republicana"
+  },
+  {
+    id: "artesanias_tradiciones",
+    label: "Artesanías",
+    tagline: "Máscaras de Galapa, tejidos de Usiacurí",
+    icon: Palette,
+    color: COLORS.beigeIraca,
+    image: "/images/interests/artesanias.jpg",
+    preview: "Talleres de máscaras, tejidos de palma de iraca"
+  },
+  {
+    id: "naturaleza_aventura",
+    label: "Ecoturismo",
+    tagline: "Donde el río Magdalena besa el mar",
+    icon: TreePalm,
+    color: COLORS.verdeBijao,
+    image: "/images/interests/naturaleza.jpg",
+    preview: "Ciénaga de Mallorquín, avistamiento de aves, Bocas de Ceniza"
   }
+];
+
+const TRIP_TYPES = [
+  {
+    id: "solo",
+    label: "Viajero Solo",
+    icon: "👤",
+    description: "Explora a tu propio ritmo"
+  },
+  {
+    id: "pareja",
+    label: "En Pareja",
+    icon: "💑",
+    description: "Momentos románticos"
+  },
+  {
+    id: "familia",
+    label: "Familia",
+    icon: "👨‍👩‍👧‍👦",
+    description: "Diversión para todos"
+  },
+  {
+    id: "amigos",
+    label: "Con Amigos",
+    icon: "👥",
+    description: "Aventura grupal"
+  }
+];
+
+const BUDGET_OPTIONS = [
+  {
+    id: "economico",
+    label: "Económico",
+    icon: DollarSign,
+    description: "~$80k/día",
+    details: "Comida local, transporte público"
+  },
+  {
+    id: "moderado",
+    label: "Moderado",
+    icon: DollarSign,
+    description: "~$180k/día",
+    details: "Buenos restaurantes, taxis"
+  },
+  {
+    id: "premium",
+    label: "Premium",
+    icon: Star,
+    description: "$350k+/día",
+    details: "Experiencias VIP, fine dining"
+  }
+];
+
+const PACE_OPTIONS = [
+  {
+    id: "relajado",
+    label: "Relajado",
+    icon: Coffee,
+    activitiesPerDay: "2-3 lugares",
+    description: "Tiempo para improvisar"
+  },
+  {
+    id: "moderado",
+    label: "Moderado",
+    icon: MapPin,
+    activitiesPerDay: "3-4 lugares",
+    description: "Buen balance"
+  },
+  {
+    id: "intenso",
+    label: "Intenso",
+    icon: Zap,
+    activitiesPerDay: "5+ lugares",
+    description: "Máximo provecho"
+  }
+];
+
+const DAYS_OPTIONS = [1, 2, 3, 4, 5, 6, 7];
+
+const START_LOCATIONS = [
+  { id: "barranquilla_centro", label: "Centro de Barranquilla", icon: Building2 },
+  { id: "aeropuerto", label: "Aeropuerto", icon: MapPin },
+  { id: "puerto_colombia", label: "Puerto Colombia", icon: Waves },
+];
+
+// =============================================================================
+// TIPOS
+// =============================================================================
+
+interface PlannerState {
+  // Paso 1: Días y ubicación
+  days: number;
+  startLocation: string;
+  
+  // Paso 2: Intereses
+  interests: string[];
+  
+  // Paso 3: Estilo
+  tripType: string;
+  budget: string;
+  pace: string;
+  
+  // Paso 4: Email
+  email: string;
 }
 
-export default function PlannerPage({ open, onOpenChange }: Props) {
-  const [profile, setProfile] = useState<TravelerProfile>(DEFAULT_PROFILE);
-  const [step, setStep] = useState(0);
-  const [error, setError] = useState<string | null>(null);
-  const [isAnimating, setIsAnimating] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [locationStatus, setLocationStatus] = useState<'idle' | 'requesting' | 'granted' | 'denied' | 'error'>('idle');
-  const [locationMessage, setLocationMessage] = useState<string | null>(null);
+interface PlannerPageProps {
+  // Soportar ambos patrones de props
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  // Legacy props
+  isOpen?: boolean;
+  onClose?: () => void;
+}
 
-  const sheetRef = useRef<HTMLDivElement>(null);
+// =============================================================================
+// COMPONENTE PRINCIPAL
+// =============================================================================
+
+export default function PlannerPage({ 
+  open, 
+  onOpenChange,
+  isOpen: legacyIsOpen,
+  onClose: legacyOnClose 
+}: PlannerPageProps) {
+  const router = useRouter();
+  const [currentStep, setCurrentStep] = useState(1);
+  const [direction, setDirection] = useState(0);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const plannerStartTime = useRef<number>(Date.now());
+  
+  // Normalizar props (soportar ambos patrones)
+  const isOpen = open ?? legacyIsOpen ?? false;
+  const handleClose = useCallback(() => {
+    if (onOpenChange) {
+      onOpenChange(false);
+    } else if (legacyOnClose) {
+      legacyOnClose();
+    }
+  }, [onOpenChange, legacyOnClose]);
+  
+  const [state, setState] = useState<PlannerState>({
+    days: 3,
+    startLocation: "barranquilla_centro",
+    interests: [],
+    tripType: "",
+    budget: "moderado",
+    pace: "moderado",
+    email: ""
+  });
+
+  // Resetear cuando se abre
+  useEffect(() => {
+    if (isOpen) {
+      plannerStartTime.current = Date.now();
+    }
+  }, [isOpen]);
 
   // Restaurar progreso guardado
   useEffect(() => {
-    if (typeof window !== 'undefined' && open) {
-      const saved = sessionStorage.getItem('plannerProgress');
-      if (saved) {
-        try {
-          const data = JSON.parse(saved);
-          // Solo restaurar si tiene menos de 30 minutos
-          if (Date.now() - data.timestamp < 30 * 60 * 1000) {
-            setProfile(data.profile);
-            setStep(data.step);
-          }
-        } catch (e) {
-          console.error('Error restaurando progreso:', e);
+    const saved = sessionStorage.getItem('plannerProgress');
+    if (saved) {
+      try {
+        const data = JSON.parse(saved);
+        if (Date.now() - data.timestamp < 30 * 60 * 1000) { // 30 min
+          setState(data.state);
+          setCurrentStep(data.step);
         }
+      } catch (e) {
+        console.error('Error restaurando progreso:', e);
       }
-    }
-  }, [open]);
-
-  // Guardar progreso
-  useEffect(() => {
-    if (typeof window !== 'undefined' && open) {
-      sessionStorage.setItem('plannerProgress', JSON.stringify({
-        profile,
-        step,
-        timestamp: Date.now()
-      }));
-    }
-  }, [profile, step, open]);
-
-  const requestLocationPermission = useCallback(async () => {
-    setLocationStatus('requesting');
-    setLocationMessage(null);
-    
-    try {
-      if (!navigator.geolocation) {
-        throw new Error('Geolocalización no disponible');
-      }
-
-      const position = await new Promise<GeolocationPosition>((resolve, reject) => {
-        navigator.geolocation.getCurrentPosition(resolve, reject, {
-          enableHighAccuracy: true,
-          timeout: 10000,
-          maximumAge: 0
-        });
-      });
-
-      const coords = {
-        lat: position.coords.latitude,
-        lng: position.coords.longitude
-      };
-
-      if (isInAtlantico(coords)) {
-        setProfile(p => ({ 
-          ...p, 
-          startLocation: {
-            ...coords,
-            name: "Mi ubicación actual"
-          }
-        }));
-        setLocationStatus('granted');
-        setLocationMessage("¡Perfecto! Ya estás en el Atlántico");
-        
-        setTimeout(() => {
-          setStep(s => s + 1);
-          setLocationMessage(null);
-        }, 2000);
-      } else {
-        setLocationStatus('granted');
-        setLocationMessage("Parece que aún no estás en el Atlántico. ¡Te esperamos pronto!");
-        setProfile(p => ({ 
-          ...p, 
-          startLocation: "barranquilla_centro"
-        }));
-      }
-    } catch (error) {
-      setLocationStatus('error');
-      setLocationMessage("No hay problema, puedes elegir un punto de inicio abajo");
     }
   }, []);
 
+  // Guardar progreso
   useEffect(() => {
-    if (open) {
-      setIsAnimating(true);
-      document.body.style.overflow = 'hidden';
-    } else {
-      setIsAnimating(false);
-      document.body.style.overflow = '';
+    if (currentStep > 1 || state.interests.length > 0) {
+      sessionStorage.setItem('plannerProgress', JSON.stringify({
+        state,
+        step: currentStep,
+        timestamp: Date.now()
+      }));
     }
-    return () => {
-      document.body.style.overflow = '';
-    };
-  }, [open]);
+  }, [state, currentStep]);
 
-  const totalSteps = 6;
-  const canGoBack = step > 0;
-  const isLastStep = step === totalSteps - 1;
-
-  const goNext = useCallback(() => {
-    if (step === 1 && (profile.startLocation || locationStatus === 'granted')) {
-      setError(null);
-      setStep(step + 1);
-      return;
-    }
-    
-    const err = validateStep(step, profile);
-    if (err) {
-      setError(err);
-      setTimeout(() => setError(null), 3000);
-      return;
-    }
+  // Handlers
+  const updateState = useCallback((updates: Partial<PlannerState>) => {
+    setState(prev => ({ ...prev, ...updates }));
     setError(null);
-    if (step < totalSteps - 1) {
-      setStep(step + 1);
-    }
-  }, [step, profile, locationStatus]);
+  }, []);
 
-  const goBack = useCallback(() => {
-    setError(null);
-    setLocationMessage(null);
-    if (step > 0) setStep(step - 1);
-  }, [step]);
-
-  const close = useCallback(() => {
-    setIsAnimating(false);
-    setTimeout(() => {
-      onOpenChange(false);
-      setStep(0);
-      setError(null);
-      setLocationStatus('idle');
-      setLocationMessage(null);
-      setProfile(DEFAULT_PROFILE);
-      sessionStorage.removeItem('plannerProgress');
-    }, 300);
-  }, [onOpenChange]);
-
-  const handleSubmit = async () => {
-    const err = validateStep(step, profile);
-    if (err) {
-      setError(err);
-      return;
-    }
-    
-    setIsSubmitting(true);
-    setError(null);
-    
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 120000); // 2 minutos timeout
-    
-    try {
-      // 1. Guardar solicitud en Firebase
-      const requestId = await saveItineraryRequest(profile);
-      console.log("Solicitud guardada con ID:", requestId);
-      
-      // 2. Generar itinerario usando el servicio
-      const result = await generateItinerary(profile, requestId, controller.signal);
-      
-      if (!result.success) {
-        throw new Error(result.error || 'Error al generar el itinerario');
+  const toggleInterest = useCallback((interestId: string) => {
+    setState(prev => {
+      const current = prev.interests;
+      if (current.includes(interestId)) {
+        return { ...prev, interests: current.filter(i => i !== interestId) };
       }
-      
-      // 3. Enviar correo con el link (sin bloquear la UI)
-      sendItineraryEmail(profile.email, result.itineraryId, profile)
-        .then((emailResult) => {
-          if (emailResult.success) {
-            console.log('Correo enviado exitosamente a:', profile.email);
-          } else {
-            console.error('Error enviando correo:', emailResult.error);
+      if (current.length >= 3) {
+        return prev; // Máximo 3
+      }
+      return { ...prev, interests: [...current, interestId] };
+    });
+    
+    // Haptic feedback
+    if ('vibrate' in navigator) {
+      navigator.vibrate(10);
+    }
+  }, []);
+
+  const nextStep = useCallback(() => {
+    // Validar paso actual
+    if (currentStep === 1 && (!state.days || state.days < 1)) {
+      setError('Selecciona cuántos días');
+      return;
+    }
+    if (currentStep === 2 && state.interests.length === 0) {
+      setError('Selecciona al menos un interés');
+      return;
+    }
+    if (currentStep === 3 && !state.tripType) {
+      setError('Selecciona cómo viajas');
+      return;
+    }
+
+    setDirection(1);
+    setCurrentStep(prev => Math.min(prev + 1, 4));
+    setError(null);
+  }, [currentStep, state]);
+
+  const prevStep = useCallback(() => {
+    setDirection(-1);
+    setCurrentStep(prev => Math.max(prev - 1, 1));
+    setError(null);
+  }, []);
+
+  const generateItinerary = useCallback(async () => {
+    // Validar email
+    if (!state.email || !state.email.includes('@')) {
+      setError('Ingresa un email válido');
+      return;
+    }
+
+    setIsGenerating(true);
+    setError(null);
+
+    try {
+      const response = await fetch('/api/itinerary/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          profile: {
+            days: state.days,
+            email: state.email,
+            interests: state.interests,
+            tripType: state.tripType,
+            budget: state.budget,
+            travelPace: state.pace,
+            startLocation: state.startLocation
+          },
+          // Analytics data
+          analytics: {
+            sessionId: `sess_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+            device: {
+              type: /mobile|android|iphone/i.test(navigator.userAgent) ? 'mobile' : 
+                    /ipad|tablet/i.test(navigator.userAgent) ? 'tablet' : 'desktop',
+              os: navigator.platform,
+              browser: navigator.userAgent.includes('Chrome') ? 'Chrome' : 
+                       navigator.userAgent.includes('Safari') ? 'Safari' : 
+                       navigator.userAgent.includes('Firefox') ? 'Firefox' : 'Other',
+              screenWidth: window.innerWidth,
+              screenHeight: window.innerHeight
+            },
+            traffic: {
+              source: new URLSearchParams(window.location.search).get('utm_source') || 'direct',
+              medium: new URLSearchParams(window.location.search).get('utm_medium') || 'none',
+              campaign: new URLSearchParams(window.location.search).get('utm_campaign') || undefined,
+              referrer: document.referrer || undefined
+            },
+            language: navigator.language,
+            timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+            isNewUser: !localStorage.getItem('va_visit_count'),
+            visitCount: parseInt(localStorage.getItem('va_visit_count') || '0') + 1,
+            funnelTime: Date.now() - plannerStartTime.current
           }
         })
-        .catch((error) => {
-          console.error('Error inesperado enviando correo:', error);
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || 'Error generando itinerario');
+      }
+
+      // Guardar en localStorage para acceso rápido
+      localStorage.setItem('lastItinerary', JSON.stringify({
+        id: data.itineraryId,
+        itinerary: data.itinerary,
+        profile: state,
+        createdAt: Date.now()
+      }));
+
+      // Enviar email con el itinerario (no bloqueante)
+      if (state.email) {
+        fetch('/api/send-itinerary-email', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email: state.email,
+            itineraryId: data.itineraryId,
+            profile: {
+              days: state.days,
+              tripType: state.tripType,
+              budget: state.budget,
+              interests: state.interests,
+              pace: state.pace
+            },
+            itinerary: data.itinerary
+          })
+        }).then(res => {
+          if (res.ok) {
+            console.log('📧 Email enviado exitosamente');
+          } else {
+            console.warn('⚠️ Error enviando email');
+          }
+        }).catch(err => {
+          console.warn('⚠️ Error enviando email:', err);
         });
-      
-      // 4. Guardar en localStorage para acceso rápido
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('lastItinerary', JSON.stringify({
-          id: result.itineraryId,
-          requestId,
-          itinerary: result.itinerary,
-          profile,
-          createdAt: Date.now()
-        }));
       }
-      
-      // 5. Limpiar sessionStorage
+
+      // Limpiar progreso guardado
       sessionStorage.removeItem('plannerProgress');
-      
-      // 6. Cerrar modal y navegar
-      setIsSubmitting(false);
-      close();
-      
-      if (typeof window !== 'undefined') {
-        window.location.href = `/itinerary/${result.itineraryId}`;
-      }
-      
-    } catch (error: any) {
-      console.error("Error completo:", error);
-      setIsSubmitting(false);
-      
-      let errorMessage = "Error al generar el itinerario.";
-      
-      if (error.name === 'AbortError') {
-        errorMessage = "La generación tardó demasiado. Por favor intenta nuevamente.";
-      } else if (error.message?.includes('Firebase')) {
-        errorMessage = "Error de conexión con la base de datos.";
-      } else if (error.message?.includes('fetch')) {
-        errorMessage = "Error de conexión con el servidor.";
-      } else if (error.message) {
-        errorMessage = error.message;
-      }
-      
-      setError(errorMessage);
+
+      // Redirigir a la página del itinerario
+      router.push(`/itinerary/${data.itineraryId}`);
+      handleClose();
+
+    } catch (err: any) {
+      console.error('Error generando itinerario:', err);
+      setError(err.message || 'Error al generar tu itinerario. Intenta de nuevo.');
     } finally {
-      clearTimeout(timeoutId);
+      setIsGenerating(false);
     }
+  }, [state, router, handleClose]);
+
+  // Calcular progreso
+  const progress = (currentStep / 4) * 100;
+
+  // Variantes de animación
+  const stepVariants = {
+    enter: (dir: number) => ({
+      x: dir > 0 ? 50 : -50,
+      opacity: 0,
+    }),
+    center: {
+      x: 0,
+      opacity: 1,
+      transition: { duration: 0.4, ease: EASE_CINEMATIC }
+    },
+    exit: (dir: number) => ({
+      x: dir < 0 ? 50 : -50,
+      opacity: 0,
+      transition: { duration: 0.3, ease: EASE_CINEMATIC }
+    }),
   };
 
-  const progressPercentage = ((step + 1) / totalSteps) * 100;
+  if (!isOpen) return null;
 
-  // Steps definidos en el componente para mantener reactividad
-  const steps = [
-    // Step 0: Días
-    {
-      title: "¿Cuántos días vienes al Atlántico?",
-      subtitle: "Diseñaremos el itinerario perfecto para tu tiempo",
-      content: (
-        <div className="space-y-6">
-          <div className="relative">
-            <div className="flex items-center justify-center mb-4">
-              <span className="text-5xl font-bold text-gray-900">
-                {profile.days}
-              </span>
-              <span className="text-2xl ml-2 text-gray-600">
-                {profile.days === 1 ? 'día' : 'días'}
-              </span>
-            </div>
-            <input
-              type="range"
-              min="1"
-              max="14"
-              value={profile.days}
-              onChange={(e) => setProfile(p => ({ ...p, days: parseInt(e.target.value) }))}
-              className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
-            />
-            <div className="flex justify-between text-xs text-gray-500 mt-2">
-              <span>1 día</span>
-              <span>14 días</span>
-            </div>
-          </div>
-          
-          <div className="grid grid-cols-4 gap-3">
-            {[1, 3, 5, 7].map(d => (
-              <button
-                key={d}
-                onClick={() => setProfile(p => ({ ...p, days: d }))}
-                className={`py-3 rounded-full font-semibold transition-all duration-300 ${
-                  profile.days === d
-                    ? 'bg-red-600 text-white shadow-lg'
-                    : 'bg-white text-gray-700 border border-gray-200 hover:border-gray-300'
-                }`}
-              >
-                {d} {d === 1 ? 'día' : 'días'}
-              </button>
-            ))}
-          </div>
-
-          <div className="p-3 bg-blue-50 rounded-xl border border-blue-200">
-            <p className="text-xs text-blue-700">
-              💡 <strong>Tip:</strong> {
-                profile.days <= 2 ? "Perfecto para conocer lo esencial de Barranquilla" :
-                profile.days <= 4 ? "Ideal para Barranquilla y playas cercanas" :
-                profile.days <= 7 ? "Tiempo para explorar todo el departamento con calma" :
-                "Podrás vivir el Atlántico como un local"
-              }
-            </p>
-          </div>
-        </div>
-      )
-    },
-    
-    // Step 1: Ubicación
-    {
-      title: "¿Desde dónde comenzamos?",
-      subtitle: "Optimizaremos tu ruta según tu punto de partida",
-      content: (
-        <div className="space-y-3">
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+      onClick={(e) => e.target === e.currentTarget && handleClose()}
+    >
+      <motion.div
+        initial={{ scale: 0.95, y: 20 }}
+        animate={{ scale: 1, y: 0 }}
+        exit={{ scale: 0.95, y: 20 }}
+        transition={{ duration: 0.4, ease: EASE_CINEMATIC }}
+        className="relative w-full max-w-2xl max-h-[90vh] overflow-hidden bg-white rounded-3xl shadow-2xl"
+      >
+        {/* Header */}
+        <div className="relative px-6 pt-6 pb-4 border-b border-gray-100">
+          {/* Close button */}
           <button
-            onClick={requestLocationPermission}
-            disabled={locationStatus === 'requesting'}
-            className={`w-full p-3 border rounded-xl transition-all duration-300 ${
-              locationStatus === 'requesting' 
-                ? 'border-gray-300 bg-gray-50'
-                : profile.startLocation && typeof profile.startLocation === 'object'
-                ? 'border-red-500 bg-red-50'
-                : 'border-gray-300 bg-white hover:border-gray-400 hover:bg-gray-50'
-            }`}
+            onClick={handleClose}
+            className="absolute top-4 right-4 p-2 rounded-full hover:bg-gray-100 transition-colors"
+            aria-label="Cerrar"
           >
-            <div className="flex items-center gap-3">
-              <div className={`p-2 rounded-lg ${
-                locationStatus === 'requesting' 
-                  ? 'bg-gray-200' 
-                  : profile.startLocation && typeof profile.startLocation === 'object'
-                  ? 'bg-red-600'
-                  : 'bg-gray-800'
-              }`}>
-                {locationStatus === 'requesting' ? (
-                  <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                ) : (
-                  <Navigation size={20} className="text-white" />
-                )}
-              </div>
-              <div className="flex-1 text-left">
-                <p className="font-semibold text-sm text-gray-900">
-                  {locationStatus === 'requesting' 
-                    ? 'Obteniendo ubicación...'
-                    : profile.startLocation && typeof profile.startLocation === 'object'
-                    ? '📍 Usando tu ubicación actual'
-                    : 'Usar mi ubicación actual'}
-                </p>
-                <p className="text-xs text-gray-600">
-                  Recomendado si ya estás aquí
-                </p>
-              </div>
-            </div>
+            <X className="w-5 h-5 text-gray-500" />
           </button>
 
-          {locationMessage && (
-            <div className={`p-2 rounded-lg text-xs border ${
-              locationStatus === 'granted' 
-                ? 'bg-green-50 text-green-700 border-green-200'
-                : 'bg-yellow-50 text-yellow-700 border-yellow-200'
-            }`}>
-              {locationMessage}
+          {/* Title */}
+          <div className="flex items-center gap-3 mb-4">
+            <div 
+              className="w-10 h-10 rounded-xl flex items-center justify-center"
+              style={{ backgroundColor: `${COLORS.primary}15` }}
+            >
+              <Map className="w-5 h-5" style={{ color: COLORS.primary }} />
             </div>
+            <div>
+              <h2 className="text-xl font-bold text-gray-900 font-josefin">
+                Planifica tu Aventura
+              </h2>
+              <p className="text-sm text-gray-500">
+                Paso {currentStep} de 4
+              </p>
+            </div>
+          </div>
+
+          {/* Progress bar */}
+          <div className="h-1 bg-gray-100 rounded-full overflow-hidden">
+            <motion.div
+              className="h-full rounded-full"
+              style={{ 
+                background: `linear-gradient(90deg, ${COLORS.primary}, ${COLORS.naranjaSalinas})` 
+              }}
+              initial={{ width: 0 }}
+              animate={{ width: `${progress}%` }}
+              transition={{ duration: 0.5, ease: EASE_CINEMATIC }}
+            />
+          </div>
+        </div>
+
+        {/* Content */}
+        <div className="px-6 py-6 overflow-y-auto" style={{ maxHeight: 'calc(90vh - 200px)' }}>
+          <AnimatePresence mode="wait" custom={direction}>
+            {currentStep === 1 && (
+              <Step1DaysLocation
+                key="step1"
+                state={state}
+                updateState={updateState}
+                variants={stepVariants}
+                direction={direction}
+              />
+            )}
+            {currentStep === 2 && (
+              <Step2Interests
+                key="step2"
+                state={state}
+                toggleInterest={toggleInterest}
+                variants={stepVariants}
+                direction={direction}
+              />
+            )}
+            {currentStep === 3 && (
+              <Step3Style
+                key="step3"
+                state={state}
+                updateState={updateState}
+                variants={stepVariants}
+                direction={direction}
+              />
+            )}
+            {currentStep === 4 && (
+              <Step4Preview
+                key="step4"
+                state={state}
+                updateState={updateState}
+                variants={stepVariants}
+                direction={direction}
+              />
+            )}
+          </AnimatePresence>
+
+          {/* Error message */}
+          <AnimatePresence>
+            {error && (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                className="mt-4 p-3 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm"
+              >
+                {error}
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+
+        {/* Footer */}
+        <div className="px-6 py-4 border-t border-gray-100 flex items-center justify-between bg-gray-50/50">
+          {/* Back button */}
+          {currentStep > 1 ? (
+            <button
+              onClick={prevStep}
+              className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-900 transition-colors"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              <span>Atrás</span>
+            </button>
+          ) : (
+            <div />
           )}
 
-          <div className="flex items-center gap-2 my-2">
-            <div className="flex-1 h-px bg-gray-200" />
-            <span className="text-xs text-gray-500">o elige un punto</span>
-            <div className="flex-1 h-px bg-gray-200" />
-          </div>
-
-          <div className="grid grid-cols-2 gap-2">
-            {PREDEFINED_LOCATIONS.map((location) => {
-              const Icon = location.icon;
-              const isSelected = profile.startLocation === location.id;
-              return (
-                <button
-                  key={location.id}
-                  onClick={() => setProfile(p => ({ ...p, startLocation: location.id }))}
-                  className={`p-2 rounded-lg border transition-all duration-300 ${
-                    isSelected
-                      ? 'border-red-500 bg-red-50'
-                      : 'border-gray-200 bg-white hover:border-gray-300'
-                  }`}
-                >
-                  <div className="flex items-center gap-2">
-                    <div className={`w-8 h-8 rounded flex items-center justify-center flex-shrink-0 ${
-                      isSelected ? 'bg-red-600' : 'bg-gray-700'
-                    }`}>
-                      <Icon size={16} className="text-white" />
-                    </div>
-                    <div className="text-left flex-1 min-w-0">
-                      <p className="font-semibold text-xs text-gray-900 truncate">{location.label}</p>
-                      <p className="text-[10px] text-gray-600 truncate">{location.description}</p>
-                    </div>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-
-          <button
-            onClick={() => {
-              setProfile(p => ({ 
-                ...p, 
-                startLocation: 'barranquilla_centro'
-              }));
-              goNext();
-            }}
-            className="w-full py-1.5 text-xs text-gray-500 hover:text-gray-700 transition"
-          >
-            Omitir este paso →
-          </button>
-
-          <div className="flex items-start gap-1.5 p-2 bg-gray-50 rounded border border-gray-200">
-            <Shield size={12} className="text-gray-400 mt-0.5" />
-            <p className="text-[10px] text-gray-600">
-              Tu ubicación solo se usa para rutas. No la guardamos.
-            </p>
-          </div>
+          {/* Next / Generate button */}
+          {currentStep < 4 ? (
+            <button
+              onClick={nextStep}
+              className="flex items-center gap-2 px-6 py-3 rounded-xl text-white font-medium transition-all hover:scale-[1.02] active:scale-[0.98]"
+              style={{ 
+                background: `linear-gradient(135deg, ${COLORS.primary}, ${COLORS.naranjaSalinas})` 
+              }}
+            >
+              <span>Continuar</span>
+              <ArrowRight className="w-4 h-4" />
+            </button>
+          ) : (
+            <button
+              onClick={generateItinerary}
+              disabled={isGenerating}
+              className="flex items-center gap-2 px-6 py-3 rounded-xl text-white font-medium transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+              style={{ 
+                background: `linear-gradient(135deg, ${COLORS.verdeBijao}, ${COLORS.azulBarranquero})` 
+              }}
+            >
+              {isGenerating ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>Generando...</span>
+                </>
+              ) : (
+                <>
+                  <Sparkles className="w-4 h-4" />
+                  <span>Generar Itinerario</span>
+                </>
+              )}
+            </button>
+          )}
         </div>
-      )
-    },
-    
-    // Step 2: Intereses
-    {
-      title: "¿Qué te llama del Atlántico?",
-      subtitle: "Elige hasta 3 experiencias principales",
-      content: (
-        <div className="space-y-4">
-          <div className="flex justify-between items-center px-2">
-            <span className="text-sm text-gray-600">
-              {profile.interests.length}/3 seleccionados
-            </span>
-            {profile.interests.length > 0 && (
+      </motion.div>
+    </motion.div>
+  );
+}
+
+// =============================================================================
+// PASO 1: DÍAS Y UBICACIÓN
+// =============================================================================
+
+function Step1DaysLocation({ 
+  state, 
+  updateState, 
+  variants, 
+  direction 
+}: { 
+  state: PlannerState; 
+  updateState: (updates: Partial<PlannerState>) => void;
+  variants: any;
+  direction: number;
+}) {
+  return (
+    <motion.div
+      custom={direction}
+      variants={variants}
+      initial="enter"
+      animate="center"
+      exit="exit"
+      className="space-y-8"
+    >
+      {/* Días */}
+      <div>
+        <h3 className="text-lg font-semibold text-gray-900 mb-2 font-josefin">
+          ¿Cuántos días de aventura caribeña?
+        </h3>
+        <p className="text-sm text-gray-500 mb-4">
+          Selecciona la duración de tu viaje
+        </p>
+
+        <div className="flex flex-wrap gap-3">
+          {DAYS_OPTIONS.map((day) => (
+            <button
+              key={day}
+              onClick={() => updateState({ days: day })}
+              className={`
+                w-14 h-14 rounded-2xl font-bold text-lg transition-all
+                ${state.days === day 
+                  ? 'text-white shadow-lg scale-105' 
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }
+              `}
+              style={state.days === day ? { 
+                background: `linear-gradient(135deg, ${COLORS.primary}, ${COLORS.naranjaSalinas})` 
+              } : {}}
+            >
+              {day}
+            </button>
+          ))}
+        </div>
+
+        {/* Tip dinámico */}
+        <motion.div
+          key={state.days}
+          initial={{ opacity: 0, y: 5 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mt-4 p-3 bg-blue-50 rounded-xl text-sm text-blue-700 flex items-start gap-2"
+        >
+          <Sparkles className="w-4 h-4 mt-0.5 flex-shrink-0" />
+          <span>
+            {state.days === 1 && "Perfecto para conocer lo esencial de Barranquilla"}
+            {state.days === 2 && "Tiempo ideal para Barranquilla + un día de playa"}
+            {state.days === 3 && "El balance perfecto: cultura, playa y gastronomía"}
+            {state.days >= 4 && state.days <= 5 && "Podrás explorar el Atlántico a fondo"}
+            {state.days >= 6 && "Una inmersión completa en la cultura caribeña"}
+          </span>
+        </motion.div>
+      </div>
+
+      {/* Ubicación inicial */}
+      <div>
+        <h3 className="text-lg font-semibold text-gray-900 mb-2 font-josefin">
+          ¿Desde dónde empezamos?
+        </h3>
+        <p className="text-sm text-gray-500 mb-4">
+          Optimizaremos las rutas según tu ubicación
+        </p>
+
+        <div className="space-y-2">
+          {START_LOCATIONS.map((location) => {
+            const Icon = location.icon;
+            const isSelected = state.startLocation === location.id;
+            
+            return (
               <button
-                onClick={() => setProfile(p => ({ ...p, interests: [] }))}
-                className="text-xs text-gray-500 hover:text-gray-700"
+                key={location.id}
+                onClick={() => updateState({ startLocation: location.id })}
+                className={`
+                  w-full p-4 rounded-xl border-2 transition-all flex items-center gap-3 text-left
+                  ${isSelected 
+                    ? 'border-[#E40E20] bg-red-50' 
+                    : 'border-gray-200 hover:border-gray-300'
+                  }
+                `}
               >
-                Limpiar selección
-              </button>
-            )}
-          </div>
-
-          <div className="grid grid-cols-2 gap-2">
-            {ATLANTICO_INTERESTS.map((interest) => {
-              const Icon = interest.icon;
-              const isSelected = profile.interests.includes(interest.id);
-              const isDisabled = !isSelected && profile.interests.length >= 3;
-              
-              return (
-                <button
-                  key={interest.id}
-                  onClick={() => {
-                    if (isDisabled) return;
-                    setProfile(p => ({
-                      ...p,
-                      interests: isSelected
-                        ? p.interests.filter(i => i !== interest.id)
-                        : [...p.interests, interest.id]
-                    }));
-                  }}
-                  disabled={isDisabled}
-                  className={`p-3 rounded-xl border transition-all duration-300 relative ${
-                    isSelected
-                      ? 'border-red-500 bg-red-50 ring-2 ring-red-500 ring-opacity-30'
-                      : isDisabled
-                      ? 'border-gray-100 bg-gray-50 opacity-50 cursor-not-allowed'
-                      : 'border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50'
-                  }`}
+                <div 
+                  className={`
+                    w-10 h-10 rounded-xl flex items-center justify-center
+                    ${isSelected ? 'bg-[#E40E20] text-white' : 'bg-gray-100 text-gray-600'}
+                  `}
                 >
-                  <div className="flex flex-col items-center gap-2">
-                    <div className={`p-2.5 rounded-lg ${
-                      isSelected ? 'bg-red-600' : isDisabled ? 'bg-gray-400' : 'bg-gray-800'
-                    }`}>
-                      <Icon size={20} className="text-white" />
-                    </div>
-                    <div className="space-y-0.5">
-                      <p className={`text-xs font-semibold text-center leading-tight ${
-                        isSelected ? 'text-gray-900' : 'text-gray-700'
-                      }`}>
-                        {interest.label}
-                      </p>
-                      <p className="text-[10px] text-gray-500 text-center leading-tight">
-                        {interest.description}
-                      </p>
-                    </div>
-                    {isSelected && (
-                      <div className="absolute top-2 right-2">
-                        <div className="w-5 h-5 bg-red-600 rounded-full flex items-center justify-center">
-                          <span className="text-white text-[10px] font-bold">
-                            {profile.interests.indexOf(interest.id) + 1}
-                          </span>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-
-          <div className="p-3 bg-amber-50 rounded-xl border border-amber-200">
-            <p className="text-xs text-amber-700">
-              💡 <strong>Tip:</strong> El orden importa. Tu primera selección tendrá prioridad en el itinerario.
-            </p>
-          </div>
+                  <Icon className="w-5 h-5" />
+                </div>
+                <span className={`font-medium ${isSelected ? 'text-[#E40E20]' : 'text-gray-700'}`}>
+                  {location.label}
+                </span>
+                {isSelected && (
+                  <Check className="w-5 h-5 ml-auto text-[#E40E20]" />
+                )}
+              </button>
+            );
+          })}
         </div>
-      )
-    },
-    
-    // Step 3: Tipo de viaje
-    {
-      title: "¿Cómo viajas?",
-      subtitle: "Personalizaremos las actividades según tu grupo",
-      content: (
-        <div className="space-y-3">
+      </div>
+    </motion.div>
+  );
+}
+
+// =============================================================================
+// PASO 2: INTERESES
+// =============================================================================
+
+function Step2Interests({ 
+  state, 
+  toggleInterest, 
+  variants, 
+  direction 
+}: { 
+  state: PlannerState; 
+  toggleInterest: (id: string) => void;
+  variants: any;
+  direction: number;
+}) {
+  return (
+    <motion.div
+      custom={direction}
+      variants={variants}
+      initial="enter"
+      animate="center"
+      exit="exit"
+      className="space-y-6"
+    >
+      <div>
+        <h3 className="text-lg font-semibold text-gray-900 mb-1 font-josefin">
+          ¿Qué te emociona del Atlántico?
+        </h3>
+        <p className="text-sm text-gray-500 mb-6">
+          Selecciona hasta 3 experiencias • {state.interests.length}/3
+        </p>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {INTERESTS.map((interest) => {
+            const Icon = interest.icon;
+            const isSelected = state.interests.includes(interest.id);
+            const isDisabled = !isSelected && state.interests.length >= 3;
+            
+            return (
+              <motion.button
+                key={interest.id}
+                onClick={() => !isDisabled && toggleInterest(interest.id)}
+                disabled={isDisabled}
+                whileHover={!isDisabled ? { scale: 1.02 } : {}}
+                whileTap={!isDisabled ? { scale: 0.98 } : {}}
+                className={`
+                  relative p-4 rounded-2xl border-2 transition-all text-left overflow-hidden
+                  ${isSelected 
+                    ? 'border-transparent shadow-lg' 
+                    : isDisabled
+                      ? 'border-gray-100 opacity-50 cursor-not-allowed'
+                      : 'border-gray-200 hover:border-gray-300'
+                  }
+                `}
+                style={isSelected ? { 
+                  borderColor: interest.color,
+                  backgroundColor: `${interest.color}10`
+                } : {}}
+              >
+                {/* Selection indicator */}
+                {isSelected && (
+                  <div 
+                    className="absolute top-2 right-2 w-6 h-6 rounded-full flex items-center justify-center text-white"
+                    style={{ backgroundColor: interest.color }}
+                  >
+                    <Check className="w-4 h-4" />
+                  </div>
+                )}
+
+                <div className="flex items-start gap-3">
+                  <div 
+                    className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0"
+                    style={{ 
+                      backgroundColor: isSelected ? interest.color : `${interest.color}20`,
+                      color: isSelected ? 'white' : interest.color
+                    }}
+                  >
+                    <Icon className="w-6 h-6" />
+                  </div>
+                  
+                  <div className="flex-1 min-w-0">
+                    <h4 
+                      className="font-semibold text-sm"
+                      style={{ color: isSelected ? interest.color : '#1f2937' }}
+                    >
+                      {interest.label}
+                    </h4>
+                    <p className="text-xs text-gray-500 mt-0.5">
+                      {interest.tagline}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Preview on selection */}
+                <AnimatePresence>
+                  {isSelected && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: 'auto' }}
+                      exit={{ opacity: 0, height: 0 }}
+                      className="mt-3 pt-3 border-t text-xs text-gray-600"
+                      style={{ borderColor: `${interest.color}30` }}
+                    >
+                      <span className="font-medium" style={{ color: interest.color }}>
+                        Incluye:
+                      </span>{' '}
+                      {interest.preview}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </motion.button>
+            );
+          })}
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
+// =============================================================================
+// PASO 3: ESTILO DE VIAJE
+// =============================================================================
+
+function Step3Style({ 
+  state, 
+  updateState, 
+  variants, 
+  direction 
+}: { 
+  state: PlannerState; 
+  updateState: (updates: Partial<PlannerState>) => void;
+  variants: any;
+  direction: number;
+}) {
+  return (
+    <motion.div
+      custom={direction}
+      variants={variants}
+      initial="enter"
+      animate="center"
+      exit="exit"
+      className="space-y-8"
+    >
+      {/* Tipo de viaje */}
+      <div>
+        <h3 className="text-lg font-semibold text-gray-900 mb-2 font-josefin">
+          ¿Cómo viajas?
+        </h3>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           {TRIP_TYPES.map((type) => {
-            const Icon = type.icon;
-            const isSelected = profile.tripType === type.id;
+            const isSelected = state.tripType === type.id;
+            
             return (
               <button
                 key={type.id}
-                onClick={() => setProfile(p => ({ ...p, tripType: type.id as any }))}
-                className={`w-full p-4 rounded-xl border transition-all duration-300 ${
-                  isSelected
-                    ? 'border-red-500 bg-red-50 ring-2 ring-red-500 ring-opacity-20'
-                    : 'border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50'
-                }`}
+                onClick={() => updateState({ tripType: type.id })}
+                className={`
+                  p-4 rounded-2xl border-2 transition-all text-center
+                  ${isSelected 
+                    ? 'border-[#E40E20] bg-red-50' 
+                    : 'border-gray-200 hover:border-gray-300'
+                  }
+                `}
               >
-                <div className="flex items-center gap-3">
-                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${
-                    isSelected ? 'bg-red-600' : 'bg-gray-800'
-                  }`}>
-                    <Icon size={24} className="text-white" />
-                  </div>
-                  <div className="flex-1 text-left">
-                    <h3 className="font-semibold text-gray-900">{type.label}</h3>
-                    <p className="text-xs text-gray-600">{type.description}</p>
-                  </div>
-                  {isSelected && (
-                    <ChevronRight size={18} className="text-red-600 flex-shrink-0" />
-                  )}
+                <div className="text-2xl mb-2">{type.icon}</div>
+                <div className={`font-medium text-sm ${isSelected ? 'text-[#E40E20]' : 'text-gray-700'}`}>
+                  {type.label}
+                </div>
+                <div className="text-xs text-gray-500 mt-1">
+                  {type.description}
                 </div>
               </button>
             );
           })}
         </div>
-      )
-    },
-    
-    // Step 4: Estilo combinado
-    {
-      title: "Define tu estilo de viaje",
-      subtitle: "Ajustaremos todo a tus preferencias",
-      content: (
-        <div className="space-y-6">
-          {/* Presupuesto */}
-          <div>
-            <h4 className="text-sm font-semibold text-gray-700 mb-2">Presupuesto</h4>
-            <div className="grid grid-cols-3 gap-2">
-              {BUDGET_OPTIONS.map((budget) => {
-                const isSelected = profile.budget === budget.id;
-                return (
-                  <button
-                    key={budget.id}
-                    onClick={() => setProfile(p => ({ ...p, budget: budget.id as any }))}
-                    className={`p-3 rounded-lg border transition-all duration-300 ${
-                      isSelected
-                        ? 'border-red-500 bg-red-50'
-                        : 'border-gray-200 bg-white hover:border-gray-300'
-                    }`}
-                  >
-                    <div className="flex flex-col items-center gap-1">
-                      <div className={`${isSelected ? 'text-red-600' : 'text-gray-600'}`}>
-                        {Array.from({ length: budget.priceLevel }, (_, i) => (
-                          <DollarSign key={i} size={20} className="inline" />
-                        ))}
-                      </div>
-                      <span className="text-xs font-medium">{budget.label}</span>
-                      <span className="text-[10px] text-gray-500 text-center">{budget.description}</span>
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
+      </div>
 
-          {/* Ritmo */}
-          <div>
-            <h4 className="text-sm font-semibold text-gray-700 mb-2">Ritmo del viaje</h4>
-            <div className="grid grid-cols-3 gap-2">
-              {TRAVEL_PACE.map((pace) => {
-                const Icon = pace.icon;
-                const isSelected = profile.travelPace === pace.id;
-                return (
-                  <button
-                    key={pace.id}
-                    onClick={() => setProfile(p => ({ ...p, travelPace: pace.id as any }))}
-                    className={`p-3 rounded-lg border transition-all duration-300 ${
-                      isSelected
-                        ? 'border-red-500 bg-red-50'
-                        : 'border-gray-200 bg-white hover:border-gray-300'
-                    }`}
-                  >
-                    <div className="flex flex-col items-center gap-1">
-                      <Icon size={20} className={isSelected ? 'text-red-600' : 'text-gray-600'} />
-                      <span className="text-xs font-medium">{pace.label}</span>
-                      <span className="text-[10px] text-gray-500 text-center">{pace.description}</span>
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Distancia */}
-          <div>
-            <h4 className="text-sm font-semibold text-gray-700 mb-2">¿Qué tanto explorar?</h4>
-            <div className="space-y-2">
-              {TRAVEL_DISTANCE.map((distance) => {
-                const Icon = distance.icon;
-                const isSelected = profile.maxDistance === distance.id;
-                return (
-                  <button
-                    key={distance.id}
-                    onClick={() => setProfile(p => ({ ...p, maxDistance: distance.id as any }))}
-                    className={`w-full p-3 rounded-lg border transition-all duration-300 ${
-                      isSelected
-                        ? 'border-red-500 bg-red-50'
-                        : 'border-gray-200 bg-white hover:border-gray-300'
-                    }`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <Icon size={18} className={isSelected ? 'text-red-600' : 'text-gray-600'} />
-                      <div className="flex-1 text-left">
-                        <span className="text-sm font-medium text-gray-900">{distance.label}</span>
-                        <p className="text-xs text-gray-500">{distance.description}</p>
-                      </div>
-                      {isSelected && (
-                        <div className="w-2 h-2 bg-red-600 rounded-full" />
-                      )}
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-      )
-    },
-    
-    // Step 5: Email
-    {
-      title: "¿Dónde enviamos tu itinerario?",
-      subtitle: "Te llegará personalizado y listo para usar",
-      content: (
-        <div className="space-y-6">
-          <div className="relative">
-            <div className="absolute left-4 top-1/2 -translate-y-1/2">
-              <Mail size={20} className="text-gray-400" />
-            </div>
-            <input
-              type="email"
-              placeholder="tu@email.com"
-              value={profile.email}
-              onChange={(e) => setProfile(p => ({ ...p, email: e.target.value }))}
-              className="w-full pl-12 pr-4 py-4 rounded-xl border border-gray-200 focus:border-red-500 focus:outline-none transition-colors text-lg"
-              autoFocus
-            />
-          </div>
-
-          <div className="bg-gradient-to-br from-red-50 to-orange-50 rounded-2xl p-4 border border-red-200">
-            <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
-              <Sparkles size={16} className="text-red-600" />
-              Tu itinerario personalizado incluirá:
-            </h4>
-            <ul className="space-y-2 text-sm text-gray-700">
-              <li className="flex items-start gap-2">
-                <span className="text-red-600 mt-0.5">✓</span>
-                <span>
-                  <strong>{profile.days} {profile.days === 1 ? 'día' : 'días'}</strong> con{' '}
-                  {TRAVEL_PACE.find(p => p.id === profile.travelPace)?.activitiesPerDay || 3} 
-                  {' '}actividades diarias
-                </span>
-              </li>
-              {profile.interests.length > 0 && (
-                <li className="flex items-start gap-2">
-                  <span className="text-red-600 mt-0.5">✓</span>
-                  <span>
-                    Enfocado en: {profile.interests.map(id => 
-                      ATLANTICO_INTERESTS.find(i => i.id === id)?.label
-                    ).filter(Boolean).join(', ')}
-                  </span>
-                </li>
-              )}
-              <li className="flex items-start gap-2">
-                <span className="text-red-600 mt-0.5">✓</span>
-                <span>
-                  Lugares {BUDGET_OPTIONS.find(b => b.id === profile.budget)?.label.toLowerCase()} 
-                  {' '}en un radio de {TRAVEL_DISTANCE.find(d => d.id === profile.maxDistance)?.radiusKm}km
-                </span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-red-600 mt-0.5">✓</span>
-                <span>Mapa interactivo con rutas optimizadas</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-red-600 mt-0.5">✓</span>
-                <span>Tips locales y horarios de cada lugar</span>
-              </li>
-            </ul>
-          </div>
-
-          <div className="text-center text-xs text-gray-500">
-            <Shield size={16} className="inline mr-1" />
-            Generado con IA y datos oficiales del Atlántico
-          </div>
-        </div>
-      )
-    },
-  ];
-
-  if (!open) return null;
-
-  return (
-    <>
-      <div
-        className={`fixed inset-0 z-[70] bg-black/50 backdrop-blur-sm transition-opacity duration-300 ${
-          isAnimating ? 'opacity-100' : 'opacity-0'
-        }`}
-        onClick={close}
-      />
-
-      <div
-        ref={sheetRef}
-        className={`fixed inset-x-4 top-1/2 -translate-y-1/2 z-[80] max-w-lg mx-auto bg-white rounded-2xl shadow-2xl overflow-hidden transition-all duration-300 border border-gray-200 ${
-          isAnimating ? 'scale-100 opacity-100' : 'scale-95 opacity-0'
-        }`}
-        style={{ maxHeight: '90vh' }}
-      >
-        <div className="relative bg-gradient-to-b from-gray-900 to-gray-800 p-6 text-white border-b border-gray-700">
-          <button
-            onClick={close}
-            className="absolute right-4 top-4 w-8 h-8 rounded-full bg-black/30 backdrop-blur flex items-center justify-center hover:bg-black/40 transition"
-          >
-            <X size={18} />
-          </button>
-          
-          <div className="inline-flex items-center gap-2 bg-red-900/20 border border-red-800/30 text-red-400 px-3 py-1.5 rounded-full text-xs font-medium mb-3">
-            <RiGovernmentLine className="text-sm" />
-            <span>Sistema Oficial de Planificación</span>
-          </div>
-          
-          <div className="pr-8">
-            <h2 className="text-2xl font-bold mb-1">
-              Planifica tu <span className="text-yellow-400">Viaje</span>
-            </h2>
-            <p className="text-gray-300 text-sm">Tu aventura personalizada en el Atlántico</p>
-          </div>
-          
-          <div className="mt-4">
-            <div className="h-1 bg-black/20 rounded-full overflow-hidden">
-              <div 
-                className="h-full bg-gradient-to-r from-red-600 to-orange-500 rounded-full transition-all duration-500"
-                style={{ width: `${progressPercentage}%` }}
-              />
-            </div>
-            <div className="flex justify-between mt-2 text-xs text-gray-400">
-              <span>Paso {step + 1} de {totalSteps}</span>
-              <span>{Math.round(progressPercentage)}%</span>
-            </div>
-          </div>
-        </div>
-
-        <div className="overflow-y-auto bg-gray-50" style={{ maxHeight: 'calc(90vh - 280px)', minHeight: '300px' }}>
-          <div className="p-6">
-            <div className="mb-6">
-              <h3 className="text-xl font-bold text-gray-900 mb-2">
-                {steps[step].title}
-              </h3>
-              <p className="text-gray-600 text-sm">
-                {steps[step].subtitle}
-              </p>
-            </div>
+      {/* Presupuesto */}
+      <div>
+        <h3 className="text-lg font-semibold text-gray-900 mb-2 font-josefin">
+          Tu presupuesto
+        </h3>
+        <div className="grid grid-cols-3 gap-3">
+          {BUDGET_OPTIONS.map((option) => {
+            const isSelected = state.budget === option.id;
             
-            {steps[step].content}
-          </div>
-        </div>
-
-        {error && (
-          <div className="mx-6 mb-4 px-4 py-3 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm flex items-center gap-2">
-            <AlertCircle size={16} />
-            {error}
-          </div>
-        )}
-
-        <div className="p-6 bg-white border-t border-gray-200 flex gap-3">
-          <button
-            onClick={goBack}
-            disabled={!canGoBack}
-            className={`flex-1 py-3 rounded-full font-semibold transition-all duration-300 ${
-              canGoBack
-                ? 'bg-gray-800 text-white hover:bg-gray-700'
-                : 'bg-gray-100 text-gray-400 cursor-not-allowed'
-            }`}
-          >
-            <div className="flex items-center justify-center gap-2">
-              <ChevronLeft size={18} />
-              Atrás
-            </div>
-          </button>
-          
-          {!isLastStep ? (
-            <button
-              onClick={goNext}
-              className="flex-1 py-3 rounded-full font-semibold bg-gradient-to-r from-red-600 to-red-500 text-white hover:from-red-700 hover:to-red-600 shadow-lg transition-all duration-300"
-            >
-              <div className="flex items-center justify-center gap-2">
-                Siguiente
-                <ChevronRight size={18} />
-              </div>
-            </button>
-          ) : (
-            <button
-              onClick={handleSubmit}
-              disabled={isSubmitting}
-              className="flex-1 py-3 rounded-full font-semibold bg-gradient-to-r from-red-600 to-orange-500 text-white hover:from-red-700 hover:to-orange-600 shadow-lg transition-all duration-300 disabled:opacity-50"
-            >
-              {isSubmitting ? (
-                <div className="flex flex-col items-center justify-center gap-1">
-                  <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    <span>Generando tu itinerario...</span>
-                  </div>
-                  <span className="text-[10px] opacity-80">(esto puede tomar 1-2 minutos)</span>
+            return (
+              <button
+                key={option.id}
+                onClick={() => updateState({ budget: option.id })}
+                className={`
+                  p-4 rounded-2xl border-2 transition-all text-center
+                  ${isSelected 
+                    ? 'border-[#E40E20] bg-red-50' 
+                    : 'border-gray-200 hover:border-gray-300'
+                  }
+                `}
+              >
+                <div className={`font-semibold ${isSelected ? 'text-[#E40E20]' : 'text-gray-700'}`}>
+                  {option.label}
                 </div>
-              ) : (
-                <div className="flex items-center justify-center gap-2">
-                  <Sparkles size={18} />
-                  Crear mi itinerario
+                <div className="text-sm text-gray-500 mt-1">
+                  {option.description}
                 </div>
-              )}
-            </button>
-          )}
+              </button>
+            );
+          })}
         </div>
       </div>
 
-      <style jsx global>{`
-        .slider::-webkit-slider-thumb {
-          appearance: none;
-          width: 24px;
-          height: 24px;
-          background: linear-gradient(135deg, #dc2626, #f97316);
-          border-radius: 50%;
-          cursor: pointer;
-          box-shadow: 0 2px 8px rgba(220, 38, 38, 0.3);
-          border: 2px solid white;
-        }
-        
-        .slider::-moz-range-thumb {
-          width: 24px;
-          height: 24px;
-          background: linear-gradient(135deg, #dc2626, #f97316);
-          border-radius: 50%;
-          cursor: pointer;
-          box-shadow: 0 2px 8px rgba(220, 38, 38, 0.3);
-          border: 2px solid white;
-        }
-      `}</style>
-    </>
+      {/* Ritmo */}
+      <div>
+        <h3 className="text-lg font-semibold text-gray-900 mb-2 font-josefin">
+          ¿A qué ritmo?
+        </h3>
+        <div className="grid grid-cols-3 gap-3">
+          {PACE_OPTIONS.map((option) => {
+            const Icon = option.icon;
+            const isSelected = state.pace === option.id;
+            
+            return (
+              <button
+                key={option.id}
+                onClick={() => updateState({ pace: option.id })}
+                className={`
+                  p-4 rounded-2xl border-2 transition-all text-center
+                  ${isSelected 
+                    ? 'border-[#E40E20] bg-red-50' 
+                    : 'border-gray-200 hover:border-gray-300'
+                  }
+                `}
+              >
+                <Icon 
+                  className={`w-5 h-5 mx-auto mb-2 ${isSelected ? 'text-[#E40E20]' : 'text-gray-500'}`} 
+                />
+                <div className={`font-semibold text-sm ${isSelected ? 'text-[#E40E20]' : 'text-gray-700'}`}>
+                  {option.label}
+                </div>
+                <div className="text-xs text-gray-500 mt-1">
+                  {option.activitiesPerDay}
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
+// =============================================================================
+// PASO 4: PREVIEW Y EMAIL
+// =============================================================================
+
+function Step4Preview({ 
+  state, 
+  updateState, 
+  variants, 
+  direction 
+}: { 
+  state: PlannerState; 
+  updateState: (updates: Partial<PlannerState>) => void;
+  variants: any;
+  direction: number;
+}) {
+  const selectedInterests = INTERESTS.filter(i => state.interests.includes(i.id));
+  const selectedTripType = TRIP_TYPES.find(t => t.id === state.tripType);
+  const selectedBudget = BUDGET_OPTIONS.find(b => b.id === state.budget);
+
+  return (
+    <motion.div
+      custom={direction}
+      variants={variants}
+      initial="enter"
+      animate="center"
+      exit="exit"
+      className="space-y-6"
+    >
+      {/* Preview Card */}
+      <div 
+        className="p-5 rounded-2xl"
+        style={{ 
+          background: `linear-gradient(135deg, ${COLORS.primary}08, ${COLORS.azulBarranquero}08)`,
+          border: '1px solid rgba(228, 14, 32, 0.1)'
+        }}
+      >
+        <div className="flex items-center gap-2 mb-4">
+          <Sparkles className="w-5 h-5" style={{ color: COLORS.primary }} />
+          <h3 className="font-semibold text-gray-900">Tu aventura en el Atlántico</h3>
+        </div>
+
+        <div className="space-y-3">
+          {/* Duración */}
+          <div className="flex items-center gap-3 text-sm">
+            <Calendar className="w-4 h-4 text-gray-400" />
+            <span className="text-gray-600">
+              <strong className="text-gray-900">{state.days} días</strong> de exploración
+            </span>
+          </div>
+
+          {/* Tipo de viaje */}
+          <div className="flex items-center gap-3 text-sm">
+            <Users className="w-4 h-4 text-gray-400" />
+            <span className="text-gray-600">
+              Viaje {selectedTripType?.label.toLowerCase()}
+            </span>
+          </div>
+
+          {/* Presupuesto */}
+          <div className="flex items-center gap-3 text-sm">
+            <DollarSign className="w-4 h-4 text-gray-400" />
+            <span className="text-gray-600">
+              Presupuesto {selectedBudget?.label.toLowerCase()} ({selectedBudget?.description})
+            </span>
+          </div>
+
+          {/* Intereses */}
+          <div className="flex items-start gap-3 text-sm">
+            <Heart className="w-4 h-4 text-gray-400 mt-0.5" />
+            <div className="flex flex-wrap gap-2">
+              {selectedInterests.map(interest => (
+                <span 
+                  key={interest.id}
+                  className="px-2 py-1 rounded-full text-xs font-medium text-white"
+                  style={{ backgroundColor: interest.color }}
+                >
+                  {interest.label}
+                </span>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Preview de lugares */}
+        <div className="mt-4 pt-4 border-t border-gray-200/50">
+          <p className="text-sm text-gray-600">
+            <strong className="text-gray-900">Tu itinerario incluirá:</strong>
+          </p>
+          <ul className="mt-2 space-y-1">
+            {selectedInterests.slice(0, 2).map(interest => (
+              <li key={interest.id} className="text-sm text-gray-600 flex items-center gap-2">
+                <Check className="w-3 h-3" style={{ color: interest.color }} />
+                {interest.preview.split(',')[0]}
+              </li>
+            ))}
+            <li className="text-sm text-gray-600 flex items-center gap-2">
+              <Check className="w-3 h-3 text-gray-400" />
+              Restaurantes locales recomendados
+            </li>
+            <li className="text-sm text-gray-600 flex items-center gap-2">
+              <Check className="w-3 h-3 text-gray-400" />
+              Horarios optimizados y tips locales
+            </li>
+          </ul>
+        </div>
+      </div>
+
+      {/* Email Input */}
+      <div>
+        <h3 className="text-lg font-semibold text-gray-900 mb-2 font-josefin">
+          ¿Dónde te enviamos tu itinerario?
+        </h3>
+        <p className="text-sm text-gray-500 mb-4">
+          Recibirás tu itinerario completo por email
+        </p>
+
+        <div className="relative">
+          <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+          <input
+            type="email"
+            value={state.email}
+            onChange={(e) => updateState({ email: e.target.value })}
+            placeholder="tu@email.com"
+            className="w-full pl-12 pr-4 py-4 rounded-xl border-2 border-gray-200 focus:border-[#E40E20] focus:outline-none transition-colors text-gray-900"
+          />
+        </div>
+
+        {/* Trust badges */}
+        <div className="mt-4 flex items-center gap-4 text-xs text-gray-500">
+          <div className="flex items-center gap-1">
+            <Shield className="w-3 h-3" />
+            <span>Datos seguros</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <Sparkles className="w-3 h-3" />
+            <span>Generado con IA</span>
+          </div>
+        </div>
+      </div>
+    </motion.div>
   );
 }

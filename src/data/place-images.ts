@@ -1,0 +1,230 @@
+// src/data/place-images.ts
+// Generado automáticamente con fotos de Google Places
+// Fecha: 2026-01-12T02:13:55.925Z
+
+export const PLACE_IMAGES: Record<string, {
+  primary: string;
+  gallery: string[];
+  place_id?: string;
+  name?: string;
+}> = {
+  "museo-del-caribe": {
+    "primary": "https://maps.googleapis.com/maps/api/place/photo?maxwidth=1200&photo_reference=AcnlKN2up1wtkCEAuzCFVj_bkk2urqkWRneYqLE91p0kF-1USdVqBI_wIOaCv_JNPEUlU19Q5JZt0yKssRAiTxqNM9fy6LPGLmpqFIqdsuwJZClI0JfEb8WQ_ziCJLfQ2M4vxey6RVu-P0FD65BYuQwTXJ3syhIpySDs8hdlaAjanWSgWfpxksgf1-v-BKkrzj7jg5oD-fPtM64VKQK9BWO3bF3Ihjunmdr737qnEdLYgCkusFd-rnD6Fara-bJr8UJLfuMi4AKJyP9XuAkGvFJ3rr8t-8-lQvpuivyVwK4-ckM_R7VDOg7VUra-kqkfTuBoAcquNOxlG2J6he4me8LWhvdT8xUbUFJx5cDmBWpyC_bAXHnNqHMfT-slZeSZCxPM_jWjB3f9x0YencsLsFM9yPLxzwq0xaYDfrQjgylqVupqaXOx87ubjtkigK8OhqtlDREh1iFt8atWRWDoRiKZeg40KP00-JVkMeUiyKsrKMa04ekQ8q0IsX7Fw2Xkk4OA1IKPrZPq5W5H6-OSX4ZEUt0SGxn5OJtcYrkhTkfiZErVcpZyWZM0XRTst9yj4iOL4_LxSl58&key=AIzaSyCgnPA-FFfEf3oojyKlxAniG4XZZbse8rM",
+    "gallery": [
+      "https://maps.googleapis.com/maps/api/place/photo?maxwidth=800&photo_reference=AcnlKN2up1wtkCEAuzCFVj_bkk2urqkWRneYqLE91p0kF-1USdVqBI_wIOaCv_JNPEUlU19Q5JZt0yKssRAiTxqNM9fy6LPGLmpqFIqdsuwJZClI0JfEb8WQ_ziCJLfQ2M4vxey6RVu-P0FD65BYuQwTXJ3syhIpySDs8hdlaAjanWSgWfpxksgf1-v-BKkrzj7jg5oD-fPtM64VKQK9BWO3bF3Ihjunmdr737qnEdLYgCkusFd-rnD6Fara-bJr8UJLfuMi4AKJyP9XuAkGvFJ3rr8t-8-lQvpuivyVwK4-ckM_R7VDOg7VUra-kqkfTuBoAcquNOxlG2J6he4me8LWhvdT8xUbUFJx5cDmBWpyC_bAXHnNqHMfT-slZeSZCxPM_jWjB3f9x0YencsLsFM9yPLxzwq0xaYDfrQjgylqVupqaXOx87ubjtkigK8OhqtlDREh1iFt8atWRWDoRiKZeg40KP00-JVkMeUiyKsrKMa04ekQ8q0IsX7Fw2Xkk4OA1IKPrZPq5W5H6-OSX4ZEUt0SGxn5OJtcYrkhTkfiZErVcpZyWZM0XRTst9yj4iOL4_LxSl58&key=AIzaSyCgnPA-FFfEf3oojyKlxAniG4XZZbse8rM"
+    ],
+    "place_id": "ChIJu5DxJZ0y9I4Rb2mmrcOlTr0",
+    "name": "Parque Cultural Del Caribe"
+  },
+  "gran-malecon": {
+    "primary": "https://maps.googleapis.com/maps/api/place/photo?maxwidth=1200&photo_reference=AcnlKN1AHa9_T2BCitM_ccZtqMdM6Uu_pBYzSxTqnoyKatL3NRTA71w5zNcU3e4koCyeNepz3WORjNVe5i-1byxRHP0SyFX5buX9icMIX2DMWKqu0HKZNtjSLqe1uv5K0zafyX4D_bpCh-bm40HFyYJMTLgFpbG3eqjUC9HmjUU4B0Eq_n4h_yVgq7Onnl0Rlp5snZq2rRuVY9uxccM7f9NjwCX7h-2B7wRL8SVbK40HxEdRlKG6VSZkVKDgGKUTuuxQQovK0665c_gEIfe2TqFtqAYxr_LGMI6ff_BLwrjwV3fibFKJFq3rrc1v4XrxPQvoLQhgNu2ZEDdc5BD1FoOvsIELIc0H_cj_QjoxtxEAJvysPYCxeFe5x91VzDcXqQtGkidtGKzqRaUnxCZnlQENApvFLAKm4EUzi-Ch-FtN1t5AHdXd9Zwcn_1yZnwsoNaDScsSPjm6D90llGxQ9JDkKcGOSxgpu8lWgQP490pKqsBrwvAcfADWH_BH57Gp1hLqExAJYAwSYL059_-Nn1Rfl17UeErV4Zf05Az_vNJtdrPyWLoFO0DzqDtKUCmDZYE7k7nyKSa0Opci6w&key=AIzaSyCgnPA-FFfEf3oojyKlxAniG4XZZbse8rM",
+    "gallery": [
+      "https://maps.googleapis.com/maps/api/place/photo?maxwidth=800&photo_reference=AcnlKN1AHa9_T2BCitM_ccZtqMdM6Uu_pBYzSxTqnoyKatL3NRTA71w5zNcU3e4koCyeNepz3WORjNVe5i-1byxRHP0SyFX5buX9icMIX2DMWKqu0HKZNtjSLqe1uv5K0zafyX4D_bpCh-bm40HFyYJMTLgFpbG3eqjUC9HmjUU4B0Eq_n4h_yVgq7Onnl0Rlp5snZq2rRuVY9uxccM7f9NjwCX7h-2B7wRL8SVbK40HxEdRlKG6VSZkVKDgGKUTuuxQQovK0665c_gEIfe2TqFtqAYxr_LGMI6ff_BLwrjwV3fibFKJFq3rrc1v4XrxPQvoLQhgNu2ZEDdc5BD1FoOvsIELIc0H_cj_QjoxtxEAJvysPYCxeFe5x91VzDcXqQtGkidtGKzqRaUnxCZnlQENApvFLAKm4EUzi-Ch-FtN1t5AHdXd9Zwcn_1yZnwsoNaDScsSPjm6D90llGxQ9JDkKcGOSxgpu8lWgQP490pKqsBrwvAcfADWH_BH57Gp1hLqExAJYAwSYL059_-Nn1Rfl17UeErV4Zf05Az_vNJtdrPyWLoFO0DzqDtKUCmDZYE7k7nyKSa0Opci6w&key=AIzaSyCgnPA-FFfEf3oojyKlxAniG4XZZbse8rM"
+    ],
+    "place_id": "ChIJFbw8just9I4RKLwGyXVWwzU",
+    "name": "Gran Malecón"
+  },
+  "puerta-de-oro": {
+    "primary": "https://maps.googleapis.com/maps/api/place/photo?maxwidth=1200&photo_reference=AcnlKN0H9Sqd89GhQHjB4rS7vzmyq8d-4ATv8X5j88CLAHJrOBSh_eSvR8cJvRgJJrxrRU8n2Lj_eXh7ZFSxP75JKh_KiEHqpgf9z2CA57ud4nz-a7_ER0JDFp6nXVTg7g1ohM2Q3-DsTuwy2hs60ddsUIAmJaUP7ySmQIrP8BVync4LuJlG_TNL6g4rU2KItosUH1ypXDUaAotYHkd7RYrt77jk1dXTHkBIrsq4EhK7PaNYZgIMKHoDLCP3InAA2gYvN4-rx9g-uawrnSWNo214s43NLhLA4wU2UYMkfKo8KeEvEe8jlInmxA7YijtcBBhq7meqTPgid6iOSvPL6s_1q4jj-cUsMV49Zm9x4o74L4pcP1BMlAGP3HpJazCfi1sWWyCwK1o0ni0t5OMvUAy2TEoYZ43pAAgLbyc09unpiipk7NfwBYgM3XXprSX_iQJ_54KdJEzZQyhW2BQtwmEjJ19aU52XlVXX_ey0rP6CwNKDxFOXcJWFQJ-_z6KX-7lhxOGQpO8b8kfpcGn579CWoPLy8U91Af-oV45BY_0-9u_GcawEBBdtboiwGxHKFIrAhwowWpCjGTkQLg&key=AIzaSyCgnPA-FFfEf3oojyKlxAniG4XZZbse8rM",
+    "gallery": [
+      "https://maps.googleapis.com/maps/api/place/photo?maxwidth=800&photo_reference=AcnlKN0H9Sqd89GhQHjB4rS7vzmyq8d-4ATv8X5j88CLAHJrOBSh_eSvR8cJvRgJJrxrRU8n2Lj_eXh7ZFSxP75JKh_KiEHqpgf9z2CA57ud4nz-a7_ER0JDFp6nXVTg7g1ohM2Q3-DsTuwy2hs60ddsUIAmJaUP7ySmQIrP8BVync4LuJlG_TNL6g4rU2KItosUH1ypXDUaAotYHkd7RYrt77jk1dXTHkBIrsq4EhK7PaNYZgIMKHoDLCP3InAA2gYvN4-rx9g-uawrnSWNo214s43NLhLA4wU2UYMkfKo8KeEvEe8jlInmxA7YijtcBBhq7meqTPgid6iOSvPL6s_1q4jj-cUsMV49Zm9x4o74L4pcP1BMlAGP3HpJazCfi1sWWyCwK1o0ni0t5OMvUAy2TEoYZ43pAAgLbyc09unpiipk7NfwBYgM3XXprSX_iQJ_54KdJEzZQyhW2BQtwmEjJ19aU52XlVXX_ey0rP6CwNKDxFOXcJWFQJ-_z6KX-7lhxOGQpO8b8kfpcGn579CWoPLy8U91Af-oV45BY_0-9u_GcawEBBdtboiwGxHKFIrAhwowWpCjGTkQLg&key=AIzaSyCgnPA-FFfEf3oojyKlxAniG4XZZbse8rM"
+    ],
+    "place_id": "ChIJ1eg_D38y9I4RvMZ5QUYYARc",
+    "name": "Puerta de Oro - Centro de Eventos"
+  },
+  "casa-del-carnaval": {
+    "primary": "https://maps.googleapis.com/maps/api/place/photo?maxwidth=1200&photo_reference=AcnlKN1kEWbxBi5JtQtrCZjldF1-rf-3RLXZyzrIYta6h447RSRAQKtqMPUmnUh5AupdDsHQrzT5An6pJTLmkJ8gtnrKXvDcKbL4H5ZQaKWyHHX8ZNHwx0EmaWvMcCcna6Zgp4d5893wSEX7_JiHns0tfJXg0HSQDhRWLGTK2wkvM328JhG_x5sgHThz6fyQQHBjLE7JEuDgycH3f_RUWXWsh_CZKnmzyVNpLtXjDgw3h7-bZWxoZuZkOc5EwxJAXZoniNqgsEodDkA-mM31F__yQ9YXQENCKJICVRjSmdhyh_PJav9zBWs&key=AIzaSyCgnPA-FFfEf3oojyKlxAniG4XZZbse8rM",
+    "gallery": [
+      "https://maps.googleapis.com/maps/api/place/photo?maxwidth=800&photo_reference=AcnlKN1kEWbxBi5JtQtrCZjldF1-rf-3RLXZyzrIYta6h447RSRAQKtqMPUmnUh5AupdDsHQrzT5An6pJTLmkJ8gtnrKXvDcKbL4H5ZQaKWyHHX8ZNHwx0EmaWvMcCcna6Zgp4d5893wSEX7_JiHns0tfJXg0HSQDhRWLGTK2wkvM328JhG_x5sgHThz6fyQQHBjLE7JEuDgycH3f_RUWXWsh_CZKnmzyVNpLtXjDgw3h7-bZWxoZuZkOc5EwxJAXZoniNqgsEodDkA-mM31F__yQ9YXQENCKJICVRjSmdhyh_PJav9zBWs&key=AIzaSyCgnPA-FFfEf3oojyKlxAniG4XZZbse8rM"
+    ],
+    "place_id": "ChIJ428R6nst9I4R5owFCGA59lM",
+    "name": "Carnival Museum"
+  },
+  "plaza-san-nicolas": {
+    "primary": "https://maps.googleapis.com/maps/api/place/photo?maxwidth=1200&photo_reference=AcnlKN1sntI2Yn8hXGqTrN5RWwbuiAaN69U3LhbVZDCGHXCw3iTZweB8KA_6l2T90FEyNLYuXLlju0rSYp3M63uCGLvadOuIbbP5lguHcjuJCU_Jhnw40BUeRlhJtNPNxEnkrD1CZ49BzwASRNx3ZqKlJuARwDzzYSHjrCfcXp-ZewX_EYCOYxsO7X7xaWXWOXE86MQBxOFXeYhXAw74_RiV94Na_Z0UmDf1stV55q8dcJiQXp7XpRQId3zY7SNAxa7YIXGly0e5UUF9_x-XH-LfGmKfpPWezbN2j-XgStVjkDjpnac6Ma7gmZJXVCZZh9FZug2cHmyAgE1YqaxocHH0qBkVy2fiF5wOgGQzMruxPHrGOgYx_4p-NiJ5F3l1eJFPS6_7c9bRm2QwX8NHOMfiEzZhihRariuwZIgGgnDKyzfIY31InFGH95CzH4PqgbCiNHAUqULqa_V7spl8lW785Q6vv3UDzW6tvbmDkiqC_yg3aM1u0qOSfiSGv1rHtnOIw9zi-3gKLk598oYJ7VYjYytU7TjVJyNN7yKXODQqh-A6VVEYWYShwYUURufNycBQIs0qrkCB&key=AIzaSyCgnPA-FFfEf3oojyKlxAniG4XZZbse8rM",
+    "gallery": [
+      "https://maps.googleapis.com/maps/api/place/photo?maxwidth=800&photo_reference=AcnlKN1sntI2Yn8hXGqTrN5RWwbuiAaN69U3LhbVZDCGHXCw3iTZweB8KA_6l2T90FEyNLYuXLlju0rSYp3M63uCGLvadOuIbbP5lguHcjuJCU_Jhnw40BUeRlhJtNPNxEnkrD1CZ49BzwASRNx3ZqKlJuARwDzzYSHjrCfcXp-ZewX_EYCOYxsO7X7xaWXWOXE86MQBxOFXeYhXAw74_RiV94Na_Z0UmDf1stV55q8dcJiQXp7XpRQId3zY7SNAxa7YIXGly0e5UUF9_x-XH-LfGmKfpPWezbN2j-XgStVjkDjpnac6Ma7gmZJXVCZZh9FZug2cHmyAgE1YqaxocHH0qBkVy2fiF5wOgGQzMruxPHrGOgYx_4p-NiJ5F3l1eJFPS6_7c9bRm2QwX8NHOMfiEzZhihRariuwZIgGgnDKyzfIY31InFGH95CzH4PqgbCiNHAUqULqa_V7spl8lW785Q6vv3UDzW6tvbmDkiqC_yg3aM1u0qOSfiSGv1rHtnOIw9zi-3gKLk598oYJ7VYjYytU7TjVJyNN7yKXODQqh-A6VVEYWYShwYUURufNycBQIs0qrkCB&key=AIzaSyCgnPA-FFfEf3oojyKlxAniG4XZZbse8rM"
+    ],
+    "place_id": "ChIJw0TjWZ4y9I4RFLEoaQC2M9E",
+    "name": "Church of San Nicolas de Tolentino"
+  },
+  "centro-historico-baq": {
+    "primary": "https://maps.googleapis.com/maps/api/place/photo?maxwidth=1200&photo_reference=AcnlKN1HJ2DNfP3TT4o7950c37pz0JAJnHpe_RgeVqFhUZRiaGMZ-QzZRO_UYa3Pcsxtzn3Ad4kOIH8MB-ZtqfI6VkqkETvh0FheWq-vNlaVsBTWCOxmVDhFDpzDz2t4sEHyFuawoPdFxQSOz93lH1vrIK1IOFQdAKRrGRQy1CoqFhlvv0BIMzp8Uvg7sIRzJENTGVGe4VTCJQOy-kByafWJaFeUbsiWfh_hJRUQImtzrpnwbN3qjSx1lgyPyVRQYQDWkNaibTtdZLYLYfb6Ep1ZcBoXLVRWapMQWNYua7e16VwcJibM6IIcQPQU92UKtfqg9xgctCNsC1i0JniOwG4xF1F6bRR4R-PvMt94mIkK_c7W3aMsK8OYaPEyC-2NrOL7Pw9s8rwkmo_J8WrvzZvys2C9KO9HpQ2pMEJTVO4JF4cvGjZZEoeprJtX9dhCYz2AtKbinUWkW0UEK0RcDEwrgAI-oB23e3EPopw9x4bpeDM_OPUGde6fBJU-1TfqRIGx07sebMkm9KVEmmafxGMsxm6bu0fJXqU-bdius4bLnmqT6axLFz3B7k1M6Qis-aKI-5MfdADv&key=AIzaSyCgnPA-FFfEf3oojyKlxAniG4XZZbse8rM",
+    "gallery": [
+      "https://maps.googleapis.com/maps/api/place/photo?maxwidth=800&photo_reference=AcnlKN1HJ2DNfP3TT4o7950c37pz0JAJnHpe_RgeVqFhUZRiaGMZ-QzZRO_UYa3Pcsxtzn3Ad4kOIH8MB-ZtqfI6VkqkETvh0FheWq-vNlaVsBTWCOxmVDhFDpzDz2t4sEHyFuawoPdFxQSOz93lH1vrIK1IOFQdAKRrGRQy1CoqFhlvv0BIMzp8Uvg7sIRzJENTGVGe4VTCJQOy-kByafWJaFeUbsiWfh_hJRUQImtzrpnwbN3qjSx1lgyPyVRQYQDWkNaibTtdZLYLYfb6Ep1ZcBoXLVRWapMQWNYua7e16VwcJibM6IIcQPQU92UKtfqg9xgctCNsC1i0JniOwG4xF1F6bRR4R-PvMt94mIkK_c7W3aMsK8OYaPEyC-2NrOL7Pw9s8rwkmo_J8WrvzZvys2C9KO9HpQ2pMEJTVO4JF4cvGjZZEoeprJtX9dhCYz2AtKbinUWkW0UEK0RcDEwrgAI-oB23e3EPopw9x4bpeDM_OPUGde6fBJU-1TfqRIGx07sebMkm9KVEmmafxGMsxm6bu0fJXqU-bdius4bLnmqT6axLFz3B7k1M6Qis-aKI-5MfdADv&key=AIzaSyCgnPA-FFfEf3oojyKlxAniG4XZZbse8rM"
+    ],
+    "place_id": "ChIJveMg1Z0y9I4RBA3z91CT26k",
+    "name": "Paseo Bolívar"
+  },
+  "zoologico-barranquilla": {
+    "primary": "https://maps.googleapis.com/maps/api/place/photo?maxwidth=1200&photo_reference=AcnlKN02REvbO-l48Cdb573XkEuz2YRSJ-uyxOlDp9tLrAJ8mhUzyRuLtyQnXyyHGjHUyq_P1o8B9Xm2ckIU96PhoDTaQVI8eEermOKVcXLvXLjWFAUNcGTD5VFPfOVe68EHoj_WMhBOBpW8J_ZM5hidXdu2sdzYmXXc6kEB-dPj-80GypSDZjUYJ_KPK4qKmJ7ic-ZfzNNDjevGxi8rDW0bYXvcKAETn1Y8TwiYAp7T_9O3Cr5LCsJY9CYGo9oIav81AyWR-voVT7d1nuBFOA9DhRu58CjYV_1uxtTCDUG1fqEbhwf5WZe52WBqNYPbC0HUoqJ7mLgkDZQTRjAjf2zNVYW4Smyq7_jdYwVnDt5XtAHioEtgehCwV2gyvecL_YtF4AevGwkesFEqf_Zz92v_q73vXPMDoLMEUNStqTByGDncCvQHA597svN_nmo6X0HPZJYHb_IzpYRVnBpGQ2yDFFLq4H6ybhfI0QON4KhWOuMv9qExNWdMkBic95A38NBAGxFxe6DeiOp6pOPKHwG1kYfzuRWBj9d05uW88UJiFPNJwArzJ_gQN-hZGH4rWHUXwnBJNUMF&key=AIzaSyCgnPA-FFfEf3oojyKlxAniG4XZZbse8rM",
+    "gallery": [
+      "https://maps.googleapis.com/maps/api/place/photo?maxwidth=800&photo_reference=AcnlKN02REvbO-l48Cdb573XkEuz2YRSJ-uyxOlDp9tLrAJ8mhUzyRuLtyQnXyyHGjHUyq_P1o8B9Xm2ckIU96PhoDTaQVI8eEermOKVcXLvXLjWFAUNcGTD5VFPfOVe68EHoj_WMhBOBpW8J_ZM5hidXdu2sdzYmXXc6kEB-dPj-80GypSDZjUYJ_KPK4qKmJ7ic-ZfzNNDjevGxi8rDW0bYXvcKAETn1Y8TwiYAp7T_9O3Cr5LCsJY9CYGo9oIav81AyWR-voVT7d1nuBFOA9DhRu58CjYV_1uxtTCDUG1fqEbhwf5WZe52WBqNYPbC0HUoqJ7mLgkDZQTRjAjf2zNVYW4Smyq7_jdYwVnDt5XtAHioEtgehCwV2gyvecL_YtF4AevGwkesFEqf_Zz92v_q73vXPMDoLMEUNStqTByGDncCvQHA597svN_nmo6X0HPZJYHb_IzpYRVnBpGQ2yDFFLq4H6ybhfI0QON4KhWOuMv9qExNWdMkBic95A38NBAGxFxe6DeiOp6pOPKHwG1kYfzuRWBj9d05uW88UJiFPNJwArzJ_gQN-hZGH4rWHUXwnBJNUMF&key=AIzaSyCgnPA-FFfEf3oojyKlxAniG4XZZbse8rM"
+    ],
+    "place_id": "ChIJ5Vi6qpAt9I4RVEzBWjjkGVw",
+    "name": "Zoológico de Barranquilla"
+  },
+  "estadio-metropolitano": {
+    "primary": "https://maps.googleapis.com/maps/api/place/photo?maxwidth=1200&photo_reference=AcnlKN2vghALMch3EYlE2lgnG2YNbcC1SKX4sInBqsVy6_eQPRxS4HmIS3DXXk2875LnzR81GUBJv2M9x_AxagGRHpyE48UsWr9r3W1MxAqL2VY3-oAvziM-tfpHMOYosfPHsON9IoI4Sq6O7qcfjQNf0Xbc9y2apsmf6k2rQDi3necNZhi6zNq5B1CCc5Ml5PKnQXoM_V7uAL7AuQEbtO38GLYcN9A8tECLc44hiWXdceXjsTmiKzGcRlG3yPfFQ8r3poIUcbWavpXK756nSsA3pP1JN63x6FgHxs0wbRjA9H4l9HBFfHSbTWRSxB9JrX-ll38S6CFNholy29vf_HiA2DOWN33_cxot0okQtgZKLn_0uxoFJgBGb-B69q8OOVGWP98aq1Mk_LWNSJ5ZFFNdS8SJFT3chhldYt-rprY4ZyPKk1DqyA899hEy2rTrRINt-MlTucwQ7KjsMypyUXMXD__bkikiFyszEE_G8EzQKEi0j6M91a2GhSweFmapgWTuMu8oE8Eqsb89uoSP6jKgmvUQwgGJDmVdGExsfqvW9sw0bS7RHTUh31F_mNqolLX0NmViplaQ&key=AIzaSyCgnPA-FFfEf3oojyKlxAniG4XZZbse8rM",
+    "gallery": [
+      "https://maps.googleapis.com/maps/api/place/photo?maxwidth=800&photo_reference=AcnlKN2vghALMch3EYlE2lgnG2YNbcC1SKX4sInBqsVy6_eQPRxS4HmIS3DXXk2875LnzR81GUBJv2M9x_AxagGRHpyE48UsWr9r3W1MxAqL2VY3-oAvziM-tfpHMOYosfPHsON9IoI4Sq6O7qcfjQNf0Xbc9y2apsmf6k2rQDi3necNZhi6zNq5B1CCc5Ml5PKnQXoM_V7uAL7AuQEbtO38GLYcN9A8tECLc44hiWXdceXjsTmiKzGcRlG3yPfFQ8r3poIUcbWavpXK756nSsA3pP1JN63x6FgHxs0wbRjA9H4l9HBFfHSbTWRSxB9JrX-ll38S6CFNholy29vf_HiA2DOWN33_cxot0okQtgZKLn_0uxoFJgBGb-B69q8OOVGWP98aq1Mk_LWNSJ5ZFFNdS8SJFT3chhldYt-rprY4ZyPKk1DqyA899hEy2rTrRINt-MlTucwQ7KjsMypyUXMXD__bkikiFyszEE_G8EzQKEi0j6M91a2GhSweFmapgWTuMu8oE8Eqsb89uoSP6jKgmvUQwgGJDmVdGExsfqvW9sw0bS7RHTUh31F_mNqolLX0NmViplaQ&key=AIzaSyCgnPA-FFfEf3oojyKlxAniG4XZZbse8rM"
+    ],
+    "place_id": "ChIJ_VKxal7T9Y4RuUkdDpXqLUM",
+    "name": "Roberto Melendez Metropolitan Stadium"
+  },
+  "la-cueva": {
+    "primary": "https://maps.googleapis.com/maps/api/place/photo?maxwidth=1200&photo_reference=AcnlKN1jdnn7XZ83dfoFamvrSxBxsEHQq1gNhs5X00FgrPcttAjP5-aIga_KvDSDlYbTz0uU7rZpqhaaTcAjDo2HvqX2Tn-oMjwyYlg5vvm7DDj8K8VG5QIHagjq3MgKpUPAJvdonwI7-ej23w41BOZ05peWs1LLIhX1HffBiE-U2De6f25pT0_56SJz4eZEOnIfwmDNLdAJolvZwkkOFjMXaWwxcDA4ZPAgZzEjepZ1X6V3qdjNEhBrnkCSzmTYA2NJazaCHmABanKFLV3aV2pJKoLn69UWmU2tBGTVE_1uv78J0rCHt88&key=AIzaSyCgnPA-FFfEf3oojyKlxAniG4XZZbse8rM",
+    "gallery": [
+      "https://maps.googleapis.com/maps/api/place/photo?maxwidth=800&photo_reference=AcnlKN1jdnn7XZ83dfoFamvrSxBxsEHQq1gNhs5X00FgrPcttAjP5-aIga_KvDSDlYbTz0uU7rZpqhaaTcAjDo2HvqX2Tn-oMjwyYlg5vvm7DDj8K8VG5QIHagjq3MgKpUPAJvdonwI7-ej23w41BOZ05peWs1LLIhX1HffBiE-U2De6f25pT0_56SJz4eZEOnIfwmDNLdAJolvZwkkOFjMXaWwxcDA4ZPAgZzEjepZ1X6V3qdjNEhBrnkCSzmTYA2NJazaCHmABanKFLV3aV2pJKoLn69UWmU2tBGTVE_1uv78J0rCHt88&key=AIzaSyCgnPA-FFfEf3oojyKlxAniG4XZZbse8rM"
+    ],
+    "place_id": "ChIJiwio824t9I4RNVj3xiTO44E",
+    "name": "Restaurante La Cueva"
+  },
+  "narcobollo": {
+    "primary": "https://maps.googleapis.com/maps/api/place/photo?maxwidth=1200&photo_reference=AcnlKN2S6iIPGiVbyiGB2ZdN1hcBD8jyode-wVbxe2OaU1OR9y3snFnYK7YxMFX5dv-9M3tIjLHysxtWgZes9ifep175-rBguu9w_1rdYlIXKmQbddz39O7aS58ZouMw1Du7nK4bvw0cCJmdRYvoerSMw7q0KqXH4UsBHecUXGghTPdVa-ZgA8QtTgUY_1POl6fa97KgCpRxU4Az_BH4lHOgeBTlilgyVarErzQWvkEuRCGJ_hsPfh-j2z0cpsQwbjR4FdP_PH9MdTdj_eSqFKVYh9vPa7oxOQ89hiYj3b2ExwqUBfOASHg&key=AIzaSyCgnPA-FFfEf3oojyKlxAniG4XZZbse8rM",
+    "gallery": [
+      "https://maps.googleapis.com/maps/api/place/photo?maxwidth=800&photo_reference=AcnlKN2S6iIPGiVbyiGB2ZdN1hcBD8jyode-wVbxe2OaU1OR9y3snFnYK7YxMFX5dv-9M3tIjLHysxtWgZes9ifep175-rBguu9w_1rdYlIXKmQbddz39O7aS58ZouMw1Du7nK4bvw0cCJmdRYvoerSMw7q0KqXH4UsBHecUXGghTPdVa-ZgA8QtTgUY_1POl6fa97KgCpRxU4Az_BH4lHOgeBTlilgyVarErzQWvkEuRCGJ_hsPfh-j2z0cpsQwbjR4FdP_PH9MdTdj_eSqFKVYh9vPa7oxOQ89hiYj3b2ExwqUBfOASHg&key=AIzaSyCgnPA-FFfEf3oojyKlxAniG4XZZbse8rM"
+    ],
+    "place_id": "ChIJ0WeEzQAt9I4R5owbyqpyMeY",
+    "name": "Narcobollo Barranquilla"
+  },
+  "caiman-del-rio": {
+    "primary": "https://maps.googleapis.com/maps/api/place/photo?maxwidth=1200&photo_reference=AcnlKN3WqSIGXYwwHp-x62WULbhMm55CJL7DEZ6pRA02YMtMtz5_kP6L1T1uip2fVyE79OerDQFyo-6INDYUCbD-_8sAQqZPPIEHWmfLow9WxVc6ie0NA7r2Vyk1vSeoJQdyxplmjePEREUeuFrXSUnserjQFHI-iLUer76--bPk0z3AhyGYyKEqlRH8pMx7N5jRgmpy9L6nXuNJ4vr63CIk1ydxBsYzfM7LRtoEm7wD2fh5w4azin4rLCMSYT4vZ_bxyvENYNLRcR-lUrPHpXTNis7aN4g0AqsYGdvhkleh-aaC5z5Dsvc2MzKqoykd1fU4-oiULfgcUOdfHCFzciBdGKdz6s95Fl8AghrF73V7C0mrSN2FwUD7Ldom9dUAcTRXqnKkCbefrQA8gL4M4EAklqlWvexIhGfEgP8FmulXLbRRtZb0kJq2EFqxFLshFelJZOEYREqU65Q57pIZjVSm4fBZ8XT8oOOmNI01d_noYKqQ735A2hL-0qyJA-e7x3FniZ5buczhZMLxXTSnoyBP2Tflr__ATJ95sRzTIzG9DdVxmDUrRmA5cKxYKmpc8KrdOSSFT-d6&key=AIzaSyCgnPA-FFfEf3oojyKlxAniG4XZZbse8rM",
+    "gallery": [
+      "https://maps.googleapis.com/maps/api/place/photo?maxwidth=800&photo_reference=AcnlKN3WqSIGXYwwHp-x62WULbhMm55CJL7DEZ6pRA02YMtMtz5_kP6L1T1uip2fVyE79OerDQFyo-6INDYUCbD-_8sAQqZPPIEHWmfLow9WxVc6ie0NA7r2Vyk1vSeoJQdyxplmjePEREUeuFrXSUnserjQFHI-iLUer76--bPk0z3AhyGYyKEqlRH8pMx7N5jRgmpy9L6nXuNJ4vr63CIk1ydxBsYzfM7LRtoEm7wD2fh5w4azin4rLCMSYT4vZ_bxyvENYNLRcR-lUrPHpXTNis7aN4g0AqsYGdvhkleh-aaC5z5Dsvc2MzKqoykd1fU4-oiULfgcUOdfHCFzciBdGKdz6s95Fl8AghrF73V7C0mrSN2FwUD7Ldom9dUAcTRXqnKkCbefrQA8gL4M4EAklqlWvexIhGfEgP8FmulXLbRRtZb0kJq2EFqxFLshFelJZOEYREqU65Q57pIZjVSm4fBZ8XT8oOOmNI01d_noYKqQ735A2hL-0qyJA-e7x3FniZ5buczhZMLxXTSnoyBP2Tflr__ATJ95sRzTIzG9DdVxmDUrRmA5cKxYKmpc8KrdOSSFT-d6&key=AIzaSyCgnPA-FFfEf3oojyKlxAniG4XZZbse8rM"
+    ],
+    "place_id": "ChIJa9Jj4y0t9I4R8v3SV-VxE8I",
+    "name": "Caimán del Río"
+  },
+  "la-troja": {
+    "primary": "https://maps.googleapis.com/maps/api/place/photo?maxwidth=1200&photo_reference=AcnlKN0KmofoM5Lp8O3I5EV5LrjbOKdLdZUoxRFzeq81IQN9X7H0XMOw2u8e_WTbVwYabxuUwOI7uW9ENf4dzTLX2q4-a26EfH0SGUrA9xJMKrbQ4FoBHCWynL6x-4VlGIzVbFRcugc8JPLu3xXUHjq_5sKAg_GQqu5ww0-EwrhYpLGGF_2oIW1NXKMLut3qmMY_v6dbb5EiYAC4pwhoWTqQA9c6o6B9aHDmScjB-06TYWdSRsOBgUdSTdd4N4bse4-4eGGwt3nneTU63fSuy8dRgXtOVlJpzfdOeP52jNAv2mmOB_I4pJMtk4OmtauBC-VdpkfyKHAYxGnlWNbugno-PxdOeNAzXNMKIwNzXQxPLXw1YH_vmZAfZi7V8slochX1LtWKObWVMnrDCisKFzhCivaVC9OMKGt0IVAMUNbw_MzprZtybEbySReKncGT5ZuU_na7JYvpA9T6FSlxns3yUkV_zu__v-2e6j2dznF-zjwyY4qyHYXkD4PZ5jVIhAzsJTEHVEuk6Yzaf4CTAUJw3w-DWkwuBCoZ8RkhzpewdQE46rtpFysNHVEClKSaJjvh-U7h1aq3y6gumw&key=AIzaSyCgnPA-FFfEf3oojyKlxAniG4XZZbse8rM",
+    "gallery": [
+      "https://maps.googleapis.com/maps/api/place/photo?maxwidth=800&photo_reference=AcnlKN0KmofoM5Lp8O3I5EV5LrjbOKdLdZUoxRFzeq81IQN9X7H0XMOw2u8e_WTbVwYabxuUwOI7uW9ENf4dzTLX2q4-a26EfH0SGUrA9xJMKrbQ4FoBHCWynL6x-4VlGIzVbFRcugc8JPLu3xXUHjq_5sKAg_GQqu5ww0-EwrhYpLGGF_2oIW1NXKMLut3qmMY_v6dbb5EiYAC4pwhoWTqQA9c6o6B9aHDmScjB-06TYWdSRsOBgUdSTdd4N4bse4-4eGGwt3nneTU63fSuy8dRgXtOVlJpzfdOeP52jNAv2mmOB_I4pJMtk4OmtauBC-VdpkfyKHAYxGnlWNbugno-PxdOeNAzXNMKIwNzXQxPLXw1YH_vmZAfZi7V8slochX1LtWKObWVMnrDCisKFzhCivaVC9OMKGt0IVAMUNbw_MzprZtybEbySReKncGT5ZuU_na7JYvpA9T6FSlxns3yUkV_zu__v-2e6j2dznF-zjwyY4qyHYXkD4PZ5jVIhAzsJTEHVEuk6Yzaf4CTAUJw3w-DWkwuBCoZ8RkhzpewdQE46rtpFysNHVEClKSaJjvh-U7h1aq3y6gumw&key=AIzaSyCgnPA-FFfEf3oojyKlxAniG4XZZbse8rM"
+    ],
+    "place_id": "ChIJ2wBaFgwt9I4RxuALKY2K2tI",
+    "name": "LA TROJA- Patrimonio Cultural y Musical de Barranquilla. 59 años de saborsura"
+  },
+  "frogg-bar": {
+    "primary": "https://maps.googleapis.com/maps/api/place/photo?maxwidth=1200&photo_reference=AcnlKN3Ed9fNtydAx86lSMhd5VKlkNejJX1ZqvXWyAJyTnpo3G8hiBbu6_38K9YqMIAr6IuEC0MtoXDVbAevACZhKhOTWD8Lca-X4DHl-VgSrhcXLtD0X8ZgafrN4vgCjHuVdyK5FkK-gu6On6Igj3YegvM3MHFP9lhpu7G7jWnnOZUQuNrZQO6PgTPsen3D6xuBPiOm0STfpkgyXCVLdhAB0DHuaSudvBC9-J_tNZ0UPZH6PppcA5T4d3yvQqfBvj7WSqM2EPvvzL2IH9peWcaVHJ5OAaqsvwZszUaahwGnzi5n-oZgkyylTvjIsI6Yfr2KC8T3QsGe2kJgNO7P9CSrCzCDsgKPWNfoOtHt-UuYYwpFfRa-SctSv_fuoT4MY9otOXdxi8pNFNh30Jio1Hpk1XTfrnC9ucZ-3R8PPxw738f6AiPElMwwtUUWJEzLAIXPhUUHRIjqiGTZHN8L_JRaICWS1CacfmS7tY2e6Xw0cVCT7-UKxSX5d34sBXxVzAlAAKHD6dMQqdrLXL3FeRGJjmaESZo1ZmmGuGbWy7yFrOdpBTyMV7Y0XhGcQcmL4fLumA6Lxw&key=AIzaSyCgnPA-FFfEf3oojyKlxAniG4XZZbse8rM",
+    "gallery": [
+      "https://maps.googleapis.com/maps/api/place/photo?maxwidth=800&photo_reference=AcnlKN3Ed9fNtydAx86lSMhd5VKlkNejJX1ZqvXWyAJyTnpo3G8hiBbu6_38K9YqMIAr6IuEC0MtoXDVbAevACZhKhOTWD8Lca-X4DHl-VgSrhcXLtD0X8ZgafrN4vgCjHuVdyK5FkK-gu6On6Igj3YegvM3MHFP9lhpu7G7jWnnOZUQuNrZQO6PgTPsen3D6xuBPiOm0STfpkgyXCVLdhAB0DHuaSudvBC9-J_tNZ0UPZH6PppcA5T4d3yvQqfBvj7WSqM2EPvvzL2IH9peWcaVHJ5OAaqsvwZszUaahwGnzi5n-oZgkyylTvjIsI6Yfr2KC8T3QsGe2kJgNO7P9CSrCzCDsgKPWNfoOtHt-UuYYwpFfRa-SctSv_fuoT4MY9otOXdxi8pNFNh30Jio1Hpk1XTfrnC9ucZ-3R8PPxw738f6AiPElMwwtUUWJEzLAIXPhUUHRIjqiGTZHN8L_JRaICWS1CacfmS7tY2e6Xw0cVCT7-UKxSX5d34sBXxVzAlAAKHD6dMQqdrLXL3FeRGJjmaESZo1ZmmGuGbWy7yFrOdpBTyMV7Y0XhGcQcmL4fLumA6Lxw&key=AIzaSyCgnPA-FFfEf3oojyKlxAniG4XZZbse8rM"
+    ],
+    "place_id": "ChIJQ_heS1Us9I4RYbJiuCDf1Xw",
+    "name": "Frogg Leggs Café Bar"
+  },
+  "playa-pradomar": {
+    "primary": "https://maps.googleapis.com/maps/api/place/photo?maxwidth=1200&photo_reference=AcnlKN0LbIOmlBGbTSNKZLsiHZvxmPjFvSQSslOCdDrn_ZzWnwRuJ7UznxA734yGBtRPrKpdKWHFutzS5Y0IB6L7VXz31QNz-Cjd43WUoezusEcXBkIVC0QfCpBRDpO-tAGf6S8LBq_m-pNckxHcz4u38vJSchfssN7om5vtHT6gzUxFrMEp4An7veL_EiEJq65iEnidkWXwT2h1PDx1gRnbFFE9-ugYW0E4h8IVJ0myFYKoXgirg-HN9SWSmkquwOEUOdQcu1kS3tmrByM1FtR6O3dFfYKjIGJntBGm3EDuQ-PBiB6Mu81NyxtE1AcObpG6s79J6-AlhsvcHBKwDFd5-C0lczGCRB-K-025NTuqeL8OYM3Q77lCv5eH56ndL7XCvOfqn9NKuRK8vnTklIxnU8h7_mqdE-J_aSZoGL1TQ9nsZK95YHwfeKb8Ix9zjSnajTnMuiy4jKavz_X2TaxR9FXhdUy0fo6ZG2SLw5t2Q3Gb2xXbF12zoC6D2UAeBq6i3adtBnnHyiEbX853ysip41mxkJEXi6U0HURgjSbO2RhM7RpTM6kItxjWCdidme3eSQCShbmJ9fd5fQ&key=AIzaSyCgnPA-FFfEf3oojyKlxAniG4XZZbse8rM",
+    "gallery": [
+      "https://maps.googleapis.com/maps/api/place/photo?maxwidth=800&photo_reference=AcnlKN0LbIOmlBGbTSNKZLsiHZvxmPjFvSQSslOCdDrn_ZzWnwRuJ7UznxA734yGBtRPrKpdKWHFutzS5Y0IB6L7VXz31QNz-Cjd43WUoezusEcXBkIVC0QfCpBRDpO-tAGf6S8LBq_m-pNckxHcz4u38vJSchfssN7om5vtHT6gzUxFrMEp4An7veL_EiEJq65iEnidkWXwT2h1PDx1gRnbFFE9-ugYW0E4h8IVJ0myFYKoXgirg-HN9SWSmkquwOEUOdQcu1kS3tmrByM1FtR6O3dFfYKjIGJntBGm3EDuQ-PBiB6Mu81NyxtE1AcObpG6s79J6-AlhsvcHBKwDFd5-C0lczGCRB-K-025NTuqeL8OYM3Q77lCv5eH56ndL7XCvOfqn9NKuRK8vnTklIxnU8h7_mqdE-J_aSZoGL1TQ9nsZK95YHwfeKb8Ix9zjSnajTnMuiy4jKavz_X2TaxR9FXhdUy0fo6ZG2SLw5t2Q3Gb2xXbF12zoC6D2UAeBq6i3adtBnnHyiEbX853ysip41mxkJEXi6U0HURgjSbO2RhM7RpTM6kItxjWCdidme3eSQCShbmJ9fd5fQ&key=AIzaSyCgnPA-FFfEf3oojyKlxAniG4XZZbse8rM"
+    ],
+    "place_id": "ChIJC0mV2ogq9I4RPa2Qr2zAWJA",
+    "name": "Playas De Pradomar"
+  },
+  "playa-salgar": {
+    "primary": "https://maps.googleapis.com/maps/api/place/photo?maxwidth=1200&photo_reference=AcnlKN0OlQEh3wZ7S00GVR1bSBx3I2FRyR-lGSsRA7F0Rng2FKkZq9hjQgO-_N-9xQGhb9tEkVsKM894QAnz13fSVZbaQx1bwun2QXQQ0ygt-o5wgcRqJJenzx93nwLClLoKlA4-RcSkE300LFcHyGAa3tYa4BOk2thxAx9KEp-3OE5GNINK8IkeOk19mQ5GAriVjUlQ1x9b9D5VFGoe5ekg0TdkUNFqAtWG841qEu5QnA56evTnE8YCRGRIURybXmrMc87236p5utr-BfQqst934cqD8GG7sAOW5ojliVwmtc1gfuCJJUTICA0lixMqX8oznaNDFpodig693Ul4vZUu64eXnpt2F8Wz6vDbGY6WvGwsAQ28mAsWQjQvkcWJjUbd9-oXRii9Nf5FtyBaRT5Hg8i8diue-zQ1KPtxngtthAUIZ5-bjThm_ligmMFyheiumgW0-lDdnprkRgE8S_zW-H9CqGiEAbiR1HBC_VqyKNp60VC7FX6gqBxj6uNb8rgU0NUFHzg-Ssm4tAPCC-y6HVeKpI0BD8g5M8-GUFw_6kKFgtZTOmpuDMNKEvRohje8eMQifT70&key=AIzaSyCgnPA-FFfEf3oojyKlxAniG4XZZbse8rM",
+    "gallery": [
+      "https://maps.googleapis.com/maps/api/place/photo?maxwidth=800&photo_reference=AcnlKN0OlQEh3wZ7S00GVR1bSBx3I2FRyR-lGSsRA7F0Rng2FKkZq9hjQgO-_N-9xQGhb9tEkVsKM894QAnz13fSVZbaQx1bwun2QXQQ0ygt-o5wgcRqJJenzx93nwLClLoKlA4-RcSkE300LFcHyGAa3tYa4BOk2thxAx9KEp-3OE5GNINK8IkeOk19mQ5GAriVjUlQ1x9b9D5VFGoe5ekg0TdkUNFqAtWG841qEu5QnA56evTnE8YCRGRIURybXmrMc87236p5utr-BfQqst934cqD8GG7sAOW5ojliVwmtc1gfuCJJUTICA0lixMqX8oznaNDFpodig693Ul4vZUu64eXnpt2F8Wz6vDbGY6WvGwsAQ28mAsWQjQvkcWJjUbd9-oXRii9Nf5FtyBaRT5Hg8i8diue-zQ1KPtxngtthAUIZ5-bjThm_ligmMFyheiumgW0-lDdnprkRgE8S_zW-H9CqGiEAbiR1HBC_VqyKNp60VC7FX6gqBxj6uNb8rgU0NUFHzg-Ssm4tAPCC-y6HVeKpI0BD8g5M8-GUFw_6kKFgtZTOmpuDMNKEvRohje8eMQifT70&key=AIzaSyCgnPA-FFfEf3oojyKlxAniG4XZZbse8rM"
+    ],
+    "place_id": "ChIJHczJm0Uq9I4RiSMdJeErLz4",
+    "name": "Playas de Salgar"
+  },
+  "muelle-puerto-colombia": {
+    "primary": "https://maps.googleapis.com/maps/api/place/photo?maxwidth=1200&photo_reference=AcnlKN2eov518nmR1eVf5Ea2fxC9wZE8RhHmFydYMGid2sKjs1uGvgAieiN5Cp-ZO18CxBpqBZ5uAFRYqoHhLNQR0L_l3VkPhCYk-LXW_KIdeY0oeIH9vlqSiyvSi7HaojuK3lI3mrCtZvPUgGbGz98cFgsQ-7CUB2WdOu_0hkOUDnIDq1S_zmxJ_b1C2vdAvkDPZC-Gb21JREVhXGfykPuylv6DC2dLtylRUqqXUjoJ-ny80QG2c2A7F37ooMWumOuYixdxgINTDf64t3lU1yHNvY-PUZGOp1nxGJ6ImXW2SKzkTOIezDxyeoBVJMHwycdaa5YN0nDqZI3ffbprM1AceXt4RGyedKZsDyCiqoz0V15IfHsC8lZxCWQQZ9gbUKDfEi_acNq7Jm9SndReVXgVbVxbMw4skXNiXpKQUeiOkUHNs5CQjkj8jD-wcwKpZ0buw1oauAR8DDy7Jcapx83-jLUPfOXUYjvKClBgOWaX3mEO6VHHwQeSlos7voA0ozrRx2AOjxNsyJcV9fq9-F2FBhiIwCZPWaZHluptSSEmQ5DdsgexHvVl8S8VJzDsIJ4E51NOyfafxrUYZA&key=AIzaSyCgnPA-FFfEf3oojyKlxAniG4XZZbse8rM",
+    "gallery": [
+      "https://maps.googleapis.com/maps/api/place/photo?maxwidth=800&photo_reference=AcnlKN2eov518nmR1eVf5Ea2fxC9wZE8RhHmFydYMGid2sKjs1uGvgAieiN5Cp-ZO18CxBpqBZ5uAFRYqoHhLNQR0L_l3VkPhCYk-LXW_KIdeY0oeIH9vlqSiyvSi7HaojuK3lI3mrCtZvPUgGbGz98cFgsQ-7CUB2WdOu_0hkOUDnIDq1S_zmxJ_b1C2vdAvkDPZC-Gb21JREVhXGfykPuylv6DC2dLtylRUqqXUjoJ-ny80QG2c2A7F37ooMWumOuYixdxgINTDf64t3lU1yHNvY-PUZGOp1nxGJ6ImXW2SKzkTOIezDxyeoBVJMHwycdaa5YN0nDqZI3ffbprM1AceXt4RGyedKZsDyCiqoz0V15IfHsC8lZxCWQQZ9gbUKDfEi_acNq7Jm9SndReVXgVbVxbMw4skXNiXpKQUeiOkUHNs5CQjkj8jD-wcwKpZ0buw1oauAR8DDy7Jcapx83-jLUPfOXUYjvKClBgOWaX3mEO6VHHwQeSlos7voA0ozrRx2AOjxNsyJcV9fq9-F2FBhiIwCZPWaZHluptSSEmQ5DdsgexHvVl8S8VJzDsIJ4E51NOyfafxrUYZA&key=AIzaSyCgnPA-FFfEf3oojyKlxAniG4XZZbse8rM"
+    ],
+    "place_id": "ChIJESxGwZ4q9I4RSQl_9DM3UY8",
+    "name": "Puerto Colombia Dock"
+  },
+  "castillo-salgar": {
+    "primary": "https://maps.googleapis.com/maps/api/place/photo?maxwidth=1200&photo_reference=AcnlKN1LXcKJplO5u0CM9Lxls851_hTzbunhL-Pe4x8OU04WzzBLH6OepbpEt3MjVTVpNFCSAJWB5bg_d86vntM_qKGm0-8emp6oRJsQQRmI_x44gJOoS32zZF3GIXxSYx34cSwzR3pE77cB6Ws-TrpCYUZt9WGLSQXzQHNdv2XuTScd_fRH8x-igvWWm8sKd0X9Sjvd429a4OdEECSJfDev4s1CIslvMi0pc1eVq_Gw-1a4G0J5_n02DIBPaavojJvIDckR134r3dF5qTsH_1FmThf0z_CzpZV5C7GDbmG-UvOTxH6xBCfAL652lmQxGAnAMcq5M8C_zG99CvuJxy8XguXzoGc1fz0CtY-jnN1hjw9Nhh9qBR6AaW6zwAOhKED6DByppB0kncEPEuRrRpLGz5nrrQuE8uI7uXc0IuVwuSoD4OFjbJczJya-9kfA2TUm28KFId3n0MnCf_-Vnz1RZVbMj4NyeTAcp3tCCx3gu3di6PtZ9ocIW4V_4WAAByc6SNYjR08WvmQUYt7vwrMU1XLZN4DZx12-mXFZ8QUgNpN1jCXlBsfLFoAQz5wSnSnUpddC10M2NhwXEmQzQiBSQaoouFs&key=AIzaSyCgnPA-FFfEf3oojyKlxAniG4XZZbse8rM",
+    "gallery": [
+      "https://maps.googleapis.com/maps/api/place/photo?maxwidth=800&photo_reference=AcnlKN1LXcKJplO5u0CM9Lxls851_hTzbunhL-Pe4x8OU04WzzBLH6OepbpEt3MjVTVpNFCSAJWB5bg_d86vntM_qKGm0-8emp6oRJsQQRmI_x44gJOoS32zZF3GIXxSYx34cSwzR3pE77cB6Ws-TrpCYUZt9WGLSQXzQHNdv2XuTScd_fRH8x-igvWWm8sKd0X9Sjvd429a4OdEECSJfDev4s1CIslvMi0pc1eVq_Gw-1a4G0J5_n02DIBPaavojJvIDckR134r3dF5qTsH_1FmThf0z_CzpZV5C7GDbmG-UvOTxH6xBCfAL652lmQxGAnAMcq5M8C_zG99CvuJxy8XguXzoGc1fz0CtY-jnN1hjw9Nhh9qBR6AaW6zwAOhKED6DByppB0kncEPEuRrRpLGz5nrrQuE8uI7uXc0IuVwuSoD4OFjbJczJya-9kfA2TUm28KFId3n0MnCf_-Vnz1RZVbMj4NyeTAcp3tCCx3gu3di6PtZ9ocIW4V_4WAAByc6SNYjR08WvmQUYt7vwrMU1XLZN4DZx12-mXFZ8QUgNpN1jCXlBsfLFoAQz5wSnSnUpddC10M2NhwXEmQzQiBSQaoouFs&key=AIzaSyCgnPA-FFfEf3oojyKlxAniG4XZZbse8rM"
+    ],
+    "place_id": "ChIJq2eR1EIq9I4RhHab-kJrVPU",
+    "name": "Castle Salgar"
+  },
+  "cienaga-mallorquin": {
+    "primary": "https://maps.googleapis.com/maps/api/place/photo?maxwidth=1200&photo_reference=AcnlKN1NX_FkMO-SNBFsIE9607Vwb5F4Bg2DipKnCzu99alsRQJWH4YL3MaP0rlro2bJzU-NZFrO-9TFViDmlkbO_xYB7du8slLLLkoCC9Tx97_XtJPEmHDevPSudMURIt7QU3DTrMPWaDYT9l4WPDzE-GVY1T_xBJz0Ob9LTjMhMLKblpT1j2BnKzcF5DEzsrgAYObU83aQQgQUJZnsUanO-2O0DErHNRTjPGrNYIcMbHQhTVe1vNOEcqUvHvwZJFPwb-YQCtfGp0UWIPRJEAHl2--o5u2cTHfOYPlYalpHmxUJgLjhrmYKrXjAmrNwyUA5YbCQ4jZFpo6enRKWoYsZYjsF1SvJdQDQ5JfHbg6QfD5E1zid71ubdZVky1NwG2eHUbcbKQi2N08zSImg2UCWVuuJPRghIqZ5zUl2faHAj9KOXomVSRMvuiRG-Uu3Il9TvQTW1QN5tquWidc136kwy66Q8c27sO4ePA-QTFs6aL5U54Qo5NdBv3brw5gMt-pYs5GPdRjEMGI6eocgM_idyglXpVGI76zhRxD9FuviHkx8bmg3Eb4mWw6KB0lnuxzA4OnncbD4q4nXJ4PpntrxGw8782A&key=AIzaSyCgnPA-FFfEf3oojyKlxAniG4XZZbse8rM",
+    "gallery": [
+      "https://maps.googleapis.com/maps/api/place/photo?maxwidth=800&photo_reference=AcnlKN1NX_FkMO-SNBFsIE9607Vwb5F4Bg2DipKnCzu99alsRQJWH4YL3MaP0rlro2bJzU-NZFrO-9TFViDmlkbO_xYB7du8slLLLkoCC9Tx97_XtJPEmHDevPSudMURIt7QU3DTrMPWaDYT9l4WPDzE-GVY1T_xBJz0Ob9LTjMhMLKblpT1j2BnKzcF5DEzsrgAYObU83aQQgQUJZnsUanO-2O0DErHNRTjPGrNYIcMbHQhTVe1vNOEcqUvHvwZJFPwb-YQCtfGp0UWIPRJEAHl2--o5u2cTHfOYPlYalpHmxUJgLjhrmYKrXjAmrNwyUA5YbCQ4jZFpo6enRKWoYsZYjsF1SvJdQDQ5JfHbg6QfD5E1zid71ubdZVky1NwG2eHUbcbKQi2N08zSImg2UCWVuuJPRghIqZ5zUl2faHAj9KOXomVSRMvuiRG-Uu3Il9TvQTW1QN5tquWidc136kwy66Q8c27sO4ePA-QTFs6aL5U54Qo5NdBv3brw5gMt-pYs5GPdRjEMGI6eocgM_idyglXpVGI76zhRxD9FuviHkx8bmg3Eb4mWw6KB0lnuxzA4OnncbD4q4nXJ4PpntrxGw8782A&key=AIzaSyCgnPA-FFfEf3oojyKlxAniG4XZZbse8rM"
+    ],
+    "place_id": "ChIJUVRiCiAs9I4R5WVfrMGEmz4",
+    "name": "Ciénaga de Mallorquín"
+  },
+  "bocas-de-ceniza": {
+    "primary": "https://maps.googleapis.com/maps/api/place/photo?maxwidth=1200&photo_reference=AcnlKN2mG0X-9MOK16Ixwm4WjRqVdM1Y8AN531hBBDSrGzzoOWGxs67Re9SQMJKkkZaQ73vDsua6oyR6E_KozcK0PgfjgBbCzG3o9sScSaCQz45d57aiBeK3syrwMn1YYgXxeKWOLTq1liI1gWNWid6BJTzDNK3XePYtcyCdmzmR7jrGsJpcDgO1Av1FZI4BprIO9TUn3JXbqBdMtvj-jZjtWSXKU-atJAF8NoKIv8inJxhR0WILJWc0soLApYVfH5uNXYI_Sjw7n8sKx_4hQWeTbVNIBK1yjFMkgVfHFH9615XeeO52fcE&key=AIzaSyCgnPA-FFfEf3oojyKlxAniG4XZZbse8rM",
+    "gallery": [
+      "https://maps.googleapis.com/maps/api/place/photo?maxwidth=800&photo_reference=AcnlKN2mG0X-9MOK16Ixwm4WjRqVdM1Y8AN531hBBDSrGzzoOWGxs67Re9SQMJKkkZaQ73vDsua6oyR6E_KozcK0PgfjgBbCzG3o9sScSaCQz45d57aiBeK3syrwMn1YYgXxeKWOLTq1liI1gWNWid6BJTzDNK3XePYtcyCdmzmR7jrGsJpcDgO1Av1FZI4BprIO9TUn3JXbqBdMtvj-jZjtWSXKU-atJAF8NoKIv8inJxhR0WILJWc0soLApYVfH5uNXYI_Sjw7n8sKx_4hQWeTbVNIBK1yjFMkgVfHFH9615XeeO52fcE&key=AIzaSyCgnPA-FFfEf3oojyKlxAniG4XZZbse8rM"
+    ],
+    "place_id": "ChIJG_IPDBYv9I4RIvRtUFH76sg",
+    "name": "Bocas de Ceniza"
+  },
+  "artesanias-galapa": {
+    "primary": "https://maps.googleapis.com/maps/api/place/photo?maxwidth=1200&photo_reference=AcnlKN1n36JIA0EtlyXMMmTpygfkgikGDE6EoXYbeYZ1IXwE8mYE9wCe_QjB6V70-iCQa8euJMAZGOc2BtSB-rF1LnKYtKOzwt7SLpmOXQI2AFYldlHKLr8SmW59fq1KpdsVhtup7jbI5GZK6M3huVU3AH7ZOxNl_TXvHKkSqYJDgSKl70gAxiJWbcl33q-0bl8Fh5vizG_sNSZq6GLVqzaOm3mhjdol9LvhErwrlkBOTpq3Yy_-e1lta-y7aQs63NvZHH4QvdAphsr6JueNNh2OCaKEwCl2mTVQS_0DR4Kjk6RB7n3gBenZkBCgZt64x9CGpP_ffKKaKiYpG-Oj8m8QSyHZhOqWNecqqOJB3sZvs3oUkYyGGpiqRFKoEamQJZnnnqL0QRiK66u0HWjI-QqszYu0gFJx0Xi9PXBu1b2fgi1TWJtNSDlFuJljM35jIbwTFCICfQjg7uSWMWJYf6taNl9FX4id_-N5GZoJJC1aE2bQUobMZ2fexZKzhgnyTYEz5_6DgYmKwuPWYA_8MIo-tQbQwN80SXei1oHs76btC95Tmf5ctxSn3H8HP8ToV2OdEQ5m6exX4xpQVQ&key=AIzaSyCgnPA-FFfEf3oojyKlxAniG4XZZbse8rM",
+    "gallery": [
+      "https://maps.googleapis.com/maps/api/place/photo?maxwidth=800&photo_reference=AcnlKN1n36JIA0EtlyXMMmTpygfkgikGDE6EoXYbeYZ1IXwE8mYE9wCe_QjB6V70-iCQa8euJMAZGOc2BtSB-rF1LnKYtKOzwt7SLpmOXQI2AFYldlHKLr8SmW59fq1KpdsVhtup7jbI5GZK6M3huVU3AH7ZOxNl_TXvHKkSqYJDgSKl70gAxiJWbcl33q-0bl8Fh5vizG_sNSZq6GLVqzaOm3mhjdol9LvhErwrlkBOTpq3Yy_-e1lta-y7aQs63NvZHH4QvdAphsr6JueNNh2OCaKEwCl2mTVQS_0DR4Kjk6RB7n3gBenZkBCgZt64x9CGpP_ffKKaKiYpG-Oj8m8QSyHZhOqWNecqqOJB3sZvs3oUkYyGGpiqRFKoEamQJZnnnqL0QRiK66u0HWjI-QqszYu0gFJx0Xi9PXBu1b2fgi1TWJtNSDlFuJljM35jIbwTFCICfQjg7uSWMWJYf6taNl9FX4id_-N5GZoJJC1aE2bQUobMZ2fexZKzhgnyTYEz5_6DgYmKwuPWYA_8MIo-tQbQwN80SXei1oHs76btC95Tmf5ctxSn3H8HP8ToV2OdEQ5m6exX4xpQVQ&key=AIzaSyCgnPA-FFfEf3oojyKlxAniG4XZZbse8rM"
+    ],
+    "place_id": "ChIJF0sxA4PN9Y4R6-jEjQeh7UI",
+    "name": "Centro Comercial Carnaval"
+  },
+  "usiacuri-artesanias": {
+    "primary": "https://maps.googleapis.com/maps/api/place/photo?maxwidth=1200&photo_reference=AcnlKN0bFQJzq-Y_yZ0IcU86p5LnuFXAC5L6hd7k291wsJqDi5ztg0iyJd3WdcdK9T5XU-J-IUI8-404yyZ74qvP5Uacf4XkrMt9ot88I4YCyNJeg-GucJL1iPJDpXLkL6a1UpRDSnDpkT_PeAmqKJStYrOcGGlSKu7BWhyUfs86lVbbRv4CVZkOEkOzX1nTAiiRvrX0xp117lQI9iCAAQLYjtNixK6GW2cvjlfjidW6s-rb84weNpw4hw08ESJXclHXQr-tA6mhW1Ucl4BRnFhkfMmihHKYszaCqw_x-_wU4Gra0mK8K1Q&key=AIzaSyCgnPA-FFfEf3oojyKlxAniG4XZZbse8rM",
+    "gallery": [
+      "https://maps.googleapis.com/maps/api/place/photo?maxwidth=800&photo_reference=AcnlKN0bFQJzq-Y_yZ0IcU86p5LnuFXAC5L6hd7k291wsJqDi5ztg0iyJd3WdcdK9T5XU-J-IUI8-404yyZ74qvP5Uacf4XkrMt9ot88I4YCyNJeg-GucJL1iPJDpXLkL6a1UpRDSnDpkT_PeAmqKJStYrOcGGlSKu7BWhyUfs86lVbbRv4CVZkOEkOzX1nTAiiRvrX0xp117lQI9iCAAQLYjtNixK6GW2cvjlfjidW6s-rb84weNpw4hw08ESJXclHXQr-tA6mhW1Ucl4BRnFhkfMmihHKYszaCqw_x-_wU4Gra0mK8K1Q&key=AIzaSyCgnPA-FFfEf3oojyKlxAniG4XZZbse8rM"
+    ],
+    "place_id": "ChIJPSaHzLR39o4RntnGdn1Q4mE",
+    "name": "Artesanías en palma iraca myr"
+  },
+  "casa-julio-florez": {
+    "primary": "https://maps.googleapis.com/maps/api/place/photo?maxwidth=1200&photo_reference=AcnlKN1A3xqN38lDHq2rwPdxvFUCWqi6ZSeRQwThgR7m_61alTf7Kpw1MpmBrL-jq6ktmEl2V8nnc2feoIpEgcG9XpD6c8vtknYHntmgyVNAA3nfAP5RseA3CU6wmuWBudd9No133OmSVdjskaUunRp6iFeWKOa1ILumm_Cl_6jS6UScwLD9_wKZbP6OptE3RUs4TOGsTK0xVTEDcmJSMYejgk7taEoSY6ES066_xhP0JhSHY3Dy2B1bPZOPgZdR0YmUf6oHvofwq9fDmg_2MX0BhbXLTMAlCoEAVA62JadX-i4NFJVpikQrM6VUpPtTKwHry96ti_y5nCyhQvSDdozWVIO4WtCM-TUGowiDUW_GglPcYFSJr56T8Wo-v7UIE0N02N0qys4lA18_dAm4C_XLPZPitJT1CI9FX5Pink88TN2x5gOxXbGv1iFGb6sBtMyb5aIdiopU09ZGIff1CLbKwtIFq7mq4EZy6w5LLXCbAID-KhY-pdvTfkrnclCuyIkLmJf4mqG_OJSy8j5DrwnXU87jJMtUTMoYm5Rll9VaaN_Il4qzRuQ2nq0qxarVUfdstxhXzFh4&key=AIzaSyCgnPA-FFfEf3oojyKlxAniG4XZZbse8rM",
+    "gallery": [
+      "https://maps.googleapis.com/maps/api/place/photo?maxwidth=800&photo_reference=AcnlKN1A3xqN38lDHq2rwPdxvFUCWqi6ZSeRQwThgR7m_61alTf7Kpw1MpmBrL-jq6ktmEl2V8nnc2feoIpEgcG9XpD6c8vtknYHntmgyVNAA3nfAP5RseA3CU6wmuWBudd9No133OmSVdjskaUunRp6iFeWKOa1ILumm_Cl_6jS6UScwLD9_wKZbP6OptE3RUs4TOGsTK0xVTEDcmJSMYejgk7taEoSY6ES066_xhP0JhSHY3Dy2B1bPZOPgZdR0YmUf6oHvofwq9fDmg_2MX0BhbXLTMAlCoEAVA62JadX-i4NFJVpikQrM6VUpPtTKwHry96ti_y5nCyhQvSDdozWVIO4WtCM-TUGowiDUW_GglPcYFSJr56T8Wo-v7UIE0N02N0qys4lA18_dAm4C_XLPZPitJT1CI9FX5Pink88TN2x5gOxXbGv1iFGb6sBtMyb5aIdiopU09ZGIff1CLbKwtIFq7mq4EZy6w5LLXCbAID-KhY-pdvTfkrnclCuyIkLmJf4mqG_OJSy8j5DrwnXU87jJMtUTMoYm5Rll9VaaN_Il4qzRuQ2nq0qxarVUfdstxhXzFh4&key=AIzaSyCgnPA-FFfEf3oojyKlxAniG4XZZbse8rM"
+    ],
+    "place_id": "ChIJK-b8L8139o4Rh5X2IGqLy1Q",
+    "name": "Inmueble Patrimonial Julio Flórez"
+  }
+};
+
+// Función helper para obtener imagen de un lugar
+export function getPlaceImage(placeId: string): { primary: string; gallery: string[] } {
+  const images = PLACE_IMAGES[placeId];
+  if (images) {
+    return { primary: images.primary, gallery: images.gallery };
+  }
+  // Fallback
+  return {
+    primary: "https://images.unsplash.com/photo-1506929562872-bb421503ef21?w=1200&q=80",
+    gallery: ["https://images.unsplash.com/photo-1506929562872-bb421503ef21?w=800&q=80"]
+  };
+}
+
+// Imágenes por categoría para fallback
+export const CATEGORY_IMAGES: Record<string, string[]> = {
+  playa: [
+    "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800&q=80",
+  ],
+  museo: [
+    "https://images.unsplash.com/photo-1566127444979-b3d2b654e3d7?w=800&q=80",
+  ],
+  restaurante: [
+    "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=800&q=80",
+  ],
+  bar: [
+    "https://images.unsplash.com/photo-1514933651103-005eec06c04b?w=800&q=80",
+  ],
+  naturaleza: [
+    "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=800&q=80",
+  ],
+  cultura: [
+    "https://images.unsplash.com/photo-1533174072545-7a4b6ad7a6c3?w=800&q=80",
+  ],
+  default: [
+    "https://images.unsplash.com/photo-1506929562872-bb421503ef21?w=800&q=80",
+  ],
+};
+
+export function getCategoryImage(category: string, index: number = 0): string {
+  const images = CATEGORY_IMAGES[category] || CATEGORY_IMAGES.default;
+  return images[index % images.length];
+}
