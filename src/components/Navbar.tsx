@@ -63,7 +63,7 @@ const mainLinks = [
     href: "/ruta23",
     label: "Ruta 23",
     icon: IoRestaurantOutline,
-    color: COLORS.naranjaSalinas,
+    color: COLORS.rojoCayena,
   },
 ];
 
