@@ -309,6 +309,8 @@ function DestinationCard({
 export default function MapaPage() {
   const [destinations, setDestinations] = useState<Destination[]>([]);
   const [loading, setLoading] = useState(true);
+  const [mapLoaded, setMapLoaded] = useState(false);
+  const [showContent, setShowContent] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [selectedDestination, setSelectedDestination] = useState<Destination | null>(null);
@@ -403,9 +405,23 @@ export default function MapaPage() {
         setLoading(false);
       }
     }
-    
+
     fetchDestinations();
   }, []);
+
+  // ============================================================================
+  // CONTROL DE LOADING SCREEN - espera a que todo esté cargado + 4 segundos
+  // ============================================================================
+  useEffect(() => {
+    // Cuando tanto los datos como el mapa estén cargados, esperar 4 segundos adicionales
+    if (!loading && mapLoaded) {
+      const timer = setTimeout(() => {
+        setShowContent(true);
+      }, 4000);
+
+      return () => clearTimeout(timer);
+    }
+  }, [loading, mapLoaded]);
 
   // Filter destinations
   const filteredDestinations = useMemo(() => {
@@ -439,8 +455,205 @@ export default function MapaPage() {
 
   return (
     <>
+      {/* Full Page Loading Screen */}
+      <AnimatePresence>
+        {!showContent && (
+          <motion.div
+            initial={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.8 }}
+            className="fixed inset-0 z-[9999] bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center"
+          >
+            {/* Animated background */}
+            <div className="absolute inset-0 overflow-hidden">
+              <motion.div
+                animate={{
+                  scale: [1, 1.5, 1],
+                  opacity: [0.1, 0.2, 0.1],
+                }}
+                transition={{
+                  duration: 4,
+                  repeat: Infinity,
+                  ease: "easeInOut",
+                }}
+                className="absolute top-1/4 left-1/4 w-96 h-96 rounded-full blur-3xl"
+                style={{ backgroundColor: COLORS.azulBarranquero }}
+              />
+              <motion.div
+                animate={{
+                  scale: [1, 1.3, 1],
+                  opacity: [0.1, 0.15, 0.1],
+                }}
+                transition={{
+                  duration: 5,
+                  repeat: Infinity,
+                  ease: "easeInOut",
+                  delay: 1,
+                }}
+                className="absolute bottom-1/4 right-1/4 w-[500px] h-[500px] rounded-full blur-3xl"
+                style={{ backgroundColor: COLORS.naranjaSalinas }}
+              />
+            </div>
+
+            {/* Loading content */}
+            <div className="relative z-10 text-center px-6 max-w-md">
+              {/* Animated logo/icon */}
+              <motion.div
+                animate={{
+                  y: [0, -20, 0],
+                  rotate: [0, 5, -5, 0],
+                }}
+                transition={{
+                  duration: 3,
+                  repeat: Infinity,
+                  ease: "easeInOut",
+                }}
+                className="mb-8"
+              >
+                <div className="relative inline-block">
+                  {/* Outer rotating ring */}
+                  <motion.div
+                    animate={{ rotate: 360 }}
+                    transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
+                    className="w-32 h-32 border-4 rounded-full"
+                    style={{
+                      borderColor: `${COLORS.azulBarranquero}30`,
+                      borderTopColor: COLORS.azulBarranquero,
+                      borderRightColor: COLORS.naranjaSalinas,
+                    }}
+                  />
+
+                  {/* Inner counter-rotating ring */}
+                  <motion.div
+                    animate={{ rotate: -360 }}
+                    transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
+                    className="absolute inset-3 border-4 rounded-full"
+                    style={{
+                      borderColor: `${COLORS.naranjaSalinas}20`,
+                      borderBottomColor: COLORS.naranjaSalinas,
+                      borderLeftColor: COLORS.azulBarranquero,
+                    }}
+                  />
+
+                  {/* Center icon */}
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <MapPin size={48} className="text-white animate-pulse" />
+                  </div>
+                </div>
+              </motion.div>
+
+              {/* Title */}
+              <motion.h2
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3 }}
+                className="text-3xl font-bold text-white mb-4"
+                style={{ fontFamily: "'Josefin Sans', sans-serif" }}
+              >
+                Preparando tu{" "}
+                <span
+                  className="bg-clip-text text-transparent"
+                  style={{
+                    backgroundImage: `linear-gradient(135deg, ${COLORS.azulBarranquero}, ${COLORS.naranjaSalinas})`,
+                  }}
+                >
+                  Aventura
+                </span>
+              </motion.h2>
+
+              {/* Loading messages */}
+              <AnimatePresence mode="wait">
+                <motion.p
+                  key={loading ? "data" : "map"}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  transition={{ duration: 0.3 }}
+                  className="text-lg text-white/70 mb-8"
+                  style={{ fontFamily: "'Montserrat', sans-serif" }}
+                >
+                  {loading
+                    ? "Cargando destinos del Atlántico..."
+                    : mapLoaded
+                    ? "Finalizando detalles..."
+                    : "Preparando el mapa interactivo..."}
+                </motion.p>
+              </AnimatePresence>
+
+              {/* Progress steps */}
+              <div className="flex justify-center gap-3 mb-6">
+                {[
+                  { label: "Destinos", done: !loading },
+                  { label: "Mapa", done: mapLoaded },
+                  { label: "Listo", done: showContent },
+                ].map((step, idx) => (
+                  <motion.div
+                    key={step.label}
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ delay: idx * 0.2 }}
+                    className="flex flex-col items-center gap-2"
+                  >
+                    <div
+                      className={`w-10 h-10 rounded-full flex items-center justify-center border-2 transition-all duration-500 ${
+                        step.done
+                          ? "border-transparent shadow-lg"
+                          : "border-white/30"
+                      }`}
+                      style={{
+                        backgroundColor: step.done
+                          ? COLORS.azulBarranquero
+                          : "transparent",
+                      }}
+                    >
+                      {step.done ? (
+                        <motion.svg
+                          initial={{ scale: 0 }}
+                          animate={{ scale: 1 }}
+                          className="w-5 h-5 text-white"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={3}
+                            d="M5 13l4 4L19 7"
+                          />
+                        </motion.svg>
+                      ) : (
+                        <div className="w-2 h-2 bg-white/50 rounded-full animate-pulse" />
+                      )}
+                    </div>
+                    <span className="text-xs text-white/50" style={{ fontFamily: "'Montserrat', sans-serif" }}>
+                      {step.label}
+                    </span>
+                  </motion.div>
+                ))}
+              </div>
+
+              {/* Progress bar */}
+              <div className="w-full h-1.5 bg-white/10 rounded-full overflow-hidden">
+                <motion.div
+                  initial={{ width: "0%" }}
+                  animate={{
+                    width: loading ? "33%" : mapLoaded ? "66%" : showContent ? "100%" : "33%",
+                  }}
+                  transition={{ duration: 0.5, ease: "easeInOut" }}
+                  className="h-full rounded-full"
+                  style={{
+                    background: `linear-gradient(90deg, ${COLORS.azulBarranquero}, ${COLORS.naranjaSalinas})`,
+                  }}
+                />
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <Navbar />
-      
+
       <main className="min-h-screen bg-slate-50 dark:bg-slate-950">
         {/* ================================================================
             HERO COMPACTO
@@ -767,6 +980,7 @@ export default function MapaPage() {
                       )}
                       brandColors={{ primary: COLORS.azulBarranquero }}
                       mapboxToken={process.env.NEXT_PUBLIC_MAPBOX_TOKEN || ""}
+                      onMapLoad={() => setMapLoaded(true)}
                     />
                   ) : (
                     /* Vista de lista completa */

@@ -36,6 +36,7 @@ interface MapViewProps {
   categoryConfig: Record<string, { icon: React.ComponentType<{ size?: number }>; color: string }>;
   brandColors: any;
   mapboxToken: string;
+  onMapLoad?: () => void;
 }
 
 interface CustomMarker extends Marker {
@@ -65,7 +66,7 @@ const useDarkMode = () => {
   return isDark;
 };
 
-export default function MapView({ destinations, categoryConfig, brandColors, mapboxToken }: MapViewProps) {
+export default function MapView({ destinations, categoryConfig, brandColors, mapboxToken, onMapLoad }: MapViewProps) {
   // Initialize Mapbox token on client side only
   useEffect(() => {
     if (mapboxToken && typeof window !== 'undefined' && mapboxgl) {
@@ -150,7 +151,12 @@ export default function MapView({ destinations, categoryConfig, brandColors, map
     // Smooth loading
     map.on('load', () => {
       setMapLoaded(true);
-      
+
+      // Notify parent component that map is loaded
+      if (onMapLoad) {
+        onMapLoad();
+      }
+
       // Add subtle animations
       map.flyTo({
         center: [-74.82, 10.96],
