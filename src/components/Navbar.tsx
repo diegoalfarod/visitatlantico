@@ -2,14 +2,15 @@
 
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { 
-  HiOutlineMapPin, 
+import {
+  HiOutlineMapPin,
   HiOutlineCalendarDays,
   HiOutlineShieldCheck,
   HiOutlineSparkles,
   HiOutlineMap
 } from "react-icons/hi2";
 import { IoRestaurantOutline } from "react-icons/io5";
+import { GiPartyFlags, GiWaveSurfer } from "react-icons/gi";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -32,33 +33,45 @@ const COLORS = {
 // NAVIGATION LINKS
 // =============================================================================
 const links = [
-  { 
-    href: "/destinations", 
-    label: "Destinos", 
+  {
+    href: "/destinations",
+    label: "Destinos",
     icon: HiOutlineMapPin,
     color: COLORS.verdeBijao,
   },
-  { 
-    href: "/mapa", 
-    label: "Mapa", 
+  {
+    href: "/carnaval",
+    label: "Carnaval",
+    icon: GiPartyFlags,
+    color: COLORS.amarilloArepa,
+  },
+  {
+    href: "/playas/salinas-del-rey",
+    label: "Playas",
+    icon: GiWaveSurfer,
+    color: COLORS.azulBarranquero,
+  },
+  {
+    href: "/mapa",
+    label: "Mapa",
     icon: HiOutlineMap,
     color: COLORS.azulBarranquero,
   },
-  { 
-    href: "/eventos", 
-    label: "Eventos", 
+  {
+    href: "/eventos",
+    label: "Eventos",
     icon: HiOutlineCalendarDays,
     color: COLORS.rojoCayena,
   },
-  { 
-    href: "/ruta23", 
-    label: "Ruta 23", 
+  {
+    href: "/ruta23",
+    label: "Ruta 23",
     icon: IoRestaurantOutline,
     color: COLORS.naranjaSalinas,
   },
-  { 
-    href: "/turismo-seguro", 
-    label: "Turismo Seguro", 
+  {
+    href: "/turismo-seguro",
+    label: "Turismo Seguro",
     icon: HiOutlineShieldCheck,
     color: COLORS.azulBarranquero,
   },
