@@ -4,6 +4,7 @@ import { HeroImage } from "@/components/OptimizedImage";
 import RelatedContent from "@/components/RelatedContent";
 import FAQ from "@/components/FAQ";
 import { FAQSchema } from "@/components/schemas/FAQSchema";
+import Breadcrumbs from "@/components/Breadcrumbs";
 
 /**
  * PILLAR PAGE: Carnaval de Barranquilla 2026
@@ -97,6 +98,14 @@ export default function CarnavalPage() {
       <FAQSchema faqs={carnavalFAQs} />
 
       <main className="min-h-screen bg-white">
+        {/* Breadcrumbs */}
+        <Breadcrumbs
+          items={[
+            { name: "Eventos", url: "https://visitatlantico.com/destinations" },
+            { name: "Carnaval de Barranquilla 2026", url: "https://visitatlantico.com/carnaval" },
+          ]}
+        />
+
         {/* Hero Section */}
         <section className="relative h-[70vh] min-h-[500px]">
           <HeroImage

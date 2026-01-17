@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { TouristAttractionSchema } from "@/components/schemas/TouristAttractionSchema";
 import { HeroImage } from "@/components/OptimizedImage";
 import RelatedContent from "@/components/RelatedContent";
+import Breadcrumbs from "@/components/Breadcrumbs";
 
 /**
  * LANDING PAGE PRIORITARIA: Salinas del Rey Blue Flag
@@ -72,6 +73,14 @@ export default function SalinasDelReyPage() {
       <TouristAttractionSchema atraccion={salinasData} />
 
       <main className="min-h-screen bg-white">
+        {/* Breadcrumbs */}
+        <Breadcrumbs
+          items={[
+            { name: "Playas", url: "https://visitatlantico.com/playas" },
+            { name: "Salinas del Rey Blue Flag", url: "https://visitatlantico.com/playas/salinas-del-rey" },
+          ]}
+        />
+
         {/* Hero */}
         <section className="relative h-[75vh] min-h-[600px]">
           <HeroImage
