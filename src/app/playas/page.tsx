@@ -1,4 +1,5 @@
-import type { Metadata } from "next";
+"use client";
+
 import { HeroImage } from "@/components/OptimizedImage";
 import Breadcrumbs from "@/components/Breadcrumbs";
 import RelatedContent from "@/components/RelatedContent";
@@ -15,56 +16,6 @@ import {
   HiSparkles,
   HiArrowRight,
 } from "react-icons/hi2";
-
-/**
- * PILLAR PAGE: Playas del Atlántico Colombia
- *
- * Keywords target:
- * - playas del atlántico colombia
- * - mejores playas barranquilla
- * - playas puerto colombia
- * - playas blue flag colombia
- * - puerto velero kitesurf
- * - playas cerca de barranquilla
- */
-
-export const metadata: Metadata = {
-  title: "Playas del Atlántico Colombia | Guía Completa 2026",
-  description:
-    "Descubre las mejores playas del Atlántico: Salinas del Rey (Blue Flag), Puerto Velero (kitesurf), Puerto Colombia, Playa Mendoza. Guía completa con fotos, cómo llegar, qué hacer y mejor época para visitar.",
-  keywords: [
-    "playas del atlántico colombia",
-    "mejores playas barranquilla",
-    "playas puerto colombia",
-    "puerto velero kitesurf",
-    "salinas del rey blue flag",
-    "playas cerca de barranquilla",
-    "playa mendoza atlántico",
-    "playas caribe colombiano",
-    "turismo de sol y playa atlántico",
-  ],
-  openGraph: {
-    title: "Playas del Atlántico Colombia | Guía Completa 2026",
-    description:
-      "🏖️ Salinas del Rey Blue Flag | 🪁 Puerto Velero Kitesurf | 🌊 Playas Caribeñas del Atlántico. Aguas cristalinas, deportes acuáticos y naturaleza.",
-    images: [
-      {
-        url: "/images/og-image-playas.jpg",
-        width: 1200,
-        height: 630,
-        alt: "Playas del Atlántico Colombia - Caribe Colombiano",
-      },
-    ],
-    type: "article",
-  },
-  alternates: {
-    canonical: "/playas",
-    languages: {
-      "es-CO": "/es/playas",
-      "en-US": "/en/beaches",
-    },
-  },
-};
 
 export default function PlayasPage() {
   const playasFAQs = [
