@@ -7,7 +7,6 @@ import Link from "next/link";
 import {
   Calendar,
   MapPin,
-  ArrowLeft,
   Search,
   X,
   ChevronLeft,
@@ -693,22 +692,6 @@ export default function EventsPageClient({ initialEvents }: EventsPageClientProp
           </div>
           
           <div className="relative max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 pt-28 pb-20">
-            {/* Back Link */}
-            <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.1 }}
-            >
-              <Link
-                href="/"
-                className="inline-flex items-center gap-2 text-white/40 hover:text-white/80 transition-colors text-sm mb-12 group"
-                style={{ fontFamily: "'Montserrat', sans-serif" }}
-              >
-                <ArrowLeft size={16} className="transition-transform group-hover:-translate-x-1" />
-                Inicio
-              </Link>
-            </motion.div>
-            
             <div ref={headerRef} className="max-w-4xl">
               {/* Badge */}
               <motion.div
