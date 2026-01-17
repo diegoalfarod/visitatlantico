@@ -57,7 +57,7 @@ const mainLinks = [
     href: "/eventos",
     label: "Qué Hacer",
     icon: HiOutlineCalendarDays,
-    color: COLORS.rojoCayena,
+    color: COLORS.naranjaSalinas,
   },
   {
     href: "/ruta23",
