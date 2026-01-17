@@ -46,7 +46,7 @@ const links = [
     color: COLORS.amarilloArepa,
   },
   {
-    href: "/playas/salinas-del-rey",
+    href: "/playas",
     label: "Playas",
     icon: GiWaveSurfer,
     color: COLORS.azulBarranquero,
