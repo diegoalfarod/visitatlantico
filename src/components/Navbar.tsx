@@ -37,7 +37,7 @@ const COLORS = {
 const mainLinks = [
   {
     href: "/destinations",
-    label: "Destinos",
+    label: "Pa' Dónde Ir",
     icon: HiOutlineMapPin,
     color: COLORS.verdeBijao,
   },
@@ -55,13 +55,13 @@ const mainLinks = [
   },
   {
     href: "/eventos",
-    label: "Eventos",
+    label: "Qué Hacer",
     icon: HiOutlineCalendarDays,
     color: COLORS.rojoCayena,
   },
   {
     href: "/ruta23",
-    label: "Gastronomía",
+    label: "Ruta 23",
     icon: IoRestaurantOutline,
     color: COLORS.naranjaSalinas,
   },
@@ -77,7 +77,7 @@ const secondaryLinks = [
   },
   {
     href: "/blog",
-    label: "Blog",
+    label: "Relatos del Caribe",
     icon: HiOutlineSparkles,
     color: COLORS.rojoCayena,
   },
