@@ -2,13 +2,17 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { 
+import {
   Phone, Mail, MapPin, Facebook, AlertTriangle,
   ArrowLeft, ArrowRight, ExternalLink, Shield, ShieldCheck,
   Users, Car, Waves, TreePine, MapPinned, Umbrella, Info
 } from "lucide-react";
 import { motion, useScroll, useTransform } from "framer-motion";
 import { useRef } from "react";
+import Breadcrumbs from "@/components/Breadcrumbs";
+import FAQ from "@/components/FAQ";
+import { FAQSchema } from "@/components/schemas/FAQSchema";
+import RelatedContent from "@/components/RelatedContent";
 
 /* ============================================
    SISTEMA DE DISEÑO VISITATLÁNTICO
@@ -714,20 +718,103 @@ function Footer() {
 }
 
 /* ============================================
+   FAQ DATA
+   ============================================ */
+
+const turismoSeguroFAQs = [
+  {
+    question: "¿Qué es la Policía de Turismo del Atlántico?",
+    answer:
+      "La Policía de Turismo es un grupo especializado de la Policía Nacional de Colombia dedicado a la protección y asistencia de turistas en el departamento del Atlántico. Operan <strong>24/7</strong> con más de <strong>72 uniformados</strong> en playas, carreteras, eventos y destinos turísticos. Su misión es garantizar tu seguridad mientras disfrutas de tu visita al Caribe colombiano.",
+  },
+  {
+    question: "¿Cómo puedo contactar a la Policía de Turismo?",
+    answer:
+      "Puedes contactar a la Policía de Turismo de varias formas:<br/><br/><strong>• Línea de emergencias: 123</strong> (disponible 24/7 para cualquier emergencia)<br/><strong>• Línea directa: +57 324 571 0123</strong> (atención turística específica)<br/><strong>• Email:</strong> Deata.gutur@policia.gov.co<br/><strong>• Presencial:</strong> Calle 81 No. 14-33, Soledad, Atlántico<br/><strong>• Facebook:</strong> @departamentodepoliciaatlantico<br/><br/>En playas y eventos encontrarás patrullas fácilmente identificables con uniforme distintivo.",
+  },
+  {
+    question: "¿Qué debo hacer si soy víctima de un robo?",
+    answer:
+      "<strong>Paso 1:</strong> Llama inmediatamente al <strong>123</strong> para reportar el incidente.<br/><strong>Paso 2:</strong> Aléjate del lugar si sientes peligro y busca un sitio seguro (hotel, restaurante, comercio).<br/><strong>Paso 3:</strong> Anota detalles: hora, lugar exacto, descripción de los sospechosos.<br/><strong>Paso 4:</strong> Presenta denuncia formal en la estación de policía más cercana con tu identificación.<br/><strong>Paso 5:</strong> Si te robaron documentos, contacta a tu embajada o consulado.<br/><br/><strong>Importante:</strong> La Policía de Turismo te acompañará durante todo el proceso y te asistirá con traducción si es necesario.",
+  },
+  {
+    question: "¿Es seguro viajar por las carreteras del Atlántico?",
+    answer:
+      "Sí, las principales carreteras turísticas del Atlántico son <strong>seguras y bien vigiladas</strong>:<br/><br/><strong>Vía al Mar (Barranquilla-Puerto Colombia):</strong> Patrullaje permanente, iluminada, tránsito fluido.<br/><strong>Troncal del Caribe:</strong> Puestos de control de la Policía de Turismo en puntos estratégicos.<br/><strong>Carreteras municipales:</strong> Seguras durante el día, evita viajar de noche por vías secundarias.<br/><br/><strong>Consejos:</strong><br/>• Viaja de día cuando sea posible<br/>• Usa Waze/Google Maps para rutas actualizadas<br/>• No recojas desconocidos<br/>• Mantén puertas cerradas y objetos fuera de vista<br/>• En caso de pinchazo, busca zona iluminada/poblada",
+  },
+  {
+    question: "¿Qué medidas de seguridad hay en playas y eventos?",
+    answer:
+      "<strong>En Playas:</strong><br/>• 85 policías de turismo en temporada alta<br/>• Patrullaje a pie y en moto en 18km de costa<br/>• Torres de vigilancia en Puerto Colombia y Salinas del Rey<br/>• Servicio de primeros auxilios<br/>• Guardavidas en playas principales<br/><br/><strong>En Eventos (Carnaval, festivales):</strong><br/>• Dispositivos especiales con cientos de uniformados<br/>• Puntos de atención y orientación turística<br/>• Cámaras de seguridad en rutas de desfiles<br/>• Ambulancias y puestos médicos<br/>• Zonas seguras señalizadas<br/><br/><strong>Recomendación:</strong> Sigue las indicaciones de las autoridades y no dejes tus pertenencias desatendidas.",
+  },
+];
+
+/* ============================================
    MAIN PAGE
    ============================================ */
 
 export default function TurismoSeguroPage() {
   return (
-    <main className="bg-white">
-      <HeroSection />
-      <StatsBar />
-      <PresenceSection />
-      <EmergencySection />
-      <TipsSection />
-      <EscnnaWarning />
-      <ContactSection />
-      <Footer />
-    </main>
+    <>
+      {/* Schema.org FAQ */}
+      <FAQSchema faqs={turismoSeguroFAQs} />
+
+      {/* Breadcrumbs */}
+      <Breadcrumbs
+        items={[
+          { name: "Turismo Seguro", url: "https://visitatlantico.com/turismo-seguro" },
+        ]}
+      />
+
+      <main className="bg-white">
+        <HeroSection />
+        <StatsBar />
+        <PresenceSection />
+        <EmergencySection />
+        <TipsSection />
+        <EscnnaWarning />
+
+        {/* FAQ Section */}
+        <section className="py-20 sm:py-28 bg-white">
+          <div className="max-w-4xl mx-auto px-6 sm:px-8 lg:px-12">
+            <FAQ faqs={turismoSeguroFAQs} />
+          </div>
+        </section>
+
+        <ContactSection />
+        <Footer />
+      </main>
+
+      {/* Related Content */}
+      <RelatedContent
+        title="Planea tu visita al Atlántico"
+        items={[
+          {
+            title: "Destinos del Atlántico",
+            description:
+              "Descubre los 23 municipios del departamento con sus atractivos turísticos únicos.",
+            url: "/destinations",
+            image: "/images/destinations-hero.jpg",
+            category: "Destinos",
+          },
+          {
+            title: "Eventos y Festivales 2025",
+            description:
+              "Agenda completa de eventos culturales, Carnaval y festivales gastronómicos.",
+            url: "/eventos",
+            image: "/images/eventos-atlantico-og.jpg",
+            category: "Eventos",
+          },
+          {
+            title: "Playas del Atlántico",
+            description:
+              "Playas Blue Flag, kitesurf en Puerto Velero y paraísos caribeños cerca de Barranquilla.",
+            url: "/playas",
+            image: "/images/playas-atlantico-hero.jpg",
+            category: "Naturaleza",
+          },
+        ]}
+      />
+    </>
   );
 }

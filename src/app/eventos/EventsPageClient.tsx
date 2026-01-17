@@ -4,9 +4,9 @@ import { useState, useRef, useMemo, useCallback } from "react";
 import { motion, AnimatePresence, useInView } from "framer-motion";
 import Image from "next/image";
 import Link from "next/link";
-import { 
-  Calendar, 
-  MapPin, 
+import {
+  Calendar,
+  MapPin,
   ArrowLeft,
   Search,
   X,
@@ -21,6 +21,10 @@ import {
 import type { Event, EventCategory } from "@/types/event";
 import { EVENT_CATEGORIES } from "@/types/event";
 import { EventDrawer } from "@/components/EventDrawer";
+import Breadcrumbs from "@/components/Breadcrumbs";
+import FAQ from "@/components/FAQ";
+import { FAQSchema } from "@/components/schemas/FAQSchema";
+import RelatedContent from "@/components/RelatedContent";
 
 // =============================================================================
 // DESIGN SYSTEM - VisitAtlántico
@@ -622,13 +626,50 @@ export default function EventsPageClient({ initialEvents }: EventsPageClientProp
   
   const activeFiltersCount = [selectedMonth, selectedCategory, searchQuery].filter(Boolean).length;
 
+  // FAQs data
+  const eventosFAQs = [
+    {
+      question: "¿Cuándo es el Carnaval de Barranquilla 2026?",
+      answer:
+        "El Carnaval de Barranquilla 2026 se celebra del <strong>14 al 17 de febrero de 2026</strong>. Los eventos pre-carnaval inician en enero con la Lectura del Bando y coronación de reyes. Los 4 días oficiales incluyen: Batalla de Flores (sábado 14), Gran Parada de Tradición (domingo 15), Gran Parada de Fantasía (lunes 16) y Muerte de Joselito (martes 17).",
+    },
+    {
+      question: "¿Dónde puedo ver eventos gratuitos en el Atlántico?",
+      answer:
+        "El Atlántico ofrece múltiples eventos gratuitos durante todo el año:<br/><br/><strong>• Carnaval de Barranquilla:</strong> Desfiles en las calles (sin costo), aunque las palcos tienen precio.<br/><strong>• Festivales municipales:</strong> Mayoría de festivales gastronómicos son de entrada libre.<br/><strong>• Eventos culturales:</strong> Museo del Caribe, eventos en plazas públicas.<br/><strong>• Fechas especiales:</strong> Día de la Independencia, festividades religiosas.<br/><br/>Filtra por 'Eventos Gratuitos' en nuestra agenda para ver la lista completa.",
+    },
+    {
+      question: "¿Qué festivales gastronómicos hay en el Atlántico?",
+      answer:
+        "El Atlántico es famoso por sus festivales gastronómicos:<br/><br/><strong>• Festival del Bollo:</strong> Juan de Acosta - Septiembre<br/><strong>• Festival del Mango:</strong> Luruaco - Julio<br/><strong>• Festival del Sancocho:</strong> Sabanagrande - Agosto<br/><strong>• Ruta 23 Gastronómica:</strong> 18 festivales en diferentes municipios<br/><strong>• Festival del Chicharrón:</strong> Palmar de Varela<br/><strong>• Festival de la Butifarra:</strong> Soledad<br/><br/>Cada festival celebra la tradición culinaria local con degustaciones, concursos y música en vivo.",
+    },
+    {
+      question: "¿Cómo compro boletos para los eventos?",
+      answer:
+        "Las boleterías varían según el evento:<br/><br/><strong>Carnaval de Barranquilla:</strong> Palcos oficiales en <a href='https://www.carnavaldebarranquilla.org' target='_blank' rel='noopener' style='color: #EA5B13; text-decoration: underline;'>carnavaldebarranquilla.org</a> desde diciembre.<br/><strong>Eventos en vivo:</strong> TuBoleta, Eticket, puntos de venta autorizados.<br/><strong>Festivales municipales:</strong> Generalmente entrada libre o taquilla presencial.<br/><strong>Conciertos:</strong> Plataformas digitales o taquillas de venue.<br/><br/>Consulta los detalles de cada evento en nuestra agenda para enlaces directos de compra.",
+    },
+    {
+      question: "¿Cuál es la mejor época para visitar el Atlántico?",
+      answer:
+        "El Atlántico es destino de sol todo el año, pero estas son las mejores épocas:<br/><br/><strong>Diciembre - Marzo (Temporada alta):</strong><br/>• Menos lluvias, clima perfecto para playas<br/>• Carnaval de Barranquilla en febrero<br/>• Temperaturas 28-32°C<br/><br/><strong>Junio - Agosto (Temporada media):</strong><br/>• Festivales gastronómicos en municipios<br/>• Buen clima, menos turistas<br/><br/><strong>Septiembre - Noviembre (Temporada baja):</strong><br/>• Precios más económicos<br/>• Lluvias ocasionales (principalmente tardes)<br/>• Eventos culturales locales<br/><br/><strong>Eventos especiales:</strong> Planifica para fechas específicas como Carnaval, Semana Santa, o festivales municipales según tus intereses.",
+    },
+  ];
+
   return (
     <>
+      {/* Schema.org FAQ */}
+      <FAQSchema faqs={eventosFAQs} />
+
+      {/* Breadcrumbs */}
+      <Breadcrumbs
+        items={[{ name: "Eventos", url: "https://visitatlantico.com/eventos" }]}
+      />
+
       <main className="min-h-screen bg-[#fafafa]">
         {/* ================================================================
             HERO SECTION
             ================================================================ */}
-        <section 
+        <section
           className="relative overflow-hidden"
           style={{ backgroundColor: COLORS.grisOscuro }}
         >
@@ -1017,19 +1058,28 @@ export default function EventsPageClient({ initialEvents }: EventsPageClientProp
         </section>
 
         {/* ================================================================
+            FAQ SECTION
+            ================================================================ */}
+        <section className="bg-white py-20 sm:py-28">
+          <div className="max-w-4xl mx-auto px-6 sm:px-8 lg:px-12">
+            <FAQ faqs={eventosFAQs} />
+          </div>
+        </section>
+
+        {/* ================================================================
             CTA SECTION
             ================================================================ */}
         <section className="bg-white border-t border-slate-100">
           <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 py-16">
             <div className="flex flex-col lg:flex-row items-center justify-between gap-8 p-8 lg:p-12 rounded-3xl" style={{ backgroundColor: COLORS.grisOscuro }}>
               <div className="text-center lg:text-left">
-                <h2 
+                <h2
                   className="text-2xl lg:text-3xl font-bold text-white mb-3"
                   style={{ fontFamily: "'Josefin Sans', sans-serif" }}
                 >
                   ¿Organizas un evento en el Atlántico?
                 </h2>
-                <p 
+                <p
                   className="text-white/50 max-w-lg"
                   style={{ fontFamily: "'Montserrat', sans-serif" }}
                 >
@@ -1052,6 +1102,38 @@ export default function EventsPageClient({ initialEvents }: EventsPageClientProp
           </div>
         </section>
       </main>
+
+      {/* Related Content */}
+      <RelatedContent
+        title="Explora más del Atlántico"
+        items={[
+          {
+            title: "Carnaval de Barranquilla 2026",
+            description:
+              "El segundo carnaval más grande del mundo. 4 días de fiesta, cultura y tradición caribeña.",
+            url: "/carnaval",
+            image: "/images/carnaval-batalla-flores.jpg",
+            category: "Eventos",
+          },
+          {
+            title: "Playas del Atlántico",
+            description:
+              "Descubre playas Blue Flag, kitesurf en Puerto Velero y paraísos caribeños.",
+            url: "/playas",
+            image: "/images/playas-atlantico-hero.jpg",
+            category: "Naturaleza",
+          },
+          {
+            title: "Ruta 23 Gastronómica",
+            description:
+              "18 festivales gastronómicos que celebran los sabores auténticos del Caribe.",
+            url: "/ruta23",
+            image:
+              "https://firebasestorage.googleapis.com/v0/b/visitatlantico-f5c09.firebasestorage.app/o/RUTA23%20-%20IMAGE%201.png?alt=media&token=cd2eebdd-020a-41f8-9703-e1ac3d238534",
+            category: "Gastronomía",
+          },
+        ]}
+      />
       
       <EventDrawer
         event={selectedEvent}
