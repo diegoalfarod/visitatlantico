@@ -237,7 +237,7 @@ export default function Navbar() {
                     className="text-base"
                     style={{
                       color: scrolled
-                        ? color  // Always use the assigned color when scrolled
+                        ? (href === '/ruta23' ? color : (isActiveLink(href) ? color : COLORS.grisOscuro))
                         : (isActiveLink(href) ? '#ffffff' : 'rgba(255,255,255,0.85)')
                     }}
                   />
