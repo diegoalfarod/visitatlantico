@@ -233,7 +233,14 @@ export default function Navbar() {
                 }}
               >
                 <span className="flex items-center gap-1.5 text-sm font-medium">
-                  <Icon className="text-base" />
+                  <Icon
+                    className="text-base"
+                    style={{
+                      color: scrolled
+                        ? (isActiveLink(href) ? color : COLORS.grisOscuro)
+                        : (isActiveLink(href) ? '#ffffff' : 'rgba(255,255,255,0.85)')
+                    }}
+                  />
                   {label}
                 </span>
 
