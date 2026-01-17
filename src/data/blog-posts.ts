@@ -338,7 +338,6 @@ export const blogPosts: BlogPost[] = [
       </article>
     `,
   },
-  },
   {
     slug: "guia-hospedaje-barranquilla-carnaval",
     title: "Dónde Hospedarse en Barranquilla para el Carnaval: Guía por Zonas",
