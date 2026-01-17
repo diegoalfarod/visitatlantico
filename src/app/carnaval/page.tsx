@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
 import { CarnavalEventSchema } from "@/components/schemas/EventSchema";
 import { HeroImage } from "@/components/OptimizedImage";
+import RelatedContent from "@/components/RelatedContent";
+import FAQ from "@/components/FAQ";
+import { FAQSchema } from "@/components/schemas/FAQSchema";
 
 /**
  * PILLAR PAGE: Carnaval de Barranquilla 2026
@@ -53,10 +56,45 @@ export const metadata: Metadata = {
 };
 
 export default function CarnavalPage() {
+  // FAQs optimizadas para Featured Snippets y People Also Ask
+  const carnavalFAQs = [
+    {
+      question: "¿Cuándo es el Carnaval de Barranquilla 2026?",
+      answer:
+        "El Carnaval de Barranquilla 2026 se celebra del <strong>14 al 17 de febrero de 2026</strong>. Los eventos principales son: <ul><li><strong>Sábado 14:</strong> Batalla de Flores (desfile principal)</li><li><strong>Domingo 15:</strong> Gran Parada de Tradición</li><li><strong>Lunes 16:</strong> Gran Parada de Fantasía y Festival de Orquestas</li><li><strong>Martes 17:</strong> Muerte de Joselito (cierre simbólico)</li></ul> La pre-carnaval comienza desde enero con eventos como la Guacherna y la Lectura del Bando.",
+    },
+    {
+      question: "¿Cuánto cuesta asistir al Carnaval de Barranquilla?",
+      answer:
+        "El costo de asistir al Carnaval varía según tu presupuesto:<br/><br/><strong>Opciones económicas (desde $50 USD/persona):</strong><ul><li>Desfiles gratis en la vía (llega temprano para buenos lugares)</li><li>Hospedaje en hostales: $15-30 USD/noche</li><li>Comida callejera: $3-8 USD por comida</li></ul><br/><strong>Opciones premium (desde $500 USD/persona):</strong><ul><li>Palcos en Batalla de Flores: $150-500 USD</li><li>Hoteles 4-5 estrellas: $100-300 USD/noche</li><li>Tours privados con guía: $80-150 USD</li></ul><br/>Recomendación: Presupuesto promedio de $300-500 USD por persona para 4 días (hospedaje, comidas, entradas y transporte).",
+    },
+    {
+      question: "¿Dónde hospedarse para el Carnaval de Barranquilla?",
+      answer:
+        "Las mejores zonas para hospedarse durante el Carnaval son:<br/><br/><strong>1. Centro Norte (Zona Exclusiva):</strong><br/>Cerca de la Vía 40 donde pasan los desfiles. Hoteles como Hilton Garden Inn, GHL Hotel Barranquilla, Sonesta Hotel.<br/><br/><strong>2. El Poblado y Alto Prado:</strong><br/>Barrios seguros y cómodos, a 15-20 min de los desfiles. Buena relación calidad-precio.<br/><br/><strong>3. Buenavista:</strong><br/>Zona moderna con opciones de Airbnb y apartamentos amoblados. Ideal para grupos.<br/><br/><strong>Consejo:</strong> Reserva con <strong>4-6 meses de anticipación</strong> ya que los hoteles se llenan rápido. Los precios suben 2-3x durante el Carnaval.",
+    },
+    {
+      question: "¿Qué es la Batalla de Flores y por qué es el evento principal?",
+      answer:
+        "La <strong>Batalla de Flores</strong> es el desfile inaugural del Carnaval de Barranquilla, considerado el evento más importante. Se realiza el sábado y recorre la Vía 40.<br/><br/><strong>¿Por qué es tan especial?</strong><ul><li>Desfilan las carrozas más espectaculares decoradas con flores</li><li>Participan todas las danzas folclóricas tradicionales</li><li>Es el desfile más largo (más de 8 horas)</li><li>Asisten las reinas del Carnaval en carrozas de lujo</li><li>Aparecen grupos de cumbia, mapalé y son de negro</li></ul><br/><strong>Dato histórico:</strong> Se llama 'Batalla de Flores' porque antiguamente los asistentes se lanzaban flores entre sí como símbolo de alegría y celebración.",
+    },
+    {
+      question: "¿Es seguro asistir al Carnaval de Barranquilla?",
+      answer:
+        "Sí, el Carnaval de Barranquilla es <strong>generalmente seguro</strong> si sigues estas recomendaciones:<br/><br/><strong>Medidas de seguridad:</strong><ul><li>✅ No lleves objetos de valor (joyas, relojes caros)</li><li>✅ Usa riñonera o bolso cruzado pegado al cuerpo</li><li>✅ Mantente en zonas concurridas y bien iluminadas</li><li>✅ Toma taxis de aplicaciones (Uber, DiDi, InDriver)</li><li>✅ Hidrátate constantemente (hace mucho calor)</li><li>✅ Usa protector solar y gorra</li></ul><br/><strong>Durante el Carnaval hay:</strong><br/>Mayor presencia policial, zonas acordonadas, puntos de hidratación y atención médica. Más de 1 millón de personas asisten cada año sin incidentes.",
+    },
+    {
+      question: "¿Por qué el Carnaval de Barranquilla es Patrimonio de la Humanidad UNESCO?",
+      answer:
+        "El Carnaval de Barranquilla fue declarado <strong>Obra Maestra del Patrimonio Oral e Intangible de la Humanidad por la UNESCO en 2003</strong>.<br/><br/><strong>Razones del reconocimiento:</strong><ul><li>🎭 Preserva tradiciones culturales de más de 100 años</li><li>🌍 Fusiona influencias indígenas, africanas y europeas</li><li>🎶 Mantiene vivas danzas folclóricas únicas (cumbia, mapalé, congo)</li><li>👥 Es un evento participativo donde toda la comunidad se involucra</li><li>📚 Transmite cultura de generación en generación</li></ul><br/>Es uno de los tres carnavales del mundo con este reconocimiento UNESCO, junto con el de Río de Janeiro y el de Venecia.",
+    },
+  ];
+
   return (
     <>
       {/* Schema.org para Google */}
       <CarnavalEventSchema />
+      <FAQSchema faqs={carnavalFAQs} />
 
       <main className="min-h-screen bg-white">
         {/* Hero Section */}
@@ -324,6 +362,44 @@ export default function CarnavalPage() {
             </div>
           </div>
         </section>
+
+        {/* FAQ Section - Optimizada para Featured Snippets */}
+        <FAQ
+          title="Preguntas Frecuentes sobre el Carnaval 2026"
+          subtitle="Todo lo que necesitas saber para vivir el mejor Carnaval de tu vida"
+          faqs={carnavalFAQs}
+        />
+
+        {/* Contenido Relacionado para SEO Interlinking */}
+        <RelatedContent
+          title="Descubre más del Atlántico"
+          items={[
+            {
+              title: "Playas Blue Flag del Atlántico",
+              description:
+                "Descubre Salinas del Rey, primera playa deportiva de América con certificación Blue Flag. Kitesur f, windsurf y deportes acuáticos en aguas cristalinas del Caribe colombiano.",
+              url: "/playas/salinas-del-rey",
+              image: "/images/salinas-del-rey-beach.jpg",
+              category: "Playas",
+            },
+            {
+              title: "Gastronomía Caribeña Auténtica",
+              description:
+                "Descubre los sabores del Caribe: arepa de huevo, pescado frito, sancocho de guandú. Recorrido por los mejores restaurantes y mercados de comida típica en Barranquilla.",
+              url: "/ruta23",
+              image: "/images/gastronomia-caribe.jpg",
+              category: "Gastronomía",
+            },
+            {
+              title: "17 Municipios del Atlántico",
+              description:
+                "Explora todos los municipios del departamento: desde las playas de Puerto Colombia hasta la historia de Soledad. Guía completa de qué ver y hacer en cada destino.",
+              url: "/destinations",
+              image: "/images/municipios-atlantico.jpg",
+              category: "Destinos",
+            },
+          ]}
+        />
       </main>
     </>
   );

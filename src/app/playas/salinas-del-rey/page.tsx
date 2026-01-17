@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { TouristAttractionSchema } from "@/components/schemas/TouristAttractionSchema";
 import { HeroImage } from "@/components/OptimizedImage";
+import RelatedContent from "@/components/RelatedContent";
 
 /**
  * LANDING PAGE PRIORITARIA: Salinas del Rey Blue Flag
@@ -388,6 +389,37 @@ export default function SalinasDelReyPage() {
             </div>
           </div>
         </section>
+
+        {/* Contenido Relacionado para SEO Interlinking */}
+        <RelatedContent
+          title="Más Experiencias en el Atlántico"
+          items={[
+            {
+              title: "Carnaval de Barranquilla 2026",
+              description:
+                "Vive el segundo carnaval más grande del mundo del 14 al 17 de febrero 2026. Patrimonio Cultural Inmaterial de la Humanidad UNESCO con 4 días de fiesta, música y tradición caribeña.",
+              url: "/carnaval",
+              image: "/images/carnaval-batalla-flores.jpg",
+              category: "Eventos",
+            },
+            {
+              title: "Ruta Gastronómica del Atlántico",
+              description:
+                "Explora los sabores auténticos del Caribe colombiano. Desde arepas de huevo hasta pescados frescos, descubre los mejores restaurantes y mercados de Barranquilla.",
+              url: "/ruta23",
+              image: "/images/gastronomia-caribe.jpg",
+              category: "Gastronomía",
+            },
+            {
+              title: "Ecoturismo en los Manglares",
+              description:
+                "Descubre la biodiversidad del Caribe en los manglares del Atlántico. Observación de aves, kayak ecológico y tours guiados por ecosistemas únicos.",
+              url: "/destinations",
+              image: "/images/manglares-atlantico.jpg",
+              category: "Ecoturismo",
+            },
+          ]}
+        />
       </main>
     </>
   );
