@@ -1,17 +1,12 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  
+  // Necesario para Next.js 16
+  turbopack: {},
+  
   images: {
-    /* dominios con URL fija */
-    domains: [
-      'firebasestorage.googleapis.com', 
-      'lh3.googleusercontent.com',
-      'maps.googleapis.com',
-      'images.unsplash.com',
-      'appdevelopi.s3.us-east-1.amazonaws.com', // ✨ Agregado para S3
-    ],
-    
-    /* patrones remotos (subdominios variables y APIs) */
+    // Solo remotePatterns (domains está deprecado)
     remotePatterns: [
       { 
         protocol: "https", 
@@ -50,25 +45,14 @@ const nextConfig = {
       },
       {
         protocol: "https",
-        hostname: "appdevelopi.s3.us-east-1.amazonaws.com", // ✨ Agregado para S3
+        hostname: "appdevelopi.s3.us-east-1.amazonaws.com",
         pathname: "/**",
       },
     ],
   },
-  experimental: {
-    optimizeCss: false
-  },
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
+  
   typescript: {
     ignoreBuildErrors: true,
-  },
-  webpack: (config) => {
-    config.resolve.alias = {
-      ...config.resolve.alias,
-    };
-    return config;
   },
 };
 
